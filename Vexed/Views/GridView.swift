@@ -126,7 +126,8 @@ struct GridView: View {
                 }
 
                 // ── Word outline overlay ───────────────────────────────
-                // One rounded rect wrapping each whole word, instead of per-tile borders
+                // One rounded rect per word. Tap the outline (or its interior) to collect.
+                // Drags still reach the tiles below because TapGesture only fires on stationary touches.
                 ZStack(alignment: .topLeading) {
                     ForEach(engine.availableWords) { word in
                         let minR = word.positions.map({ $0.row }).min() ?? 0
@@ -140,15 +141,25 @@ struct GridView: View {
                         let h = CGFloat(maxR - minR + 1) * tileSize + CGFloat(maxR - minR) * gap + outset * 2
                         let cr = tileSize * 0.26 + outset
 
-                        RoundedRectangle(cornerRadius: cr)
-                            .stroke(
-                                Color(red: 1.0, green: 0.85, blue: 0.2)
-                                    .opacity(wordPulse ? 0.85 : 0.2),
-                                lineWidth: 2.5
-                            )
-                            .frame(width: w, height: h)
-                            .offset(x: x, y: y)
-                            .allowsHitTesting(false)
+                        ZStack {
+                            // Pulsing stroke
+                            RoundedRectangle(cornerRadius: cr)
+                                .stroke(
+                                    Color(red: 1.0, green: 0.85, blue: 0.2)
+                                        .opacity(wordPulse ? 0.85 : 0.2),
+                                    lineWidth: 2.5
+                                )
+                                .allowsHitTesting(false)
+                            // Transparent fill — makes the whole interior tappable to collect
+                            RoundedRectangle(cornerRadius: cr)
+                                .fill(Color.clear)
+                                .contentShape(RoundedRectangle(cornerRadius: cr))
+                                .onTapGesture {
+                                    engine.collectWord(word)
+                                }
+                        }
+                        .frame(width: w, height: h)
+                        .offset(x: x, y: y)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
