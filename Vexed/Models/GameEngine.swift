@@ -47,7 +47,6 @@ final class GameEngine: ObservableObject {
         self.grid = Self.makeGrid(rows: config.rows, cols: config.cols)
         startPressureTimer()
         recalculatePotentialScore()
-        peakScore = potentialScore
     }
 
     // MARK: - Grid Setup
@@ -320,9 +319,13 @@ final class GameEngine: ObservableObject {
             total += bestScoreForLine(letters)
         }
         potentialScore = total
-        // Check if any words remain on the board
+        // Track running maximum — peakScore only rises during a game
+        peakScore = max(peakScore, potentialScore)
+        // Only fire noWordsLeft once words have actually been possible (peakScore > 0).
+        // Fresh boards start with potentialScore == 0 by design; without this guard
+        // the overlay would trigger on the very first slide.
         let tilesExist = grid.flatMap { $0 }.contains { $0 != nil }
-        noWordsLeft = tilesExist && potentialScore == 0 && !gameOver
+        noWordsLeft = tilesExist && potentialScore == 0 && peakScore > 0 && !gameOver
     }
 
     // Greedy scan: find non-overlapping valid words (longest first) and sum their points.
@@ -420,8 +423,8 @@ final class GameEngine: ObservableObject {
         lastWord = nil; gameOver = false; log = []; wordHistory = []
         startPressureTimer()
         updateDangerStates()
-        recalculatePotentialScore()
-        peakScore = potentialScore
+        peakScore = 0
         noWordsLeft = false
+        recalculatePotentialScore()
     }
 }
