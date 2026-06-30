@@ -14,8 +14,9 @@ struct GridView: View {
             let rows = engine.config.rows
             let cols = engine.config.cols
             let gap: CGFloat = 6
-            let totalGapW = gap * CGFloat(cols - 1) + 20
-            let totalGapH = gap * CGFloat(rows - 1) + 20
+            let padding: CGFloat = 10
+            let totalGapW = gap * CGFloat(cols - 1) + padding * 2
+            let totalGapH = gap * CGFloat(rows - 1) + padding * 2
             let tileW = (geo.size.width - totalGapW) / CGFloat(cols)
             let tileH = (geo.size.height - totalGapH) / CGFloat(rows)
             let tileSize = min(tileW, tileH)
@@ -24,7 +25,6 @@ struct GridView: View {
             let pathSet: Set<Position> = Set(engine.slidePaths.values.flatMap { $0 })
             let destSet: Set<Position> = Set(engine.slidePaths.values.compactMap { $0.last })
             let pathColor: Color = selectedTileColor()
-            let availablePositions: Set<Position> = Set(engine.availableWords.flatMap { $0.positions })
 
             ZStack {
                 // ── Game board background ──────────────────────────────
@@ -50,7 +50,6 @@ struct GridView: View {
                                     guard let hl = engine.highlightedPositions else { return false }
                                     return tile != nil && !hl.contains(pos)
                                 }()
-                                let isWordTile = tile != nil && availablePositions.contains(pos)
 
                                 ZStack {
                                     if let tile {
@@ -71,16 +70,6 @@ struct GridView: View {
                                             isDestination: isDest
                                         )
                                     }
-                                    // Pulsing gold border on tiles that form a collectable word
-                                    if isWordTile && !isDimmed {
-                                        RoundedRectangle(cornerRadius: tileSize * 0.2)
-                                            .stroke(
-                                                Color(red: 1.0, green: 0.85, blue: 0.2)
-                                                    .opacity(wordPulse ? 0.9 : 0.25),
-                                                lineWidth: 2.5
-                                            )
-                                            .allowsHitTesting(false)
-                                    }
                                     // Dimming overlay: separate from matchedGeometryEffect to avoid SwiftUI animation conflicts
                                     if isDimmed {
                                         RoundedRectangle(cornerRadius: tileSize * 0.2)
@@ -100,7 +89,7 @@ struct GridView: View {
                         .offset(y: revealedRows.contains(r) ? 0 : -20)
                     }
                 }
-                .padding(10)
+                .padding(padding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onChange(of: engine.boardVersion) { _, version in
                     guard version != lastBoardVersion else { return }
@@ -128,6 +117,35 @@ struct GridView: View {
                         wordPulse = true
                     }
                 }
+
+                // ── Word outline overlay ───────────────────────────────
+                // One rounded rect wrapping each whole word, instead of per-tile borders
+                ZStack(alignment: .topLeading) {
+                    ForEach(engine.availableWords) { word in
+                        let minR = word.positions.map({ $0.row }).min() ?? 0
+                        let maxR = word.positions.map({ $0.row }).max() ?? 0
+                        let minC = word.positions.map({ $0.col }).min() ?? 0
+                        let maxC = word.positions.map({ $0.col }).max() ?? 0
+                        let outset: CGFloat = 3
+                        let x = padding + CGFloat(minC) * (tileSize + gap) - outset
+                        let y = padding + CGFloat(minR) * (tileSize + gap) - outset
+                        let w = CGFloat(maxC - minC + 1) * tileSize + CGFloat(maxC - minC) * gap + outset * 2
+                        let h = CGFloat(maxR - minR + 1) * tileSize + CGFloat(maxR - minR) * gap + outset * 2
+                        let cr = tileSize * 0.26 + outset
+
+                        RoundedRectangle(cornerRadius: cr)
+                            .stroke(
+                                Color(red: 1.0, green: 0.85, blue: 0.2)
+                                    .opacity(wordPulse ? 0.85 : 0.2),
+                                lineWidth: 2.5
+                            )
+                            .frame(width: w, height: h)
+                            .offset(x: x, y: y)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: wordPulse)
             }
         }
     }
