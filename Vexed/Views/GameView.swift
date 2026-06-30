@@ -1,9 +1,16 @@
 import SwiftUI
 
 struct GameView: View {
-    @StateObject private var engine = GameEngine(difficulty: .easy)
-    @State private var selectedDifficulty: Difficulty = .easy
+    var initialDifficulty: Difficulty = .easy
+    @StateObject private var engine: GameEngine
+    @State private var selectedDifficulty: Difficulty
     @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.easy.rawValue
+
+    init(initialDifficulty: Difficulty = .easy) {
+        self.initialDifficulty = initialDifficulty
+        _engine = StateObject(wrappedValue: GameEngine(difficulty: initialDifficulty))
+        _selectedDifficulty = State(initialValue: initialDifficulty)
+    }
     @State private var showBurgerMenu = false
     @State private var showInstructions = false
     @State private var showMissedWords = false
@@ -164,12 +171,6 @@ struct GameView: View {
         .sheet(isPresented: $showMissedWords) {
             MissedWordsView(grid: engine.grid, config: engine.config)
                 .preferredColorScheme(.dark)
-        }
-        .onAppear {
-            if let saved = Difficulty(rawValue: savedDifficultyRaw), saved != selectedDifficulty {
-                selectedDifficulty = saved
-                engine.reset(difficulty: saved)
-            }
         }
         .onChange(of: selectedDifficulty) { _, d in savedDifficultyRaw = d.rawValue }
         .onChange(of: engine.lastWord) { _, word in

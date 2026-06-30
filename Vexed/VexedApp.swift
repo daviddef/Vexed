@@ -3,11 +3,13 @@ import SwiftUI
 @main
 struct VexedApp: App {
     @State private var showSplash = true
+    @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.easy.rawValue
 
     var body: some Scene {
         WindowGroup {
+            let difficulty = Difficulty(rawValue: savedDifficultyRaw) ?? .easy
             ZStack {
-                GameView()
+                GameView(initialDifficulty: difficulty)
 
                 if showSplash {
                     SplashView {

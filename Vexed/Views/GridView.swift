@@ -49,7 +49,7 @@ struct GridView: View {
                                     return tile != nil && !hl.contains(pos)
                                 }()
 
-                                Group {
+                                ZStack {
                                     if let tile {
                                         TileCellView(
                                             tile: tile,
@@ -58,8 +58,6 @@ struct GridView: View {
                                             isTouching: isTouching
                                         )
                                         .matchedGeometryEffect(id: tile.id, in: tileNamespace)
-                                        .opacity(isDimmed ? 0.18 : 1.0)
-                                        .animation(.easeInOut(duration: 0.2), value: isDimmed)
                                     } else {
                                         TileCellView(
                                             tile: nil,
@@ -70,7 +68,15 @@ struct GridView: View {
                                             isDestination: isDest
                                         )
                                     }
+                                    // Dimming overlay: separate from matchedGeometryEffect to avoid SwiftUI animation conflicts
+                                    if isDimmed {
+                                        RoundedRectangle(cornerRadius: tileSize * 0.2)
+                                            .fill(Color.black.opacity(0.72))
+                                            .allowsHitTesting(false)
+                                            .transition(.opacity)
+                                    }
                                 }
+                                .animation(.easeInOut(duration: 0.18), value: isDimmed)
                                 .contentShape(Rectangle())
                                 .gesture(tileDragGesture(at: pos))
                                 .onTapGesture { engine.select(position: pos) }
