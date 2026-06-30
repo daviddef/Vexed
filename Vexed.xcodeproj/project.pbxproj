@@ -11,6 +11,7 @@
 		1F8B8C9F301E36C12BA60E1C /* GridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFF4E29B41C4E7EE1FAE1A8 /* GridView.swift */; };
 		390F72CAE1FCBFA057E1E06C /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6304962939BAB59E4179777F /* GameEngine.swift */; };
 		39C44BF25D20D8CB0289483E /* InstructionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233E208FD9087F702149CA1A /* InstructionsView.swift */; };
+		474B0777A33EE9CE80DD9CE2 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E1C41036AC2AAA5C4CD95C4 /* SplashView.swift */; };
 		49ADDB9EBA6677C01ACA0F01 /* TipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8330BE04DB11CCAC18DF5EC /* TipsView.swift */; };
 		6C2ADD19137134E85A042D92 /* BurgerMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B222A449F73E06EAB0FB804 /* BurgerMenuView.swift */; };
 		7C98B292CCDE6827788F9331 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373DC80F055AE84737CE034F /* Position.swift */; };
@@ -36,6 +37,7 @@
 		5177A1E4925AF3AE770B3C7F /* WordValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordValidator.swift; sourceTree = "<group>"; };
 		6304962939BAB59E4179777F /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
 		6317CB0814BBBB7866C13144 /* VexedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VexedApp.swift; sourceTree = "<group>"; };
+		7E1C41036AC2AAA5C4CD95C4 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		821B3C52BF6D510BC2277796 /* VowelRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowelRadarView.swift; sourceTree = "<group>"; };
 		837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyConfig.swift; sourceTree = "<group>"; };
 		88BBA04D81502D71C8038A3C /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
@@ -45,7 +47,7 @@
 		B8330BE04DB11CCAC18DF5EC /* TipsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipsView.swift; sourceTree = "<group>"; };
 		BBDC70987CA16B6B7F67F776 /* MissedWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissedWordsView.swift; sourceTree = "<group>"; };
 		CEB73563ADF803D330B29F36 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		CFD9766732EA984CE8848033 /* Vexed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vexed.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CFD9766732EA984CE8848033 /* Vexed.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vexed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F960993D28D90F8FA73D8796 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -108,6 +110,7 @@
 				88BBA04D81502D71C8038A3C /* HUDView.swift */,
 				233E208FD9087F702149CA1A /* InstructionsView.swift */,
 				BBDC70987CA16B6B7F67F776 /* MissedWordsView.swift */,
+				7E1C41036AC2AAA5C4CD95C4 /* SplashView.swift */,
 				A66A7018BFE1BA853288B8CE /* TileCellView.swift */,
 				B8330BE04DB11CCAC18DF5EC /* TipsView.swift */,
 				821B3C52BF6D510BC2277796 /* VowelRadarView.swift */,
@@ -144,6 +147,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = 63F0DA3BFF89334D1B274884 /* Build configuration list for PBXProject "Vexed" */;
 			developmentRegion = en;
@@ -191,6 +196,7 @@
 				39C44BF25D20D8CB0289483E /* InstructionsView.swift in Sources */,
 				B3A765E2552955D9E5A4584E /* MissedWordsView.swift in Sources */,
 				7C98B292CCDE6827788F9331 /* Position.swift in Sources */,
+				474B0777A33EE9CE80DD9CE2 /* SplashView.swift in Sources */,
 				C7DC3191486A857C4A1E2631 /* Tile.swift in Sources */,
 				086DCC3609708329E5604A3D /* TileCellView.swift in Sources */,
 				49ADDB9EBA6677C01ACA0F01 /* TipsView.swift in Sources */,
@@ -275,9 +281,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = L9SAXP2E2W;
 				INFOPLIST_FILE = Vexed/Resources/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.puzzle-games";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -294,9 +298,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = L9SAXP2E2W;
 				INFOPLIST_FILE = Vexed/Resources/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.puzzle-games";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
