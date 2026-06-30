@@ -102,6 +102,7 @@ final class GameEngine: ObservableObject {
     private static func lineHasWord(_ letters: [Character], validator: WordValidator) -> Bool {
         guard letters.count >= 3 else { return false }
         for start in 0..<letters.count {
+            guard start + 3 <= letters.count else { break }
             for end in (start + 3)...letters.count {
                 let word = String(letters[start..<end])
                 if validator.isValid(word) { return true }
