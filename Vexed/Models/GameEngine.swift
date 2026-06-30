@@ -389,11 +389,60 @@ final class GameEngine: ObservableObject {
         potentialScore = total
         // Track running maximum — peakScore only rises during a game
         peakScore = max(peakScore, potentialScore)
-        // Only fire noWordsLeft once words have actually been possible (peakScore > 0).
-        // Fresh boards start with potentialScore == 0 by design; without this guard
-        // the overlay would trigger on the very first slide.
+        // noWordsLeft only fires when no slide on the entire board can produce a word.
+        // Checking potentialScore == 0 was wrong — it ignored that slides create new adjacencies.
         let tilesExist = grid.flatMap { $0 }.contains { $0 != nil }
-        noWordsLeft = tilesExist && potentialScore == 0 && peakScore > 0 && !gameOver
+        noWordsLeft = tilesExist && peakScore > 0 && !gameOver && !anySlideCanScoreWord()
+    }
+
+    /// Returns true if at least one tile can be slid in some direction to form a valid word.
+    private func anySlideCanScoreWord() -> Bool {
+        for r in 0..<config.rows {
+            for c in 0..<config.cols {
+                guard grid[r][c] != nil else { continue }
+                let src = Position(r, c)
+                for dir in Direction.cardinal {
+                    // Simulate ice-slide destination
+                    var dest = src
+                    while true {
+                        let next = dest.moved(dir)
+                        guard next.isValid(rows: config.rows, cols: config.cols),
+                              grid[next.row][next.col] == nil else { break }
+                        dest = next
+                    }
+                    guard dest != src else { continue }
+                    // Temporarily apply the move on a copy of the grid
+                    var g = grid
+                    g[dest.row][dest.col] = g[src.row][src.col]
+                    g[src.row][src.col] = nil
+                    // Check destination row and column for any valid word
+                    if lineHasWord(g, row: dest.row) || lineHasWord(g, col: dest.col) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    private func lineHasWord(_ g: [[Tile?]], row: Int) -> Bool {
+        let letters = (0..<config.cols).compactMap { g[row][$0]?.letter }
+        return lineLettersHaveWord(letters)
+    }
+
+    private func lineHasWord(_ g: [[Tile?]], col: Int) -> Bool {
+        let letters = (0..<config.rows).compactMap { g[$0][col]?.letter }
+        return lineLettersHaveWord(letters)
+    }
+
+    private func lineLettersHaveWord(_ letters: [Character]) -> Bool {
+        guard letters.count >= config.minWordLength else { return false }
+        for start in 0..<letters.count {
+            for len in config.minWordLength...min(10, letters.count - start) {
+                if validator.isValid(String(letters[start..<(start + len)])) { return true }
+            }
+        }
+        return false
     }
 
     // Greedy scan: find non-overlapping valid words (longest first) and sum their points.
