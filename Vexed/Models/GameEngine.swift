@@ -29,6 +29,11 @@ final class GameEngine: ObservableObject {
     @Published var potentialScore: Int = 0
     @Published var peakScore: Int = 0      // max possible at game start, set once
     @Published var noWordsLeft: Bool = false
+    @Published var combo: Int = 0          // consecutive word-scoring moves
+    @Published var comboMultiplier: Double = 1.0  // 1.0, 1.5, 2.0, 3.0
+    @Published var boardVersion: Int = 0   // increments on each reset to trigger animation
+    @Published var dangerVowelColor: Color? = nil   // non-nil when a cluster of 3+ same vowel exists
+    @Published var celebrationWord: String? = nil   // set to the word when 5+ letters scored
     /// Cells each cardinal-direction slide would pass through. Key = direction, value = ordered path including destination.
     @Published var slidePaths: [Direction: [Position]] = [:]
     @Published var burstEvents: [BurstEvent] = []
@@ -288,13 +293,22 @@ final class GameEngine: ObservableObject {
             found += scanLine(positions)
         }
 
+        if found.isEmpty {
+            combo = 0
+            comboMultiplier = 1.0
+        } else {
+            combo += 1
+            comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
+        }
+
         for word in found {
             for pos in word.positions { grid[pos.row][pos.col]?.animState = .scoring }
-            score += word.points
+            let multiplied = Int(Double(word.points) * comboMultiplier)
+            score += multiplied
             wordCount += 1
             lastWord = word.word
-            wordHistory.append((word: word.word, points: word.points))
-            addLog("✨ \"\(word.word)\" +\(word.points)pts", .good)
+            wordHistory.append((word: word.word, points: multiplied))
+            addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
         }
 
         if !found.isEmpty {
@@ -305,6 +319,14 @@ final class GameEngine: ObservableObject {
                 flashWord = first.word
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
                     self?.flashWord = nil
+                }
+            }
+
+            // Celebration for 5+ letter words
+            if let best = found.max(by: { $0.word.count < $1.word.count }), best.word.count >= 5 {
+                celebrationWord = best.word
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    self?.celebrationWord = nil
                 }
             }
 
@@ -412,6 +434,43 @@ final class GameEngine: ObservableObject {
                 }
             }
         }
+
+        // Check for dangerous clusters (3+ same adjacent vowels)
+        dangerVowelColor = nil
+        outer: for r in 0..<config.rows {
+            for c in 0..<config.cols {
+                guard let tile = grid[r][c], let v = tile.vowel else { continue }
+                var visited: Set<Position> = []
+                let clusterSize = vowelClusterSize(at: Position(r, c), vowel: v, visited: &visited)
+                if clusterSize >= 3 {
+                    dangerVowelColor = vowelColor(v)
+                    break outer
+                }
+            }
+        }
+    }
+
+    private func vowelClusterSize(at pos: Position, vowel: Vowel, visited: inout Set<Position>) -> Int {
+        guard !visited.contains(pos),
+              pos.isValid(rows: config.rows, cols: config.cols),
+              let tile = grid[pos.row][pos.col],
+              tile.vowel == vowel else { return 0 }
+        visited.insert(pos)
+        return 1 +
+            vowelClusterSize(at: pos.moved(.up), vowel: vowel, visited: &visited) +
+            vowelClusterSize(at: pos.moved(.down), vowel: vowel, visited: &visited) +
+            vowelClusterSize(at: pos.moved(.left), vowel: vowel, visited: &visited) +
+            vowelClusterSize(at: pos.moved(.right), vowel: vowel, visited: &visited)
+    }
+
+    private func vowelColor(_ vowel: Vowel) -> Color {
+        switch vowel {
+        case .A: return Color(red: 0.95, green: 0.22, blue: 0.22)
+        case .E: return Color(red: 0.18, green: 0.82, blue: 0.35)
+        case .I: return Color(red: 0.15, green: 0.48, blue: 1.0)
+        case .O: return Color(red: 1.0,  green: 0.55, blue: 0.05)
+        case .U: return Color(red: 0.72, green: 0.22, blue: 0.95)
+        }
     }
 
     // MARK: - Pressure (tile flow from edges on Hard/Expert)
@@ -467,10 +526,14 @@ final class GameEngine: ObservableObject {
         selectedPosition = nil
         score = 0; wordCount = 0; lostVowels = 0
         lastWord = nil; gameOver = false; log = []; wordHistory = []
+        combo = 0; comboMultiplier = 1.0
+        dangerVowelColor = nil
+        celebrationWord = nil
         startPressureTimer()
         updateDangerStates()
         peakScore = 0
         noWordsLeft = false
         recalculatePotentialScore()
+        boardVersion += 1
     }
 }

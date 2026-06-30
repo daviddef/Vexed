@@ -13,6 +13,8 @@ struct GameView: View {
     @State private var vanishMessage: String? = nil
     @State private var displayScore: Int = 0
     @State private var activeBursts: [GameEngine.BurstEvent] = []
+    @State private var dangerPulse: Bool = false
+    @State private var celebrationScale: CGFloat = 0.1
 
     var body: some View {
         ZStack {
@@ -69,11 +71,24 @@ struct GameView: View {
                 .padding(.bottom, 8)
             }
 
+            // ── Danger vignette ──────────────────────────────────────
+            if let color = engine.dangerVowelColor {
+                dangerVignette(color: color)
+            }
+
             // ── Word flash ────────────────────────────────────────────
             if let word = engine.flashWord { wordFlashOverlay(word) }
 
             // ── Particle bursts ───────────────────────────────────────
             particleBurstLayer
+
+            // ── Combo badge ───────────────────────────────────────────
+            if engine.combo >= 2 {
+                comboBadge
+            }
+
+            // ── Word length celebration ───────────────────────────────
+            if let word = engine.celebrationWord { wordCelebration(word) }
 
             // ── Toast for word scored ─────────────────────────────────
             if let msg = toastMessage { wordToast(msg) }
@@ -153,6 +168,13 @@ struct GameView: View {
             let existingIDs = Set(activeBursts.map(\.id))
             let newBursts = events.filter { !existingIDs.contains($0.id) }
             activeBursts.append(contentsOf: newBursts)
+        }
+        .onChange(of: engine.dangerVowelColor) { _, _ in
+            dangerPulse = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { dangerPulse = true }
+        }
+        .onChange(of: engine.celebrationWord) { _, word in
+            if word != nil { celebrationScale = 0.1 }
         }
     }
 
@@ -394,6 +416,108 @@ struct GameView: View {
                 .padding(.top, 8)
             }
         }
+    }
+
+    // MARK: - New UX overlays
+
+    @ViewBuilder private var comboBadge: some View {
+        VStack {
+            HStack {
+                Spacer()
+                VStack(spacing: 2) {
+                    Text("\(engine.combo)x")
+                        .font(.system(size: 32, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("COMBO")
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .tracking(2)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(comboColor())
+                        .shadow(color: comboColor().opacity(0.5), radius: 10, x: 0, y: 4)
+                )
+                .scaleEffect(engine.combo >= 2 ? 1 : 0.5)
+                .transition(.scale.combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.55), value: engine.combo)
+                .padding(.trailing, 16)
+            }
+            .padding(.top, 60)
+            Spacer()
+        }
+    }
+
+    private func comboColor() -> Color {
+        switch engine.combo {
+        case 2: return Color(red: 1.0, green: 0.7, blue: 0.0)    // gold
+        case 3: return Color(red: 1.0, green: 0.4, blue: 0.1)    // orange
+        default: return Color(red: 0.9, green: 0.1, blue: 0.9)   // magenta for 4+
+        }
+    }
+
+    @ViewBuilder private func dangerVignette(color: Color) -> some View {
+        RoundedRectangle(cornerRadius: 0)
+            .fill(
+                RadialGradient(
+                    gradient: Gradient(colors: [.clear, color.opacity(dangerPulse ? 0.35 : 0.15)]),
+                    center: .center,
+                    startRadius: UIScreen.main.bounds.width * 0.3,
+                    endRadius: UIScreen.main.bounds.width * 0.85
+                )
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: dangerPulse)
+            .onAppear { dangerPulse = true }
+            .onDisappear { dangerPulse = false }
+    }
+
+    @ViewBuilder private func wordCelebration(_ word: String) -> some View {
+        let is6Plus = word.count >= 6
+        VStack {
+            Spacer()
+            Spacer()
+            VStack(spacing: 8) {
+                Text(is6Plus ? "AMAZING!" : "GREAT!")
+                    .font(.system(size: is6Plus ? 36 : 28, weight: .black, design: .rounded))
+                    .foregroundColor(is6Plus ? Color(red: 1.0, green: 0.85, blue: 0.0) : .white)
+                    .shadow(color: (is6Plus ? Color.yellow : Color.white).opacity(0.5),
+                            radius: 12, x: 0, y: 0)
+                Text(word)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.85))
+                Text("\(word.count) letters")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .padding(.horizontal, 32)
+            .padding(.vertical, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.black.opacity(0.7))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(is6Plus ? Color.yellow.opacity(0.6) : Color.white.opacity(0.2),
+                                    lineWidth: 1.5)
+                    )
+            )
+            .scaleEffect(celebrationScale)
+            .transition(.asymmetric(
+                insertion: .scale(scale: 0.3).combined(with: .opacity),
+                removal: .opacity
+            ))
+            .onAppear {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) {
+                    celebrationScale = 1.0
+                }
+            }
+            .onDisappear { celebrationScale = 0.1 }
+            Spacer()
+        }
+        .allowsHitTesting(false)
     }
 
     // MARK: - Helpers

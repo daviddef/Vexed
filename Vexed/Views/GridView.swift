@@ -5,6 +5,8 @@ struct GridView: View {
     @State private var dragStart: Position? = nil
     @State private var touchedPosition: Position? = nil
     @Namespace private var tileNamespace
+    @State private var revealedRows: Set<Int> = []
+    @State private var lastBoardVersion: Int = -1
 
     var body: some View {
         GeometryReader { geo in
@@ -68,10 +70,35 @@ struct GridView: View {
                                 .onTapGesture { engine.select(position: pos) }
                             }
                         }
+                        .opacity(revealedRows.contains(r) ? 1 : 0)
+                        .offset(y: revealedRows.contains(r) ? 0 : -20)
                     }
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onChange(of: engine.boardVersion) { _, version in
+                    guard version != lastBoardVersion else { return }
+                    lastBoardVersion = version
+                    revealedRows = []
+                    for r in 0..<engine.config.rows {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + Double(r) * 0.07) {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
+                                _ = revealedRows.insert(r)
+                            }
+                        }
+                    }
+                }
+                .onAppear {
+                    lastBoardVersion = engine.boardVersion
+                    revealedRows = []
+                    for r in 0..<engine.config.rows {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + Double(r) * 0.07 + 0.15) {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
+                                _ = revealedRows.insert(r)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
