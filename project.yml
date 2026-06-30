@@ -28,7 +28,7 @@ targets:
     info:
       path: Vexed/Resources/Info.plist
       properties:
-        CFBundleDisplayName: Vexed
+        CFBundleDisplayName: "VEXED!"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
