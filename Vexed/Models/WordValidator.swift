@@ -27,7 +27,10 @@ final class WordValidator {
         }
         guard let content else { return }
         for line in content.components(separatedBy: .newlines) {
-            let word = line.trimmingCharacters(in: .whitespaces).uppercased()
+            let raw = line.trimmingCharacters(in: .whitespaces)
+            // Skip proper nouns — lines that start uppercase in the system dictionary
+            guard let first = raw.first, first.isLowercase else { continue }
+            let word = raw.uppercased()
             guard word.count >= 3, word.count <= 10,
                   word.allSatisfy({ $0.isLetter && $0.isASCII }) else { continue }
             insert(word)

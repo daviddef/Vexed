@@ -176,13 +176,23 @@ final class GameEngine: ObservableObject {
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
 
         slidePaths = [:]
+        // Vowel vanish first, then word scoring — staggered so each phase is visible
         let vanished = applyVowelVanish()
-        let words = applyWordScoring()
-        updateDangerStates()
-        recalculatePotentialScore()
-        updateSlidePaths()
+        let vanishDelay = vanished.isEmpty ? 0.0 : 0.55
+        DispatchQueue.main.asyncAfter(deadline: .now() + vanishDelay) { [weak self] in
+            guard let self else { return }
+            self.applyWordScoring()
+            self.updateDangerStates()
+            self.recalculatePotentialScore()
+            self.updateSlidePaths()
+        }
+        if vanished.isEmpty {
+            updateDangerStates()
+            recalculatePotentialScore()
+            updateSlidePaths()
+        }
 
-        return SlideResult(moved: true, vanishedPositions: vanished, scoredWords: words)
+        return SlideResult(moved: true, vanishedPositions: vanished, scoredWords: [])
     }
 
     // MARK: - Vowel Vanish
