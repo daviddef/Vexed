@@ -17,6 +17,11 @@ struct GridView: View {
             let tileH = (geo.size.height - totalGapH) / CGFloat(rows)
             let tileSize = min(tileW, tileH)
 
+            // Flatten slide paths into quick-lookup sets
+            let pathSet: Set<Position> = Set(engine.slidePaths.values.flatMap { $0 })
+            let destSet: Set<Position> = Set(engine.slidePaths.values.compactMap { $0.last })
+            let pathColor: Color = selectedTileColor()
+
             ZStack {
                 // ── Game board background ──────────────────────────────
                 RoundedRectangle(cornerRadius: 20)
@@ -35,6 +40,8 @@ struct GridView: View {
                                 let tile = engine.grid[r][c]
                                 let isSelected = engine.selectedPosition == pos
                                 let isTouching = touchedPosition == pos
+                                let isPath = pathSet.contains(pos)
+                                let isDest = destSet.contains(pos)
 
                                 Group {
                                     if let tile {
@@ -50,7 +57,9 @@ struct GridView: View {
                                             tile: nil,
                                             isSelected: false,
                                             size: tileSize,
-                                            isTouching: false
+                                            isTouching: false,
+                                            pathColor: isPath ? pathColor : nil,
+                                            isDestination: isDest
                                         )
                                     }
                                 }
@@ -67,11 +76,22 @@ struct GridView: View {
         }
     }
 
-    // Drag on a tile: if selected tile matches, slide it; otherwise select then slide
+    private func selectedTileColor() -> Color {
+        guard let pos = engine.selectedPosition,
+              let tile = engine.grid[pos.row][pos.col] else { return Color(white: 0.6) }
+        switch tile.type {
+        case .consonant:  return Color(white: 0.7)
+        case .vowel(.A):  return Color(red: 1.0, green: 0.35, blue: 0.35)
+        case .vowel(.E):  return Color(red: 0.3, green: 1.0, blue: 0.5)
+        case .vowel(.I):  return Color(red: 0.45, green: 0.6, blue: 1.0)
+        case .vowel(.O):  return Color(red: 1.0, green: 0.75, blue: 0.2)
+        case .vowel(.U):  return Color(red: 0.85, green: 0.4, blue: 1.0)
+        }
+    }
+
     private func tileDragGesture(at pos: Position) -> some Gesture {
         DragGesture(minimumDistance: 12)
             .onChanged { _ in
-                // Record drag origin tile once and light up touch glow immediately
                 if dragStart == nil {
                     dragStart = pos
                     touchedPosition = pos
@@ -83,7 +103,6 @@ struct GridView: View {
                 touchedPosition = nil
                 guard let dir = Direction(translation: value.translation) else { return }
 
-                // Select origin tile if not already, then slide
                 if engine.selectedPosition != origin {
                     engine.select(position: origin)
                 }

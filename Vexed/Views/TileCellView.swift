@@ -5,8 +5,10 @@ struct TileCellView: View {
     let isSelected: Bool
     let size: CGFloat
     var isTouching: Bool = false
+    // Path glow: non-nil when this empty cell is in the slide path of the selected tile
+    var pathColor: Color? = nil
+    var isDestination: Bool = false
 
-    // Rotation used during vanish
     @State private var vanishRotation: Double = 0
 
     var body: some View {
@@ -24,25 +26,40 @@ struct TileCellView: View {
                     .font(.system(size: size * 0.46, weight: .black, design: .rounded))
                     .foregroundColor(letterColor(for: tile))
             } else {
-                // Empty cell — always-visible dashed outline so grid structure shows
+                // Empty cell: dashed base outline
                 RoundedRectangle(cornerRadius: size * 0.30)
                     .strokeBorder(
                         style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
                     )
-                    .foregroundColor(Color(white: 0.55))
+                    .foregroundColor(pathColor != nil ? pathColor!.opacity(0.5) : Color(white: 0.55))
+
+                // Path fill tint
+                if let col = pathColor {
+                    RoundedRectangle(cornerRadius: size * 0.30)
+                        .fill(col.opacity(isDestination ? 0.18 : 0.08))
+                }
+
+                // Destination arrow dot
+                if isDestination, let col = pathColor {
+                    Circle()
+                        .fill(col.opacity(0.7))
+                        .frame(width: size * 0.18, height: size * 0.18)
+                }
             }
         }
         .frame(width: size, height: size)
         .scaleEffect(isTouching ? 1.12 : scaleFor(tile?.animState))
         .rotationEffect(.degrees(tile?.animState == .vanishing ? vanishRotation : 0))
         .opacity(tile?.animState == .vanishing ? 0 : 1)
-        // Drop shadow: colored for vowels, dark for consonants/nil
         .shadow(color: dropShadowColor, radius: 6, x: 0, y: 4)
-        // Touch glow or danger glow on top of drop shadow
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
                 radius: isTouching ? 16 : (isDanger ? 14 : 0))
+        // Path glow on the outer border of path / destination cells
+        .shadow(color: pathColor?.opacity(isDestination ? 0.85 : 0.45) ?? .clear,
+                radius: isDestination ? 12 : 6, x: 0, y: 0)
         .animation(.spring(response: 0.18, dampingFraction: 0.55), value: isSelected)
         .animation(.spring(response: 0.12, dampingFraction: 0.55), value: isTouching)
+        .animation(.easeInOut(duration: 0.25), value: pathColor != nil)
         .animation(.easeInOut(duration: 0.35), value: tile?.animState)
         .onChange(of: tile?.animState) { _, newState in
             if newState == .vanishing {
@@ -117,7 +134,6 @@ struct TileCellView: View {
         }
     }
 
-    // Drop shadow color: vivid colored for vowels, muted dark for consonants
     private var dropShadowColor: Color {
         guard let tile else { return .clear }
         switch tile.type {

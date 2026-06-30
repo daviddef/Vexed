@@ -26,6 +26,8 @@ final class GameEngine: ObservableObject {
     @Published var log: [LogEntry] = []
     @Published var wordHistory: [(word: String, points: Int)] = []
     @Published var potentialScore: Int = 0
+    /// Cells each cardinal-direction slide would pass through. Key = direction, value = ordered path including destination.
+    @Published var slidePaths: [Direction: [Position]] = [:]
 
     let config: DifficultyConfig
     private let validator = WordValidator.shared
@@ -114,8 +116,30 @@ final class GameEngine: ObservableObject {
     // MARK: - Selection
 
     func select(position: Position) {
-        if grid[position.row][position.col] == nil { selectedPosition = nil; return }
+        if grid[position.row][position.col] == nil { selectedPosition = nil; slidePaths = [:]; return }
         selectedPosition = (selectedPosition == position) ? nil : position
+        updateSlidePaths()
+    }
+
+    func updateSlidePaths() {
+        guard let src = selectedPosition, grid[src.row][src.col] != nil else {
+            slidePaths = [:]
+            return
+        }
+        var paths: [Direction: [Position]] = [:]
+        for dir in Direction.cardinal {
+            var path: [Position] = []
+            var pos = src
+            while true {
+                let next = pos.moved(dir)
+                guard next.isValid(rows: config.rows, cols: config.cols),
+                      grid[next.row][next.col] == nil else { break }
+                path.append(next)
+                pos = next
+            }
+            if !path.isEmpty { paths[dir] = path }
+        }
+        slidePaths = paths
     }
 
     // MARK: - Slide
@@ -149,10 +173,12 @@ final class GameEngine: ObservableObject {
 
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
 
+        slidePaths = [:]
         let vanished = applyVowelVanish()
         let words = applyWordScoring()
         updateDangerStates()
         recalculatePotentialScore()
+        updateSlidePaths()
 
         return SlideResult(moved: true, vanishedPositions: vanished, scoredWords: words)
     }
