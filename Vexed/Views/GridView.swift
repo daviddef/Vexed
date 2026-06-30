@@ -89,6 +89,7 @@ struct GridView: View {
                                             .transition(.opacity)
                                     }
                                 }
+                                .frame(width: tileSize, height: tileSize)
                                 .animation(.easeInOut(duration: 0.18), value: isDimmed)
                                 .contentShape(Rectangle())
                                 .gesture(tileDragGesture(at: pos))
