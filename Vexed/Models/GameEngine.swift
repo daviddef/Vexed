@@ -25,6 +25,7 @@ final class GameEngine: ObservableObject {
     @Published var gameOver: Bool = false
     @Published var log: [LogEntry] = []
     @Published var wordHistory: [(word: String, points: Int)] = []
+    @Published var potentialScore: Int = 0
 
     let config: DifficultyConfig
     private let validator = WordValidator.shared
@@ -41,6 +42,7 @@ final class GameEngine: ObservableObject {
         self.config = difficulty.config
         self.grid = Self.makeGrid(rows: config.rows, cols: config.cols)
         startPressureTimer()
+        recalculatePotentialScore()
     }
 
     // MARK: - Grid Setup
@@ -149,6 +151,7 @@ final class GameEngine: ObservableObject {
         let vanished = applyVowelVanish()
         let words = applyWordScoring()
         updateDangerStates()
+        recalculatePotentialScore()
 
         return SlideResult(moved: true, vanishedPositions: vanished, scoredWords: words)
     }
@@ -187,6 +190,7 @@ final class GameEngine: ObservableObject {
                 guard let self else { return }
                 for pos in positions { self.grid[pos.row][pos.col] = nil }
                 self.updateDangerStates()
+                self.recalculatePotentialScore()
             }
         }
         return positions
@@ -271,6 +275,44 @@ final class GameEngine: ObservableObject {
         return words
     }
 
+    // MARK: - Potential Score
+
+    func recalculatePotentialScore() {
+        var total = 0
+        // Scan rows
+        for r in 0..<config.rows {
+            let letters = (0..<config.cols).compactMap { grid[r][$0]?.letter }
+            total += bestScoreForLine(letters)
+        }
+        // Scan columns
+        for c in 0..<config.cols {
+            let letters = (0..<config.rows).compactMap { grid[$0][c]?.letter }
+            total += bestScoreForLine(letters)
+        }
+        potentialScore = total
+    }
+
+    // Greedy scan: find non-overlapping valid words (longest first) and sum their points.
+    private func bestScoreForLine(_ letters: [Character]) -> Int {
+        guard letters.count >= config.minWordLength else { return 0 }
+        var total = 0
+        var i = 0
+        while i < letters.count {
+            var found = false
+            for len in stride(from: min(letters.count - i, 10), through: config.minWordLength, by: -1) {
+                let word = String(letters[i..<(i + len)])
+                if validator.isValid(word) {
+                    total += word.count * 10 + (word.count > 4 ? 20 : 0)
+                    i += len
+                    found = true
+                    break
+                }
+            }
+            if !found { i += 1 }
+        }
+        return total
+    }
+
     // MARK: - Danger States
 
     func updateDangerStates() {
@@ -345,5 +387,6 @@ final class GameEngine: ObservableObject {
         lastWord = nil; gameOver = false; log = []; wordHistory = []
         startPressureTimer()
         updateDangerStates()
+        recalculatePotentialScore()
     }
 }

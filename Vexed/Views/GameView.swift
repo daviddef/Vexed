@@ -20,6 +20,7 @@ struct GameView: View {
                     // Score cluster
                     HStack(spacing: 12) {
                         miniStat(label: "SCORE", value: "\(engine.score)", color: .white)
+                        potentialScoreStat
                         miniStat(label: "WORDS", value: "\(engine.wordCount)", color: Color(white: 0.7))
                         miniStat(label: "LOST",  value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
                     }
@@ -130,6 +131,28 @@ struct GameView: View {
     }
 
     // MARK: - Subviews
+
+    private var potentialScoreStat: some View {
+        let potential = engine.potentialScore
+        let current = engine.score
+        let pct = potential > 0 ? min(100, Int(Double(current) / Double(potential) * 100)) : 0
+        let color: Color = pct >= 80 ? Color(red: 0.3, green: 1.0, blue: 0.4)
+                         : pct >= 50 ? Color(red: 1.0, green: 0.8, blue: 0.2)
+                         : Color(white: 0.45)
+        return VStack(spacing: 1) {
+            Text("/ \(potential)")
+                .font(.system(size: 14, weight: .black, design: .monospaced))
+                .foregroundColor(color)
+            Text("\(pct)% MAX")
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundColor(color.opacity(0.7))
+                .tracking(1)
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .background(Color(white: 0.1).cornerRadius(10))
+        .animation(.easeInOut(duration: 0.3), value: potential)
+    }
 
     private var wordHistoryStrip: some View {
         ScrollViewReader { proxy in
