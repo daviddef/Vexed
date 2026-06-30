@@ -36,6 +36,16 @@ final class GameEngine: ObservableObject {
     @Published var celebrationWord: String? = nil   // set to the word when 5+ letters scored
     @Published var tilesForged: Int = 0             // cumulative bonus tiles spawned by Tile Forge
     @Published var forgeMessage: String? = nil      // brief "+N tiles" banner
+    @Published var availableWords: [AvailableWord] = []   // words scoreable RIGHT NOW on the board
+    @Published var highlightedPositions: Set<Position>? = nil  // non-nil = dim all other tiles
+
+    struct AvailableWord: Identifiable {
+        let id = UUID()
+        let word: String
+        let positions: [Position]
+        var points: Int { word.count * 10 + (word.count > 4 ? 20 : 0) }
+    }
+
     /// Cells each cardinal-direction slide would pass through. Key = direction, value = ordered path including destination.
     @Published var slidePaths: [Direction: [Position]] = [:]
     @Published var burstEvents: [BurstEvent] = []
@@ -189,6 +199,7 @@ final class GameEngine: ObservableObject {
         }
 
         Haptics.medium()
+        highlightedPositions = nil
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
 
         slidePaths = [:]
@@ -314,7 +325,7 @@ final class GameEngine: ObservableObject {
         }
 
         if !found.isEmpty {
-            Haptics.success()
+            Haptics.wordScore()
 
             // Flash the word prominently before tiles vanish
             if let first = found.first {
@@ -444,12 +455,40 @@ final class GameEngine: ObservableObject {
             total += bestScoreForLine(letters)
         }
         potentialScore = total
-        // Track running maximum — peakScore only rises during a game
         peakScore = max(peakScore, potentialScore)
-        // noWordsLeft only fires when no slide on the entire board can produce a word.
-        // Checking potentialScore == 0 was wrong — it ignored that slides create new adjacencies.
         let tilesExist = grid.flatMap { $0 }.contains { $0 != nil }
         noWordsLeft = tilesExist && peakScore > 0 && !gameOver && !anySlideCanScoreWord()
+        availableWords = scanAvailableWords()
+    }
+
+    private func scanAvailableWords() -> [AvailableWord] {
+        var seen = Set<String>()
+        var results: [AvailableWord] = []
+
+        func scanLine(_ positions: [Position]) {
+            var i = 0
+            while i < positions.count {
+                guard grid[positions[i].row][positions[i].col] != nil else { i += 1; continue }
+                var j = i
+                while j < positions.count, grid[positions[j].row][positions[j].col] != nil { j += 1 }
+                let run = Array(positions[i..<j])
+                for start in 0..<run.count {
+                    for end in stride(from: run.count, through: start + config.minWordLength, by: -1) {
+                        let slice = Array(run[start..<end])
+                        let word = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
+                        if word.count == end - start, validator.isValid(word), !seen.contains(word) {
+                            seen.insert(word)
+                            results.append(AvailableWord(word: word, positions: slice))
+                        }
+                    }
+                }
+                i = j
+            }
+        }
+
+        for r in 0..<config.rows { scanLine((0..<config.cols).map { Position(r, $0) }) }
+        for c in 0..<config.cols { scanLine((0..<config.rows).map { Position($0, c) }) }
+        return results.sorted { $0.points > $1.points }
     }
 
     /// Returns true if at least one tile can be slid in some direction to form a valid word.
@@ -640,6 +679,7 @@ final class GameEngine: ObservableObject {
         dangerVowelColor = nil
         celebrationWord = nil
         tilesForged = 0; forgeMessage = nil
+        availableWords = []; highlightedPositions = nil
         startPressureTimer()
         updateDangerStates()
         peakScore = 0

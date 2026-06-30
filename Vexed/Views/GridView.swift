@@ -44,6 +44,10 @@ struct GridView: View {
                                 let isTouching = touchedPosition == pos
                                 let isPath = pathSet.contains(pos)
                                 let isDest = destSet.contains(pos)
+                                let isDimmed: Bool = {
+                                    guard let hl = engine.highlightedPositions else { return false }
+                                    return tile != nil && !hl.contains(pos)
+                                }()
 
                                 Group {
                                     if let tile {
@@ -54,6 +58,8 @@ struct GridView: View {
                                             isTouching: isTouching
                                         )
                                         .matchedGeometryEffect(id: tile.id, in: tileNamespace)
+                                        .opacity(isDimmed ? 0.18 : 1.0)
+                                        .animation(.easeInOut(duration: 0.2), value: isDimmed)
                                     } else {
                                         TileCellView(
                                             tile: nil,

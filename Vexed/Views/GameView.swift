@@ -79,13 +79,19 @@ struct GameView: View {
                     .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // ── Two-part footer ──────────────────────────────────────
+                // ── Footer ───────────────────────────────────────────────
                 VStack(spacing: 0) {
                     // Line 1: selected tile hint
                     selectedTileHint
                         .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
 
-                    // Line 2: word history chips
+                    // Line 2: available words (red) — tap to highlight on board
+                    if !engine.availableWords.isEmpty {
+                        availableWordsStrip
+                            .frame(height: 36)
+                    }
+
+                    // Line 3: word history chips
                     wordHistoryStrip
                         .frame(height: 36)
                 }
@@ -442,6 +448,44 @@ struct GameView: View {
                 .padding(.top, 12)
                 .transition(.move(edge: .top).combined(with: .opacity))
             Spacer()
+        }
+    }
+
+    private var availableWordsStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(engine.availableWords) { entry in
+                    let isHighlighted = engine.highlightedPositions == Set(entry.positions)
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            if isHighlighted {
+                                engine.highlightedPositions = nil
+                            } else {
+                                engine.highlightedPositions = Set(entry.positions)
+                            }
+                        }
+                    } label: {
+                        Text(entry.word)
+                            .font(.system(size: 11, weight: .black, design: .rounded))
+                            .foregroundColor(isHighlighted ? .black : Color(red: 1, green: 0.38, blue: 0.38))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(isHighlighted
+                                          ? Color(red: 1, green: 0.38, blue: 0.38)
+                                          : Color(red: 1, green: 0.38, blue: 0.38).opacity(0.12))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color(red: 1, green: 0.38, blue: 0.38).opacity(0.5), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.easeInOut(duration: 0.15), value: isHighlighted)
+                }
+            }
+            .padding(.horizontal, 12)
         }
     }
 
