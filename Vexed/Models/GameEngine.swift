@@ -22,6 +22,7 @@ final class GameEngine: ObservableObject {
     @Published var wordCount: Int = 0
     @Published var lostVowels: Int = 0
     @Published var lastWord: String? = nil
+    @Published var flashWord: String? = nil
     @Published var gameOver: Bool = false
     @Published var log: [LogEntry] = []
     @Published var wordHistory: [(word: String, points: Int)] = []
@@ -30,6 +31,12 @@ final class GameEngine: ObservableObject {
     @Published var noWordsLeft: Bool = false
     /// Cells each cardinal-direction slide would pass through. Key = direction, value = ordered path including destination.
     @Published var slidePaths: [Direction: [Position]] = [:]
+    @Published var burstEvents: [BurstEvent] = []
+
+    struct BurstEvent: Identifiable, Equatable {
+        let id = UUID()
+        let color: Color
+    }
 
     let config: DifficultyConfig
     private let validator = WordValidator.shared
@@ -163,6 +170,7 @@ final class GameEngine: ObservableObject {
         }
 
         guard dest != src else {
+            Haptics.rigid()
             addLog("Can't slide that way", .info)
             return SlideResult(moved: false, vanishedPositions: [], scoredWords: [])
         }
@@ -173,6 +181,7 @@ final class GameEngine: ObservableObject {
             selectedPosition = dest
         }
 
+        Haptics.medium()
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
 
         slidePaths = [:]
@@ -222,6 +231,18 @@ final class GameEngine: ObservableObject {
                 grid[pos.row][pos.col]?.animState = .vanishing
             }
             lostVowels += positions.count
+            Haptics.warning()
+            if let first = positions.first, let vowel = grid[first.row][first.col]?.vowel {
+                let c: Color
+                switch vowel {
+                case .A: c = Color(red: 0.95, green: 0.22, blue: 0.22)
+                case .E: c = Color(red: 0.18, green: 0.82, blue: 0.35)
+                case .I: c = Color(red: 0.15, green: 0.48, blue: 1.0)
+                case .O: c = Color(red: 1.0,  green: 0.55, blue: 0.05)
+                case .U: c = Color(red: 0.72, green: 0.22, blue: 0.95)
+                }
+                burstEvents.append(BurstEvent(color: c))
+            }
             addLog("💥 \(positions.count) vowels vanished!", .bad)
 
             // Remove after animation delay handled by view
@@ -274,6 +295,21 @@ final class GameEngine: ObservableObject {
             lastWord = word.word
             wordHistory.append((word: word.word, points: word.points))
             addLog("✨ \"\(word.word)\" +\(word.points)pts", .good)
+        }
+
+        if !found.isEmpty {
+            Haptics.success()
+
+            // Flash the word prominently before tiles vanish
+            if let first = found.first {
+                flashWord = first.word
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+                    self?.flashWord = nil
+                }
+            }
+
+            let burstColor = Color(red: 1.0, green: 0.85, blue: 0.2) // gold for word score
+            burstEvents.append(BurstEvent(color: burstColor))
         }
 
         if !found.isEmpty {

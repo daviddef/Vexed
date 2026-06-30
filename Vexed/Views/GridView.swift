@@ -95,6 +95,7 @@ struct GridView: View {
                 if dragStart == nil {
                     dragStart = pos
                     touchedPosition = pos
+                    Haptics.light()
                 }
             }
             .onEnded { value in

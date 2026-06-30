@@ -11,6 +11,8 @@ struct GameView: View {
     @State private var toastRotation: Double = 0
     @State private var showNoWordsLeft: Bool = false
     @State private var vanishMessage: String? = nil
+    @State private var displayScore: Int = 0
+    @State private var activeBursts: [GameEngine.BurstEvent] = []
 
     var body: some View {
         ZStack {
@@ -22,7 +24,7 @@ struct GameView: View {
                 HStack(spacing: 0) {
                     // Score cluster
                     HStack(spacing: 12) {
-                        miniStat(label: "SCORE", value: "\(engine.score)", color: .white)
+                        miniStat(label: "SCORE", value: "\(displayScore)", color: .white, isScore: true)
                         miniStat(label: "BEST", value: "\(engine.potentialScore)", color: Color(red:0.3,green:1.0,blue:0.5))
                         miniStat(label: "PEAK%", value: "\(securedPct())%", color: peakColor())
                         miniStat(label: "WORDS", value: "\(engine.wordCount)", color: Color(white: 0.7))
@@ -57,26 +59,8 @@ struct GameView: View {
                 // ── Two-part footer ──────────────────────────────────────
                 VStack(spacing: 0) {
                     // Line 1: selected tile hint
-                    Group {
-                        if let pos = engine.selectedPosition, let tile = engine.grid[pos.row][pos.col] {
-                            HStack(spacing: 6) {
-                                Text(String(tile.letter))
-                                    .font(.system(size: 20, weight: .black, design: .rounded))
-                                    .foregroundColor(tileColor(tile))
-                                Text("selected — swipe!")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(Color(white: 0.35))
-                            }
-                            .padding(.vertical, 4)
-                            .transition(.opacity)
-                        } else {
-                            Text("✦ drag any tile to slide")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(Color(white: 0.28))
-                                .padding(.vertical, 4)
-                        }
-                    }
-                    .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
+                    selectedTileHint
+                        .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
 
                     // Line 2: word history chips
                     wordHistoryStrip
@@ -85,38 +69,17 @@ struct GameView: View {
                 .padding(.bottom, 8)
             }
 
+            // ── Word flash ────────────────────────────────────────────
+            if let word = engine.flashWord { wordFlashOverlay(word) }
+
+            // ── Particle bursts ───────────────────────────────────────
+            particleBurstLayer
+
             // ── Toast for word scored ─────────────────────────────────
-            if let msg = toastMessage {
-                VStack {
-                    Spacer()
-                    Text(msg)
-                        .font(.system(size: 22, weight: .black, design: .rounded))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Color.yellow.cornerRadius(16))
-                        .shadow(color: Color.yellow.opacity(0.6), radius: 12, x: 0, y: 4)
-                        .rotationEffect(.degrees(toastRotation))
-                        .padding(.bottom, 100)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
+            if let msg = toastMessage { wordToast(msg) }
 
             // ── Vowel vanish banner ───────────────────────────────────
-            if let msg = vanishMessage {
-                VStack {
-                    Text(msg)
-                        .font(.system(size: 15, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color(red: 0.85, green: 0.15, blue: 0.15).cornerRadius(12))
-                        .shadow(color: Color.red.opacity(0.5), radius: 10, x: 0, y: 3)
-                        .padding(.top, 12)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    Spacer()
-                }
-            }
+            if let msg = vanishMessage { vanishBanner(msg) }
 
             // ── No-words-left overlay ─────────────────────────────────
             if showNoWordsLeft && !engine.gameOver {
@@ -164,13 +127,32 @@ struct GameView: View {
         .onChange(of: engine.lostVowels) { old, new in
             let just = new - old
             guard just > 0 else { return }
-            withAnimation(.easeOut(duration: 0.3)) { vanishMessage = "💥 \(just) vowel\(just == 1 ? "" : "s") vanished!" }
+            let plural = just == 1 ? "" : "s"
+            let msg = "💥 \(just) vowel\(plural) vanished!"
+            withAnimation(.easeOut(duration: 0.3)) { vanishMessage = msg }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
                 withAnimation(.easeIn(duration: 0.25)) { vanishMessage = nil }
             }
         }
         .onChange(of: engine.noWordsLeft) { _, isLeft in
             if isLeft { showNoWordsLeft = true }
+        }
+        .onChange(of: engine.score) { _, newScore in
+            let start = displayScore
+            let diff = newScore - start
+            guard diff > 0 else { displayScore = newScore; return }
+            let steps = min(diff, 30) // cap animation frames
+            let interval = 0.35 / Double(steps)
+            for i in 1...steps {
+                DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(i)) {
+                    displayScore = start + (diff * i / steps)
+                }
+            }
+        }
+        .onChange(of: engine.burstEvents) { _, events in
+            let existingIDs = Set(activeBursts.map(\.id))
+            let newBursts = events.filter { !existingIDs.contains($0.id) }
+            activeBursts.append(contentsOf: newBursts)
         }
     }
 
@@ -219,6 +201,86 @@ struct GameView: View {
         }
     }
 
+    @ViewBuilder private func wordFlashOverlay(_ word: String) -> some View {
+        VStack {
+            Spacer()
+            Text(word)
+                .font(.system(size: 48, weight: .black, design: .rounded))
+                .foregroundStyle(LinearGradient(colors: [.white, Color(white: 0.85)],
+                                               startPoint: .top, endPoint: .bottom))
+                .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                .scaleEffect(1.0)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.4).combined(with: .opacity),
+                    removal: .scale(scale: 1.3).combined(with: .opacity)
+                ))
+            Spacer()
+        }
+        .allowsHitTesting(false)
+        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: engine.flashWord)
+    }
+
+    @ViewBuilder private var selectedTileHint: some View {
+        if let pos = engine.selectedPosition, let tile = engine.grid[pos.row][pos.col] {
+            HStack(spacing: 6) {
+                Text(String(tile.letter))
+                    .font(.system(size: 20, weight: .black, design: .rounded))
+                    .foregroundColor(tileColor(tile))
+                Text("selected — swipe!")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color(white: 0.35))
+            }
+            .padding(.vertical, 4)
+            .transition(.opacity)
+        } else {
+            Text("✦ drag any tile to slide")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color(white: 0.28))
+                .padding(.vertical, 4)
+        }
+    }
+
+    @ViewBuilder private var particleBurstLayer: some View {
+        let cx = UIScreen.main.bounds.width / 2
+        let cy = UIScreen.main.bounds.height / 2
+        ForEach(activeBursts) { burst in
+            ParticleBurstView(origin: CGPoint(x: cx, y: cy), color: burst.color) {
+                activeBursts.removeAll { $0.id == burst.id }
+            }
+        }
+    }
+
+    @ViewBuilder private func wordToast(_ msg: String) -> some View {
+        VStack {
+            Spacer()
+            Text(msg)
+                .font(.system(size: 22, weight: .black, design: .rounded))
+                .foregroundColor(.black)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(RoundedRectangle(cornerRadius: 16).fill(Color.yellow))
+                .shadow(color: Color.yellow.opacity(0.6), radius: 12, x: 0, y: 4)
+                .rotationEffect(.degrees(toastRotation))
+                .padding(.bottom, 100)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder private func vanishBanner(_ msg: String) -> some View {
+        VStack {
+            Text(msg)
+                .font(.system(size: 15, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(red: 0.85, green: 0.15, blue: 0.15)))
+                .shadow(color: Color.red.opacity(0.5), radius: 10, x: 0, y: 3)
+                .padding(.top, 12)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            Spacer()
+        }
+    }
+
     private var wordHistoryStrip: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
@@ -259,11 +321,20 @@ struct GameView: View {
         }
     }
 
-    private func miniStat(label: String, value: String, color: Color) -> some View {
+    private func miniStat(label: String, value: String, color: Color, isScore: Bool = false) -> some View {
         VStack(spacing: 1) {
-            Text(value)
-                .font(.system(size: 18, weight: .black, design: .monospaced))
-                .foregroundColor(color)
+            Group {
+                if isScore {
+                    Text(value)
+                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .foregroundColor(color)
+                        .contentTransition(.numericText())
+                } else {
+                    Text(value)
+                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .foregroundColor(color)
+                }
+            }
             Text(label)
                 .font(.system(size: 8, weight: .semibold))
                 .foregroundColor(Color(white: 0.3))
