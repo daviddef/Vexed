@@ -14,28 +14,67 @@ struct TileCellView: View {
     var body: some View {
         ZStack {
             if let tile {
-                // Filled tile with gradient
-                RoundedRectangle(cornerRadius: size * 0.30)
-                    .fill(backgroundGradient(for: tile))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: size * 0.30)
-                            .stroke(borderColor(for: tile), lineWidth: isSelected ? 3.0 : 2.5)
+                let base = baseColor(for: tile)
+                let cr = size * 0.22
+
+                // 1. Base fill
+                RoundedRectangle(cornerRadius: cr)
+                    .fill(base)
+
+                // 2. Top-light overlay (3D bevel highlight)
+                RoundedRectangle(cornerRadius: cr)
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(0.45), location: 0),
+                                .init(color: Color.clear, location: 0.40)
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        )
                     )
 
+                // 3. Bottom-shadow overlay (3D bevel shadow)
+                RoundedRectangle(cornerRadius: cr)
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.clear, location: 0.60),
+                                .init(color: Color.black.opacity(0.30), location: 1.0)
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+
+                // 4. Border: selected = white, else darkened inner border
+                RoundedRectangle(cornerRadius: cr)
+                    .strokeBorder(
+                        isSelected ? Color.white : darkenedColor(base, factor: 0.65),
+                        lineWidth: isSelected ? 3.5 : 1.5
+                    )
+
+                // 5. Outer highlight stroke (white top shimmer)
+                if !isSelected {
+                    RoundedRectangle(cornerRadius: cr)
+                        .stroke(Color.white.opacity(0.25), lineWidth: 0.75)
+                }
+
+                // Letter
                 Text(String(tile.letter))
-                    .font(.system(size: size * 0.46, weight: .black, design: .rounded))
-                    .foregroundColor(letterColor(for: tile))
+                    .font(.system(size: size * 0.50, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .shadow(color: .black, radius: 1, x: 0, y: 1)
+
             } else {
-                // Empty cell: dashed base outline
-                RoundedRectangle(cornerRadius: size * 0.30)
+                // Empty cell: barely visible dashed grid structure
+                RoundedRectangle(cornerRadius: size * 0.22)
                     .strokeBorder(
                         style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
                     )
-                    .foregroundColor(pathColor != nil ? pathColor!.opacity(0.5) : Color(white: 0.55))
+                    .foregroundColor(pathColor != nil ? pathColor!.opacity(0.5) : Color(white: 0.30))
 
                 // Path fill tint
                 if let col = pathColor {
-                    RoundedRectangle(cornerRadius: size * 0.30)
+                    RoundedRectangle(cornerRadius: size * 0.22)
                         .fill(col.opacity(isDestination ? 0.18 : 0.08))
                 }
 
@@ -48,12 +87,12 @@ struct TileCellView: View {
             }
         }
         .frame(width: size, height: size)
-        .scaleEffect(isTouching ? 1.12 : scaleFor(tile?.animState))
+        .scaleEffect(isTouching ? 1.10 : scaleFor(tile?.animState))
         .rotationEffect(.degrees(tile?.animState == .vanishing ? vanishRotation : 0))
         .opacity(tile?.animState == .vanishing ? 0 : 1)
-        .shadow(color: dropShadowColor, radius: 6, x: 0, y: 4)
+        .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
-                radius: isTouching ? 16 : (isDanger ? 14 : 0))
+                radius: isTouching ? 18 : (isDanger ? 14 : 0))
         // Path glow on the outer border of path / destination cells
         .shadow(color: pathColor?.opacity(isDestination ? 0.85 : 0.45) ?? .clear,
                 radius: isDestination ? 12 : 6, x: 0, y: 0)
@@ -72,78 +111,37 @@ struct TileCellView: View {
         }
     }
 
-    // MARK: - Gradient backgrounds
+    // MARK: - Base colors (bright Block Blast style)
 
-    private func backgroundGradient(for tile: Tile) -> LinearGradient {
+    private func baseColor(for tile: Tile) -> Color {
         switch tile.type {
         case .consonant:
-            return LinearGradient(
-                colors: [Color(white: 0.18), Color(white: 0.11)],
-                startPoint: .top, endPoint: .bottom
-            )
+            return Color(red: 0.165, green: 0.165, blue: 0.243) // medium slate #2A2A3E
         case .vowel(.A):
-            return LinearGradient(
-                colors: [Color(red: 0.35, green: 0.12, blue: 0.12), Color(red: 0.22, green: 0.07, blue: 0.07)],
-                startPoint: .top, endPoint: .bottom
-            )
+            return Color(red: 0.95, green: 0.22, blue: 0.22)
         case .vowel(.E):
-            return LinearGradient(
-                colors: [Color(red: 0.12, green: 0.32, blue: 0.15), Color(red: 0.07, green: 0.20, blue: 0.09)],
-                startPoint: .top, endPoint: .bottom
-            )
+            return Color(red: 0.18, green: 0.82, blue: 0.35)
         case .vowel(.I):
-            return LinearGradient(
-                colors: [Color(red: 0.12, green: 0.15, blue: 0.38), Color(red: 0.07, green: 0.09, blue: 0.25)],
-                startPoint: .top, endPoint: .bottom
-            )
+            return Color(red: 0.15, green: 0.48, blue: 1.0)
         case .vowel(.O):
-            return LinearGradient(
-                colors: [Color(red: 0.35, green: 0.26, blue: 0.06), Color(red: 0.22, green: 0.16, blue: 0.03)],
-                startPoint: .top, endPoint: .bottom
-            )
+            return Color(red: 1.0,  green: 0.55, blue: 0.05)
         case .vowel(.U):
-            return LinearGradient(
-                colors: [Color(red: 0.30, green: 0.10, blue: 0.38), Color(red: 0.18, green: 0.06, blue: 0.24)],
-                startPoint: .top, endPoint: .bottom
-            )
+            return Color(red: 0.72, green: 0.22, blue: 0.95)
         }
     }
 
-    // MARK: - Colours
-
-    private func borderColor(for tile: Tile) -> Color {
-        if isSelected { return .white }
-        switch tile.type {
-        case .consonant:  return Color(white: 0.28)
-        case .vowel(.A):  return Color(red: 0.7, green: 0.20, blue: 0.20)
-        case .vowel(.E):  return Color(red: 0.20, green: 0.65, blue: 0.28)
-        case .vowel(.I):  return Color(red: 0.25, green: 0.35, blue: 0.80)
-        case .vowel(.O):  return Color(red: 0.75, green: 0.58, blue: 0.12)
-        case .vowel(.U):  return Color(red: 0.62, green: 0.24, blue: 0.78)
-        }
+    private func darkenedColor(_ color: Color, factor: Double) -> Color {
+        // Approximate darkening via UIColor
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return Color(red: Double(r) * factor, green: Double(g) * factor, blue: Double(b) * factor)
     }
 
-    private func letterColor(for tile: Tile) -> Color {
-        switch tile.type {
-        case .consonant:  return Color(white: 0.72)
-        case .vowel(.A):  return Color(red: 1.0, green: 0.35, blue: 0.35)
-        case .vowel(.E):  return Color(red: 0.3, green: 1.0, blue: 0.5)
-        case .vowel(.I):  return Color(red: 0.45, green: 0.6, blue: 1.0)
-        case .vowel(.O):  return Color(red: 1.0, green: 0.75, blue: 0.2)
-        case .vowel(.U):  return Color(red: 0.85, green: 0.4, blue: 1.0)
-        }
-    }
+    // MARK: - Shadows & glows
 
     private var dropShadowColor: Color {
         guard let tile else { return .clear }
-        switch tile.type {
-        case .consonant:  return Color.black.opacity(0.5)
-        case .vowel(.A):  return Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.6)
-        case .vowel(.E):  return Color(red: 0.3, green: 1.0, blue: 0.5).opacity(0.6)
-        case .vowel(.I):  return Color(red: 0.45, green: 0.6, blue: 1.0).opacity(0.6)
-        case .vowel(.O):  return Color(red: 1.0, green: 0.75, blue: 0.2).opacity(0.6)
-        case .vowel(.U):  return Color(red: 0.85, green: 0.4, blue: 1.0).opacity(0.6)
-        }
+        return baseColor(for: tile).opacity(0.55)
     }
 
     private var isDanger: Bool { tile?.animState == .danger }

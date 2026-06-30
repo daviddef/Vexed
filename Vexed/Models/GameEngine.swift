@@ -26,6 +26,8 @@ final class GameEngine: ObservableObject {
     @Published var log: [LogEntry] = []
     @Published var wordHistory: [(word: String, points: Int)] = []
     @Published var potentialScore: Int = 0
+    @Published var peakScore: Int = 0      // max possible at game start, set once
+    @Published var noWordsLeft: Bool = false
     /// Cells each cardinal-direction slide would pass through. Key = direction, value = ordered path including destination.
     @Published var slidePaths: [Direction: [Position]] = [:]
 
@@ -45,6 +47,7 @@ final class GameEngine: ObservableObject {
         self.grid = Self.makeGrid(rows: config.rows, cols: config.cols)
         startPressureTimer()
         recalculatePotentialScore()
+        peakScore = potentialScore
     }
 
     // MARK: - Grid Setup
@@ -317,6 +320,9 @@ final class GameEngine: ObservableObject {
             total += bestScoreForLine(letters)
         }
         potentialScore = total
+        // Check if any words remain on the board
+        let tilesExist = grid.flatMap { $0 }.contains { $0 != nil }
+        noWordsLeft = tilesExist && potentialScore == 0 && !gameOver
     }
 
     // Greedy scan: find non-overlapping valid words (longest first) and sum their points.
@@ -415,5 +421,7 @@ final class GameEngine: ObservableObject {
         startPressureTimer()
         updateDangerStates()
         recalculatePotentialScore()
+        peakScore = potentialScore
+        noWordsLeft = false
     }
 }

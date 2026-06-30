@@ -9,6 +9,7 @@ struct GameView: View {
     @State private var isFirstLaunch = !UserDefaults.standard.bool(forKey: "vexed.launched")
     @State private var toastMessage: String? = nil
     @State private var toastRotation: Double = 0
+    @State private var showNoWordsLeft: Bool = false
 
     var body: some View {
         ZStack {
@@ -21,7 +22,8 @@ struct GameView: View {
                     // Score cluster
                     HStack(spacing: 12) {
                         miniStat(label: "SCORE", value: "\(engine.score)", color: .white)
-                        potentialScoreStat
+                        miniStat(label: "BEST", value: "\(engine.potentialScore)", color: Color(red:0.3,green:1.0,blue:0.5))
+                        miniStat(label: "PEAK%", value: "\(securedPct())%", color: peakColor())
                         miniStat(label: "WORDS", value: "\(engine.wordCount)", color: Color(white: 0.7))
                         miniStat(label: "LOST",  value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
                     }
@@ -31,7 +33,10 @@ struct GameView: View {
 
                     // Controls
                     HStack(spacing: 8) {
-                        iconButton("arrow.counterclockwise") { engine.reset(difficulty: selectedDifficulty) }
+                        iconButton("arrow.counterclockwise") {
+                            showNoWordsLeft = false
+                            engine.reset(difficulty: selectedDifficulty)
+                        }
                         iconButton("line.3.horizontal") { showBurgerMenu = true }
                     }
                     .padding(.trailing, 12)
@@ -96,6 +101,11 @@ struct GameView: View {
                 }
             }
 
+            // ── No-words-left overlay ─────────────────────────────────
+            if showNoWordsLeft && !engine.gameOver {
+                noWordsLeftOverlay.zIndex(8)
+            }
+
             // ── Instructions overlay ──────────────────────────────────
             if showInstructions || isFirstLaunch {
                 InstructionsView {
@@ -118,7 +128,10 @@ struct GameView: View {
         .sheet(isPresented: $showBurgerMenu) {
             BurgerMenuView(
                 difficulty: $selectedDifficulty,
-                onReset: { engine.reset(difficulty: selectedDifficulty) },
+                onReset: {
+                    showNoWordsLeft = false
+                    engine.reset(difficulty: selectedDifficulty)
+                },
                 onShowInstructions: { showInstructions = true },
                 onShowMissedWords: { showMissedWords = true }
             )
@@ -131,32 +144,54 @@ struct GameView: View {
             guard let word else { return }
             showToast("✨ \(word)")
         }
+        .onChange(of: engine.noWordsLeft) { _, isLeft in
+            if isLeft { showNoWordsLeft = true }
+        }
     }
 
     // MARK: - Subviews
 
-    private var potentialScoreStat: some View {
-        let potential = engine.potentialScore
-        let current = engine.score
-        let pct = potential > 0 ? min(100, Int(Double(current) / Double(potential) * 100)) : 0
-        let color: Color = pct >= 80 ? Color(red: 0.3, green: 1.0, blue: 0.4)
-                         : pct >= 50 ? Color(red: 1.0, green: 0.8, blue: 0.2)
-                         : Color(white: 0.45)
-        return VStack(spacing: 1) {
-            Text("/ \(potential)")
-                .font(.system(size: 14, weight: .black, design: .monospaced))
-                .foregroundColor(color)
-            Text("\(pct)% MAX")
-                .font(.system(size: 8, weight: .semibold))
-                .foregroundColor(color.opacity(0.7))
-                .tracking(1)
+    private var noWordsLeftOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.80).ignoresSafeArea()
+            VStack(spacing: 20) {
+                Text("NO MOVES LEFT")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Color(white: 0.4))
+                    .tracking(4)
+                Text("VEXED")
+                    .font(.system(size: 52, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .tracking(10)
+                VStack(spacing: 8) {
+                    Text("\(engine.score)")
+                        .font(.system(size: 42, weight: .black, design: .monospaced))
+                        .foregroundColor(.yellow)
+                    let pct = engine.peakScore > 0 ? Int(Double(engine.score) / Double(engine.peakScore) * 100) : 0
+                    Text("You captured \(pct)% of the peak \(engine.peakScore) pts")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(white: 0.45))
+                    Text("\(engine.wordCount) word\(engine.wordCount == 1 ? "" : "s")  •  \(engine.lostVowels) vowel\(engine.lostVowels == 1 ? "" : "s") lost")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.35))
+                }
+                Button {
+                    showNoWordsLeft = false
+                    engine.reset(difficulty: selectedDifficulty)
+                } label: {
+                    Text("PLAY AGAIN")
+                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .tracking(3)
+                        .foregroundColor(.black)
+                        .frame(width: 200)
+                        .padding(.vertical, 16)
+                        .background(Color.white.cornerRadius(14))
+                        .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
+            }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 6)
-        .frame(maxWidth: .infinity)
-        .background(Color(white: 0.1).cornerRadius(10))
-        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-        .animation(.easeInOut(duration: 0.3), value: potential)
     }
 
     private var wordHistoryStrip: some View {
@@ -247,6 +282,7 @@ struct GameView: View {
                         .foregroundColor(Color(white: 0.4))
                 }
                 Button {
+                    showNoWordsLeft = false
                     engine.reset(difficulty: selectedDifficulty)
                 } label: {
                     Text("PLAY AGAIN")
@@ -265,6 +301,18 @@ struct GameView: View {
     }
 
     // MARK: - Helpers
+
+    private func securedPct() -> Int {
+        guard engine.peakScore > 0 else { return 0 }
+        return min(100, Int(Double(engine.score) / Double(engine.peakScore) * 100))
+    }
+
+    private func peakColor() -> Color {
+        let secured = securedPct()
+        if secured >= 80 { return Color(red: 0.3, green: 1.0, blue: 0.5) }
+        if secured >= 50 { return Color(red: 1.0, green: 0.8, blue: 0.2) }
+        return Color(white: 0.45)
+    }
 
     private struct ChipTint {
         let foreground: Color
