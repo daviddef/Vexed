@@ -83,21 +83,28 @@ struct SplashView: View {
                     .tracking(6)
                     .opacity(taglineVisible ? 1 : 0)
 
-                Spacer().frame(height: 52)
+                Spacer().frame(height: 44)
 
-                // ── Tap prompt ────────────────────────────────────────
-                VStack(spacing: 6) {
-                    Text(difficulty.displayName.uppercased())
-                        .font(.system(size: 18, weight: .black, design: .rounded))
-                        .foregroundColor(.white.opacity(tapPulse ? 0.90 : 0.45))
-                        .tracking(6)
+                // ── Difficulty pill ───────────────────────────────────
+                VStack(spacing: 10) {
+                    splashDifficultyPill
                     Text(difficulty.description.uppercased())
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.white.opacity(tapPulse ? 0.55 : 0.22))
+                        .foregroundColor(.white.opacity(0.35))
                         .tracking(3)
+                        .animation(.easeInOut(duration: 0.2), value: difficulty.rawValue)
                 }
                 .opacity(tapPromptVisible ? 1 : 0)
-                .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: tapPulse)
+
+                Spacer().frame(height: 28)
+
+                // ── Tap prompt ────────────────────────────────────────
+                Text("TAP TO PLAY")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(tapPulse ? 0.60 : 0.22))
+                    .tracking(5)
+                    .opacity(tapPromptVisible ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: tapPulse)
 
                 Spacer()
             }
@@ -106,6 +113,42 @@ struct SplashView: View {
         .scaleEffect(dismissing ? 1.06 : 1)
         .onTapGesture { dismiss() }
         .onAppear { runEntrance() }
+    }
+
+    private var splashDifficultyPill: some View {
+        HStack(spacing: 0) {
+            ForEach(Difficulty.allCases) { d in
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                        difficultyRaw = d.rawValue
+                    }
+                } label: {
+                    Text(d.displayName.uppercased())
+                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .tracking(1)
+                        .foregroundColor(d == difficulty ? .black : Color(white: 0.55))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(d == difficulty ? pillColor(d) : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 1).opacity(0.06)))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 1).opacity(0.10), lineWidth: 1))
+        .padding(.horizontal, 40)
+    }
+
+    private func pillColor(_ d: Difficulty) -> Color {
+        switch d {
+        case .easy:   return Color(red: 0.3, green: 0.9, blue: 0.5)
+        case .medium: return Color(red: 1.0, green: 0.75, blue: 0.1)
+        case .hard:   return Color(red: 1.0, green: 0.3, blue: 0.3)
+        }
     }
 
     private func runEntrance() {

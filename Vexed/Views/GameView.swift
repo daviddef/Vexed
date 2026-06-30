@@ -173,6 +173,13 @@ struct GameView: View {
                 .preferredColorScheme(.dark)
         }
         .onChange(of: selectedDifficulty) { _, d in savedDifficultyRaw = d.rawValue }
+        // React when splash screen (or any external writer) changes the stored difficulty
+        .onChange(of: savedDifficultyRaw) { _, raw in
+            guard let d = Difficulty(rawValue: raw), d != selectedDifficulty else { return }
+            selectedDifficulty = d
+            showNoWordsLeft = false
+            engine.reset(difficulty: d)
+        }
         .onChange(of: engine.lastWord) { _, word in
             guard let word else { return }
             showToast("✨ \(word)")
