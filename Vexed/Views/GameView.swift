@@ -10,6 +10,7 @@ struct GameView: View {
     @State private var toastMessage: String? = nil
     @State private var toastRotation: Double = 0
     @State private var showNoWordsLeft: Bool = false
+    @State private var vanishMessage: String? = nil
 
     var body: some View {
         ZStack {
@@ -101,6 +102,22 @@ struct GameView: View {
                 }
             }
 
+            // ── Vowel vanish banner ───────────────────────────────────
+            if let msg = vanishMessage {
+                VStack {
+                    Text(msg)
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color(red: 0.85, green: 0.15, blue: 0.15).cornerRadius(12))
+                        .shadow(color: Color.red.opacity(0.5), radius: 10, x: 0, y: 3)
+                        .padding(.top, 12)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    Spacer()
+                }
+            }
+
             // ── No-words-left overlay ─────────────────────────────────
             if showNoWordsLeft && !engine.gameOver {
                 noWordsLeftOverlay.zIndex(8)
@@ -144,6 +161,14 @@ struct GameView: View {
             guard let word else { return }
             showToast("✨ \(word)")
         }
+        .onChange(of: engine.lostVowels) { old, new in
+            let just = new - old
+            guard just > 0 else { return }
+            withAnimation(.easeOut(duration: 0.3)) { vanishMessage = "💥 \(just) vowel\(just == 1 ? "" : "s") vanished!" }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                withAnimation(.easeIn(duration: 0.25)) { vanishMessage = nil }
+            }
+        }
         .onChange(of: engine.noWordsLeft) { _, isLeft in
             if isLeft { showNoWordsLeft = true }
         }
@@ -167,8 +192,8 @@ struct GameView: View {
                     Text("\(engine.score)")
                         .font(.system(size: 42, weight: .black, design: .monospaced))
                         .foregroundColor(.yellow)
-                    let pct = engine.peakScore > 0 ? Int(Double(engine.score) / Double(engine.peakScore) * 100) : 0
-                    Text("You captured \(pct)% of the peak \(engine.peakScore) pts")
+                    let pct = engine.peakScore > 0 ? min(100, Int(Double(engine.score) / Double(engine.peakScore) * 100)) : 0
+                    Text("You captured \(pct)% of the estimated peak")
                         .font(.system(size: 14))
                         .foregroundColor(Color(white: 0.45))
                     Text("\(engine.wordCount) word\(engine.wordCount == 1 ? "" : "s")  •  \(engine.lostVowels) vowel\(engine.lostVowels == 1 ? "" : "s") lost")
