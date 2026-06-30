@@ -96,6 +96,17 @@ struct TileCellView: View {
         // Path glow on the outer border of path / destination cells
         .shadow(color: pathColor?.opacity(isDestination ? 0.85 : 0.45) ?? .clear,
                 radius: isDestination ? 12 : 6, x: 0, y: 0)
+        .rotation3DEffect(
+            .degrees(tile != nil && isSelected ? -8 : 0),
+            axis: (x: 1, y: 0, z: 0),
+            perspective: 0.4
+        )
+        .scaleEffect(tile != nil && isSelected ? 1.08 : 1.0)
+        .shadow(
+            color: tile != nil && isSelected ? baseColor(for: tile!).opacity(0.7) : .clear,
+            radius: tile != nil && isSelected ? 20 : 0,
+            x: 0, y: tile != nil && isSelected ? 8 : 0
+        )
         .animation(.spring(response: 0.18, dampingFraction: 0.55), value: isSelected)
         .animation(.spring(response: 0.12, dampingFraction: 0.55), value: isTouching)
         .animation(.easeInOut(duration: 0.25), value: pathColor != nil)
@@ -166,7 +177,7 @@ struct TileCellView: View {
         case .selected:   return 1.10
         case .vanishing:  return 0.05
         case .scoring:    return 1.15
-        default:          return isSelected ? 1.08 : 1.0
+        default:          return 1.0
         }
     }
 }

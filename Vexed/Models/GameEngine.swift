@@ -501,6 +501,25 @@ final class GameEngine: ObservableObject {
         return positions
     }
 
+    // MARK: - End Screen Helpers
+
+    var letterGrade: String {
+        guard peakScore > 0 else { return "F" }
+        let pct = Double(score) / Double(peakScore)
+        switch pct {
+        case 0.9...: return "S"
+        case 0.75...: return "A"
+        case 0.6...: return "B"
+        case 0.45...: return "C"
+        case 0.3...: return "D"
+        default: return "F"
+        }
+    }
+
+    var bestWord: String? {
+        wordHistory.max(by: { $0.word.count < $1.word.count })?.word
+    }
+
     // MARK: - Helpers
 
     func vowelCounts() -> [Vowel: Int] {

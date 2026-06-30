@@ -15,10 +15,32 @@ struct GameView: View {
     @State private var activeBursts: [GameEngine.BurstEvent] = []
     @State private var dangerPulse: Bool = false
     @State private var celebrationScale: CGFloat = 0.1
+    @State private var breathPhase: Bool = false
+    @State private var wordScoreFlash: Bool = false
+    @State private var tutorialStep: Int = 0
 
     var body: some View {
         ZStack {
             Color(red: 0.06, green: 0.06, blue: 0.09).ignoresSafeArea()
+            // Breathing overlay
+            RadialGradient(
+                gradient: Gradient(colors: [
+                    Color(red: 0.12, green: 0.08, blue: 0.18).opacity(breathPhase ? 0.4 : 0.15),
+                    Color.clear
+                ]),
+                center: .center,
+                startRadius: 0,
+                endRadius: UIScreen.main.bounds.width * 0.8
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .animation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true), value: breathPhase)
+            .onAppear { breathPhase = true }
+            // Word score flash overlay
+            Color(red: 0.3, green: 0.2, blue: 0.0)
+                .opacity(wordScoreFlash ? 0.12 : 0)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
 
             VStack(spacing: 0) {
 
@@ -98,24 +120,23 @@ struct GameView: View {
 
             // ── No-words-left overlay ─────────────────────────────────
             if showNoWordsLeft && !engine.gameOver {
-                noWordsLeftOverlay.zIndex(8)
+                endScreenOverlay(isGameOver: false).zIndex(8)
             }
 
             // ── Instructions overlay ──────────────────────────────────
-            if showInstructions || isFirstLaunch {
+            if showInstructions {
                 InstructionsView {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        showInstructions = false
-                        isFirstLaunch = false
-                    }
-                    UserDefaults.standard.set(true, forKey: "vexed.launched")
+                    withAnimation(.easeOut(duration: 0.25)) { showInstructions = false }
                 }
                 .zIndex(10)
+            }
+            if isFirstLaunch && tutorialStep > 0 && tutorialStep <= 3 {
+                tutorialOverlay.zIndex(10)
             }
 
             // ── Game over overlay ─────────────────────────────────────
             if engine.gameOver {
-                gameOverOverlay.zIndex(9)
+                endScreenOverlay(isGameOver: true).zIndex(9)
             }
         }
         .preferredColorScheme(.dark)
@@ -138,6 +159,10 @@ struct GameView: View {
         .onChange(of: engine.lastWord) { _, word in
             guard let word else { return }
             showToast("✨ \(word)")
+            withAnimation(.easeOut(duration: 0.15)) { wordScoreFlash = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                withAnimation(.easeIn(duration: 0.6)) { wordScoreFlash = false }
+            }
         }
         .onChange(of: engine.lostVowels) { old, new in
             let just = new - old
@@ -176,50 +201,150 @@ struct GameView: View {
         .onChange(of: engine.celebrationWord) { _, word in
             if word != nil { celebrationScale = 0.1 }
         }
+        .onAppear {
+            if isFirstLaunch {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { tutorialStep = 1 }
+            }
+        }
     }
 
     // MARK: - Subviews
 
-    private var noWordsLeftOverlay: some View {
+    @ViewBuilder private func endScreenOverlay(isGameOver: Bool) -> some View {
         ZStack {
-            Color.black.opacity(0.80).ignoresSafeArea()
-            VStack(spacing: 20) {
-                Text("NO MOVES LEFT")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(white: 0.4))
-                    .tracking(4)
-                Text("VEXED")
-                    .font(.system(size: 52, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                    .tracking(10)
-                VStack(spacing: 8) {
+            Color.black.opacity(0.75).ignoresSafeArea()
+                .transition(.opacity)
+
+            VStack(spacing: 24) {
+                // Grade badge
+                ZStack {
+                    Circle()
+                        .fill(gradeColor(engine.letterGrade))
+                        .frame(width: 90, height: 90)
+                        .shadow(color: gradeColor(engine.letterGrade).opacity(0.5), radius: 16)
+                    Text(engine.letterGrade)
+                        .font(.system(size: 48, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                }
+
+                // Title
+                Text(isGameOver ? "GAME OVER" : "NO MOVES LEFT")
+                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .tracking(3)
+                    .foregroundColor(.white.opacity(0.5))
+
+                // Score
+                VStack(spacing: 4) {
                     Text("\(engine.score)")
-                        .font(.system(size: 42, weight: .black, design: .monospaced))
-                        .foregroundColor(.yellow)
-                    let pct = engine.peakScore > 0 ? min(100, Int(Double(engine.score) / Double(engine.peakScore) * 100)) : 0
-                    Text("You captured \(pct)% of the estimated peak")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(white: 0.45))
-                    Text("\(engine.wordCount) word\(engine.wordCount == 1 ? "" : "s")  •  \(engine.lostVowels) vowel\(engine.lostVowels == 1 ? "" : "s") lost")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(white: 0.35))
+                        .font(.system(size: 56, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .contentTransition(.numericText())
+                    Text("POINTS")
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .tracking(4)
+                        .foregroundColor(.white.opacity(0.4))
                 }
-                Button {
-                    showNoWordsLeft = false
-                    engine.reset(difficulty: selectedDifficulty)
-                } label: {
-                    Text("PLAY AGAIN")
-                        .font(.system(size: 16, weight: .black, design: .rounded))
-                        .tracking(3)
-                        .foregroundColor(.black)
-                        .frame(width: 200)
-                        .padding(.vertical, 16)
-                        .background(Color.white.cornerRadius(14))
-                        .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 4)
+
+                // Stats row
+                HStack(spacing: 24) {
+                    endStat(label: "WORDS", value: "\(engine.wordCount)")
+                    endStat(label: "LOST", value: "\(engine.lostVowels)")
+                    if engine.peakScore > 0 {
+                        let pct = min(100, engine.score * 100 / max(1, engine.peakScore))
+                        endStat(label: "PEAK%", value: "\(pct)%")
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
+
+                // Best word
+                if let best = engine.bestWord {
+                    HStack(spacing: 8) {
+                        Text("BEST WORD")
+                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .tracking(2)
+                            .foregroundColor(.white.opacity(0.35))
+                        Text(best)
+                            .font(.system(size: 16, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
+                }
+
+                // Buttons row
+                HStack(spacing: 12) {
+                    // Share button
+                    Button {
+                        shareResult()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("SHARE")
+                                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                .tracking(2)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.12)))
+                    }
+                    .buttonStyle(.plain)
+
+                    // Play again button
+                    Button {
+                        withAnimation {
+                            showNoWordsLeft = false
+                            engine.reset(difficulty: selectedDifficulty)
+                        }
+                    } label: {
+                        Text("PLAY AGAIN")
+                            .font(.system(size: 14, weight: .black, design: .rounded))
+                            .tracking(2)
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
+                            .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.horizontal, 32)
+            .transition(.scale(scale: 0.85).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder private func endStat(label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 22, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .tracking(2)
+                .foregroundColor(.white.opacity(0.4))
+        }
+    }
+
+    private func gradeColor(_ grade: String) -> Color {
+        switch grade {
+        case "S": return Color(red: 1.0, green: 0.85, blue: 0.0)
+        case "A": return Color(red: 0.2, green: 0.85, blue: 0.4)
+        case "B": return Color(red: 0.2, green: 0.5, blue: 1.0)
+        case "C": return Color(red: 1.0, green: 0.6, blue: 0.1)
+        case "D": return Color(red: 0.8, green: 0.3, blue: 0.1)
+        default:  return Color(red: 0.5, green: 0.5, blue: 0.5)
+        }
+    }
+
+    private func shareResult() {
+        let grade = engine.letterGrade
+        let bestWord = engine.bestWord.map { " Best word: \($0)." } ?? ""
+        let text = "VEXED! Score: \(engine.score) pts | \(engine.wordCount) words | Grade: \(grade).\(bestWord) Can you beat me?"
+        let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let vc = scene.windows.first?.rootViewController {
+            vc.present(av, animated: true)
         }
     }
 
@@ -379,45 +504,6 @@ struct GameView: View {
         .buttonStyle(.plain)
     }
 
-    private var gameOverOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.75).ignoresSafeArea()
-            VStack(spacing: 18) {
-                Text("BOARD FULL")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color(white: 0.4))
-                    .tracking(4)
-                Text("VEXED")
-                    .font(.system(size: 52, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                    .tracking(10)
-                VStack(spacing: 6) {
-                    Text("\(engine.score)")
-                        .font(.system(size: 42, weight: .black, design: .monospaced))
-                        .foregroundColor(.yellow)
-                    Text("\(engine.wordCount) word\(engine.wordCount == 1 ? "" : "s")  •  \(engine.lostVowels) vowel\(engine.lostVowels == 1 ? "" : "s") lost")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(white: 0.4))
-                }
-                Button {
-                    showNoWordsLeft = false
-                    engine.reset(difficulty: selectedDifficulty)
-                } label: {
-                    Text("PLAY AGAIN")
-                        .font(.system(size: 16, weight: .black, design: .rounded))
-                        .tracking(3)
-                        .foregroundColor(.black)
-                        .frame(width: 200)
-                        .padding(.vertical, 16)
-                        .background(Color.white.cornerRadius(14))
-                        .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
-            }
-        }
-    }
-
     // MARK: - New UX overlays
 
     @ViewBuilder private var comboBadge: some View {
@@ -518,6 +604,80 @@ struct GameView: View {
             Spacer()
         }
         .allowsHitTesting(false)
+    }
+
+    // MARK: - Tutorial
+
+    @ViewBuilder private var tutorialOverlay: some View {
+        let steps: [(icon: String, title: String, body: String)] = [
+            ("hand.tap", "TAP A TILE", "Select any tile — it highlights the paths it can slide along."),
+            ("arrow.right", "SWIPE TO SLIDE", "Swipe to send it flying! Tiles glide until they hit a wall or another tile."),
+            ("text.word.spacing", "SPELL WORDS", "Line up letters in a row or column to score. 3+ of the same vowel touching will vanish — watch out!")
+        ]
+        let step = steps[tutorialStep - 1]
+
+        VStack {
+            Spacer()
+            VStack(spacing: 16) {
+                Image(systemName: step.icon)
+                    .font(.system(size: 36))
+                    .foregroundColor(.white)
+                    .frame(width: 64, height: 64)
+                    .background(Circle().fill(Color.white.opacity(0.15)))
+
+                Text(step.title)
+                    .font(.system(size: 20, weight: .black, design: .rounded))
+                    .tracking(2)
+                    .foregroundColor(.white)
+
+                Text(step.body)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+
+                HStack(spacing: 8) {
+                    ForEach(1...3, id: \.self) { i in
+                        Circle()
+                            .fill(i == tutorialStep ? Color.white : Color.white.opacity(0.3))
+                            .frame(width: 6, height: 6)
+                    }
+                }
+
+                Button {
+                    if tutorialStep < 3 {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { tutorialStep += 1 }
+                    } else {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            tutorialStep = 0
+                            isFirstLaunch = false
+                        }
+                        UserDefaults.standard.set(true, forKey: "vexed.launched")
+                    }
+                } label: {
+                    Text(tutorialStep < 3 ? "NEXT →" : "LET'S GO!")
+                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .tracking(2)
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 12)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(28)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.black.opacity(0.82))
+                    .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.12), lineWidth: 1))
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 40)
+            .transition(.asymmetric(
+                insertion: .move(edge: .bottom).combined(with: .opacity),
+                removal: .move(edge: .bottom).combined(with: .opacity)
+            ))
+        }
     }
 
     // MARK: - Helpers
