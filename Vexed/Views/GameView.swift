@@ -2,12 +2,8 @@ import SwiftUI
 
 struct GameView: View {
     @StateObject private var engine = GameEngine(difficulty: .easy)
-    @AppStorage("selectedDifficulty") private var difficultyRaw: String = Difficulty.easy.rawValue
-    private var selectedDifficulty: Difficulty { Difficulty(rawValue: difficultyRaw) ?? .easy }
-    private var difficultyBinding: Binding<Difficulty> {
-        Binding(get: { selectedDifficulty },
-                set: { difficultyRaw = $0.rawValue })
-    }
+    @State private var selectedDifficulty: Difficulty = .easy
+    @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.easy.rawValue
     @State private var showBurgerMenu = false
     @State private var showInstructions = false
     @State private var showMissedWords = false
@@ -156,7 +152,7 @@ struct GameView: View {
         .ignoresSafeArea(edges: .bottom)
         .sheet(isPresented: $showBurgerMenu) {
             BurgerMenuView(
-                difficulty: difficultyBinding,
+                difficulty: $selectedDifficulty,
                 onReset: {
                     showNoWordsLeft = false
                     engine.reset(difficulty: selectedDifficulty)
@@ -169,6 +165,13 @@ struct GameView: View {
             MissedWordsView(grid: engine.grid, config: engine.config)
                 .preferredColorScheme(.dark)
         }
+        .onAppear {
+            if let saved = Difficulty(rawValue: savedDifficultyRaw), saved != selectedDifficulty {
+                selectedDifficulty = saved
+                engine.reset(difficulty: saved)
+            }
+        }
+        .onChange(of: selectedDifficulty) { _, d in savedDifficultyRaw = d.rawValue }
         .onChange(of: engine.lastWord) { _, word in
             guard let word else { return }
             showToast("✨ \(word)")
@@ -460,34 +463,7 @@ struct GameView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(engine.availableWords) { entry in
-                    let isHighlighted = engine.highlightedPositions == Set(entry.positions)
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            if isHighlighted {
-                                engine.highlightedPositions = nil
-                            } else {
-                                engine.highlightedPositions = Set(entry.positions)
-                            }
-                        }
-                    } label: {
-                        Text(entry.word)
-                            .font(.system(size: 11, weight: .black, design: .rounded))
-                            .foregroundColor(isHighlighted ? .black : Color(red: 1, green: 0.38, blue: 0.38))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(isHighlighted
-                                          ? Color(red: 1, green: 0.38, blue: 0.38)
-                                          : Color(red: 1, green: 0.38, blue: 0.38).opacity(0.12))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color(red: 1, green: 0.38, blue: 0.38).opacity(0.5), lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .animation(.easeInOut(duration: 0.15), value: isHighlighted)
+                    AvailableWordChip(entry: entry, engine: engine)
                 }
             }
             .padding(.horizontal, 12)
