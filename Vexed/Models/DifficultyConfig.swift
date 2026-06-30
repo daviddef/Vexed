@@ -12,9 +12,9 @@ enum Difficulty: String, CaseIterable, Identifiable {
     var config: DifficultyConfig {
         switch self {
         case .kids:   return DifficultyConfig(rows: 4, cols: 4, adjacency: .orthogonal, minWordLength: 3, pressureRate: 0,   dictionaryTier: .simple)
-        case .medium: return DifficultyConfig(rows: 6, cols: 6, adjacency: .all8,       minWordLength: 4, pressureRate: 0,   dictionaryTier: .standard)
-        case .hard:   return DifficultyConfig(rows: 8, cols: 8, adjacency: .all8,       minWordLength: 4, pressureRate: 0.3, dictionaryTier: .standard)
-        case .expert: return DifficultyConfig(rows: 8, cols: 8, adjacency: .all8,       minWordLength: 5, pressureRate: 0.6, dictionaryTier: .full)
+        case .medium: return DifficultyConfig(rows: 6, cols: 6, adjacency: .all8,       minWordLength: 3, pressureRate: 0,   dictionaryTier: .standard)
+        case .hard:   return DifficultyConfig(rows: 8, cols: 8, adjacency: .all8,       minWordLength: 3, pressureRate: 0.3, dictionaryTier: .standard)
+        case .expert: return DifficultyConfig(rows: 8, cols: 8, adjacency: .all8,       minWordLength: 4, pressureRate: 0.6, dictionaryTier: .full)
         }
     }
 
