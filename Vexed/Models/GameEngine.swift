@@ -490,7 +490,11 @@ final class GameEngine: ObservableObject {
 
         for r in 0..<config.rows { scanLine((0..<config.cols).map { Position(r, $0) }) }
         for c in 0..<config.cols { scanLine((0..<config.rows).map { Position($0, c) }) }
-        return results.sorted { $0.points > $1.points }
+        // Longest words first (highest score potential), then alphabetically for stability
+        return results.sorted {
+            if $0.word.count != $1.word.count { return $0.word.count > $1.word.count }
+            return $0.word < $1.word
+        }
     }
 
     /// Returns true if at least one tile can be slid in some direction to form a valid word.

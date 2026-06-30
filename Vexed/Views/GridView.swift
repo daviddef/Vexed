@@ -71,7 +71,7 @@ struct GridView: View {
                                     // Dimming overlay: separate from matchedGeometryEffect to avoid SwiftUI animation conflicts
                                     if isDimmed {
                                         RoundedRectangle(cornerRadius: tileSize * 0.2)
-                                            .fill(Color.black.opacity(0.72))
+                                            .fill(Color.black.opacity(0.48))
                                             .allowsHitTesting(false)
                                             .transition(.opacity)
                                     }
