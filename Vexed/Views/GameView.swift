@@ -3,8 +3,9 @@ import SwiftUI
 struct GameView: View {
     @StateObject private var engine = GameEngine(difficulty: .medium)
     @State private var selectedDifficulty: Difficulty = .medium
-    @State private var showDifficultyPicker = false
+    @State private var showBurgerMenu = false
     @State private var showInstructions = false
+    @State private var showMissedWords = false
     @State private var isFirstLaunch = !UserDefaults.standard.bool(forKey: "vexed.launched")
     @State private var toastMessage: String? = nil
 
@@ -28,19 +29,8 @@ struct GameView: View {
 
                     // Controls
                     HStack(spacing: 8) {
-                        iconButton("questionmark.circle") { showInstructions = true }
                         iconButton("arrow.counterclockwise") { engine.reset(difficulty: selectedDifficulty) }
-                        Button {
-                            showDifficultyPicker = true
-                        } label: {
-                            Text(selectedDifficulty.displayName.uppercased())
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(Color(white: 0.5))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color(white: 0.12).cornerRadius(8))
-                        }
-                        .buttonStyle(.plain)
+                        iconButton("line.3.horizontal") { showBurgerMenu = true }
                     }
                     .padding(.trailing, 12)
                 }
@@ -56,9 +46,35 @@ struct GameView: View {
                     .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // ── Bottom hint strip ────────────────────────────────────
-                hintStrip
-                    .padding(.bottom, 8)
+                // ── Two-part footer ──────────────────────────────────────
+                VStack(spacing: 0) {
+                    // Line 1: selected tile hint
+                    Group {
+                        if let pos = engine.selectedPosition, let tile = engine.grid[pos.row][pos.col] {
+                            HStack(spacing: 6) {
+                                Text(String(tile.letter))
+                                    .font(.system(size: 20, weight: .black, design: .rounded))
+                                    .foregroundColor(tileColor(tile))
+                                Text("selected — swipe to slide")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(Color(white: 0.35))
+                            }
+                            .padding(.vertical, 4)
+                            .transition(.opacity)
+                        } else {
+                            Text("drag any tile to slide it")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Color(white: 0.22))
+                                .padding(.vertical, 4)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
+
+                    // Line 2: word history chips
+                    wordHistoryStrip
+                        .frame(height: 36)
+                }
+                .padding(.bottom, 8)
             }
 
             // ── Toast for word scored ─────────────────────────────────
@@ -95,13 +111,17 @@ struct GameView: View {
         }
         .preferredColorScheme(.dark)
         .ignoresSafeArea(edges: .bottom)
-        .confirmationDialog("Difficulty", isPresented: $showDifficultyPicker, titleVisibility: .visible) {
-            ForEach(Difficulty.allCases) { diff in
-                Button(diff.displayName) {
-                    selectedDifficulty = diff
-                    engine.reset(difficulty: diff)
-                }
-            }
+        .sheet(isPresented: $showBurgerMenu) {
+            BurgerMenuView(
+                difficulty: $selectedDifficulty,
+                onReset: { engine.reset(difficulty: selectedDifficulty) },
+                onShowInstructions: { showInstructions = true },
+                onShowMissedWords: { showMissedWords = true }
+            )
+        }
+        .sheet(isPresented: $showMissedWords) {
+            MissedWordsView(grid: engine.grid, config: engine.config)
+                .preferredColorScheme(.dark)
         }
         .onChange(of: engine.lastWord) { _, word in
             guard let word else { return }
@@ -110,6 +130,44 @@ struct GameView: View {
     }
 
     // MARK: - Subviews
+
+    private var wordHistoryStrip: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    if engine.wordHistory.isEmpty {
+                        Text("— no words yet —")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(Color(white: 0.2))
+                            .padding(.horizontal, 12)
+                    } else {
+                        ForEach(Array(engine.wordHistory.enumerated()), id: \.offset) { idx, entry in
+                            HStack(spacing: 4) {
+                                Text(entry.word)
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color(white: 0.7))
+                                Text("+\(entry.points)")
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(.yellow)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(Color(white: 0.1).cornerRadius(8))
+                            .id(idx)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+            }
+            .onChange(of: engine.wordHistory.count) { _, count in
+                if count > 0 {
+                    withAnimation {
+                        proxy.scrollTo(count - 1, anchor: .trailing)
+                    }
+                }
+            }
+        }
+    }
 
     private func miniStat(label: String, value: String, color: Color) -> some View {
         VStack(spacing: 1) {
@@ -132,29 +190,6 @@ struct GameView: View {
                 .background(Color(white: 0.12).cornerRadius(8))
         }
         .buttonStyle(.plain)
-    }
-
-    private var hintStrip: some View {
-        Group {
-            if let pos = engine.selectedPosition, let tile = engine.grid[pos.row][pos.col] {
-                HStack(spacing: 6) {
-                    Text(String(tile.letter))
-                        .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(tileColor(tile))
-                    Text("selected — swipe to slide")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(Color(white: 0.35))
-                }
-                .padding(.vertical, 8)
-                .transition(.opacity)
-            } else {
-                Text("drag any tile to slide it")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(white: 0.22))
-                    .padding(.vertical, 8)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
     }
 
     private var gameOverOverlay: some View {

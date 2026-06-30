@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 struct SlideResult {
     let moved: Bool
@@ -23,6 +24,7 @@ final class GameEngine: ObservableObject {
     @Published var lastWord: String? = nil
     @Published var gameOver: Bool = false
     @Published var log: [LogEntry] = []
+    @Published var wordHistory: [(word: String, points: Int)] = []
 
     let config: DifficultyConfig
     private let validator = WordValidator.shared
@@ -99,9 +101,11 @@ final class GameEngine: ObservableObject {
             return SlideResult(moved: false, vanishedPositions: [], scoredWords: [])
         }
 
-        grid[dest.row][dest.col] = grid[src.row][src.col]
-        grid[src.row][src.col] = nil
-        selectedPosition = dest
+        withAnimation(.spring(response: 0.22, dampingFraction: 0.75)) {
+            grid[dest.row][dest.col] = grid[src.row][src.col]
+            grid[src.row][src.col] = nil
+            selectedPosition = dest
+        }
 
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
 
@@ -188,6 +192,7 @@ final class GameEngine: ObservableObject {
             score += word.points
             wordCount += 1
             lastWord = word.word
+            wordHistory.append((word: word.word, points: word.points))
             addLog("✨ \"\(word.word)\" +\(word.points)pts", .good)
         }
 
@@ -300,7 +305,7 @@ final class GameEngine: ObservableObject {
         grid = Self.makeGrid(rows: cfg.rows, cols: cfg.cols)
         selectedPosition = nil
         score = 0; wordCount = 0; lostVowels = 0
-        lastWord = nil; gameOver = false; log = []
+        lastWord = nil; gameOver = false; log = []; wordHistory = []
         startPressureTimer()
         updateDangerStates()
     }

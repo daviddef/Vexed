@@ -4,6 +4,7 @@ struct TileCellView: View {
     let tile: Tile?
     let isSelected: Bool
     let size: CGFloat
+    var isTouching: Bool = false
 
     var body: some View {
         ZStack {
@@ -21,10 +22,12 @@ struct TileCellView: View {
             }
         }
         .frame(width: size, height: size)
-        .scaleEffect(scaleFor(tile?.animState))
+        .scaleEffect(isTouching ? 1.05 : scaleFor(tile?.animState))
         .opacity(tile?.animState == .vanishing ? 0 : 1)
-        .shadow(color: dangerGlowColor, radius: isDanger ? 8 : 0)
+        .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
+                radius: isTouching ? 12 : (isDanger ? 8 : 0))
         .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isSelected)
+        .animation(.spring(response: 0.12, dampingFraction: 0.6), value: isTouching)
         .animation(.easeInOut(duration: 0.35), value: tile?.animState)
     }
 
@@ -67,6 +70,11 @@ struct TileCellView: View {
     }
 
     private var isDanger: Bool { tile?.animState == .danger }
+
+    private var touchGlowColor: Color {
+        // Bright gold/white glow on touch
+        Color(red: 1.0, green: 0.92, blue: 0.6).opacity(0.85)
+    }
 
     private var dangerGlowColor: Color {
         guard isDanger, let tile, let v = tile.vowel else { return .clear }
