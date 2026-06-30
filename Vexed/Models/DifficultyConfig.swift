@@ -13,7 +13,7 @@ enum Difficulty: String, CaseIterable, Identifiable {
         switch self {
         case .easy:   return DifficultyConfig(rows: 5, cols: 5, adjacency: .orthogonal, minWordLength: 3)
         case .medium: return DifficultyConfig(rows: 7, cols: 7, adjacency: .orthogonal, minWordLength: 3)
-        case .hard:   return DifficultyConfig(rows: 9, cols: 9, adjacency: .orthogonal, minWordLength: 3)
+        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 3)
         }
     }
 
@@ -29,7 +29,7 @@ enum Difficulty: String, CaseIterable, Identifiable {
         switch self {
         case .easy:   return "5×5 · Learn the ropes"
         case .medium: return "7×7 · The sweet spot"
-        case .hard:   return "9×9 · Chain or perish"
+        case .hard:   return "10×10 · Chain or perish"
         }
     }
 }

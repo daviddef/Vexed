@@ -45,7 +45,7 @@ final class GameEngine: ObservableObject {
         let color: Color
     }
 
-    let config: DifficultyConfig
+    var config: DifficultyConfig
     private let validator = WordValidator.shared
     private var pressureTimer: AnyCancellable?
 
@@ -631,8 +631,8 @@ final class GameEngine: ObservableObject {
 
     func reset(difficulty: Difficulty) {
         pressureTimer?.cancel()
-        let cfg = difficulty.config
-        grid = Self.makeGrid(rows: cfg.rows, cols: cfg.cols)
+        config = difficulty.config
+        grid = Self.makeGrid(rows: config.rows, cols: config.cols)
         selectedPosition = nil
         score = 0; wordCount = 0; lostVowels = 0
         lastWord = nil; gameOver = false; log = []; wordHistory = []
