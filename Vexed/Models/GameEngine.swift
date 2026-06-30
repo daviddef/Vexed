@@ -498,43 +498,83 @@ final class GameEngine: ObservableObject {
     }
 
     /// Returns true if at least one tile can be slid in some direction to form a valid word.
-    private func anySlideCanScoreWord() -> Bool {
+    // Returns all (src, dest) pairs for one ice-slide in the given grid.
+    private func allSlides(in g: [[Tile?]]) -> [(Position, Position)] {
+        var moves: [(Position, Position)] = []
         for r in 0..<config.rows {
             for c in 0..<config.cols {
-                guard grid[r][c] != nil else { continue }
+                guard g[r][c] != nil else { continue }
                 let src = Position(r, c)
                 for dir in Direction.cardinal {
-                    // Simulate ice-slide destination
                     var dest = src
                     while true {
                         let next = dest.moved(dir)
                         guard next.isValid(rows: config.rows, cols: config.cols),
-                              grid[next.row][next.col] == nil else { break }
+                              g[next.row][next.col] == nil else { break }
                         dest = next
                     }
-                    guard dest != src else { continue }
-                    // Temporarily apply the move on a copy of the grid
-                    var g = grid
-                    g[dest.row][dest.col] = g[src.row][src.col]
-                    g[src.row][src.col] = nil
-                    // Check destination row and column for any valid word
-                    if lineHasWord(g, row: dest.row) || lineHasWord(g, col: dest.col) {
-                        return true
-                    }
+                    if dest != src { moves.append((src, dest)) }
                 }
             }
         }
+        return moves
+    }
+
+    // Apply a single slide to a grid copy and return the result.
+    private func applying(_ g: [[Tile?]], from src: Position, to dest: Position) -> [[Tile?]] {
+        var g2 = g
+        g2[dest.row][dest.col] = g2[src.row][src.col]
+        g2[src.row][src.col] = nil
+        return g2
+    }
+
+    // Check whether any contiguous run in the row or column of dest contains a valid word.
+    private func gridHasWordAt(_ g: [[Tile?]], dest: Position) -> Bool {
+        lineHasWordInRuns(g, row: dest.row) || lineHasWordInRuns(g, col: dest.col)
+    }
+
+    private func lineHasWordInRuns(_ g: [[Tile?]], row: Int) -> Bool {
+        var run: [Character] = []
+        for c in 0..<config.cols {
+            if let letter = g[row][c]?.letter {
+                run.append(letter)
+            } else {
+                if lineLettersHaveWord(run) { return true }
+                run.removeAll()
+            }
+        }
+        return lineLettersHaveWord(run)
+    }
+
+    private func lineHasWordInRuns(_ g: [[Tile?]], col: Int) -> Bool {
+        var run: [Character] = []
+        for r in 0..<config.rows {
+            if let letter = g[r][col]?.letter {
+                run.append(letter)
+            } else {
+                if lineLettersHaveWord(run) { return true }
+                run.removeAll()
+            }
+        }
+        return lineLettersHaveWord(run)
+    }
+
+    private func anySlideCanScoreWord() -> Bool {
+        // Single-slide pass
+        let slides = allSlides(in: grid)
+        for (src, dest) in slides {
+            let g1 = applying(grid, from: src, to: dest)
+            if gridHasWordAt(g1, dest: dest) { return true }
+        }
+        // Two-slide lookahead: if no single slide works, try all pairs
+        for (src1, dest1) in slides {
+            let g1 = applying(grid, from: src1, to: dest1)
+            for (src2, dest2) in allSlides(in: g1) {
+                let g2 = applying(g1, from: src2, to: dest2)
+                if gridHasWordAt(g2, dest: dest2) { return true }
+            }
+        }
         return false
-    }
-
-    private func lineHasWord(_ g: [[Tile?]], row: Int) -> Bool {
-        let letters = (0..<config.cols).compactMap { g[row][$0]?.letter }
-        return lineLettersHaveWord(letters)
-    }
-
-    private func lineHasWord(_ g: [[Tile?]], col: Int) -> Bool {
-        let letters = (0..<config.rows).compactMap { g[$0][col]?.letter }
-        return lineLettersHaveWord(letters)
     }
 
     private func lineLettersHaveWord(_ letters: [Character]) -> Bool {
