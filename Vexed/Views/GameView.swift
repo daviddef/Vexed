@@ -4,110 +4,97 @@ struct GameView: View {
     @StateObject private var engine = GameEngine(difficulty: .medium)
     @State private var selectedDifficulty: Difficulty = .medium
     @State private var showDifficultyPicker = false
+    @State private var showInstructions = false
+    @State private var isFirstLaunch = !UserDefaults.standard.bool(forKey: "vexed.launched")
+    @State private var toastMessage: String? = nil
 
     var body: some View {
         ZStack {
             Color(red: 0.06, green: 0.06, blue: 0.09).ignoresSafeArea()
 
-            VStack(spacing: 14) {
-                // Title + difficulty
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("VEXED")
-                            .font(.system(size: 32, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                            .tracking(8)
-                        Text("SLIDE · FORM · SURVIVE")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(Color(white: 0.35))
-                            .tracking(2)
+            VStack(spacing: 0) {
+
+                // ── Compact top bar ──────────────────────────────────────
+                HStack(spacing: 0) {
+                    // Score cluster
+                    HStack(spacing: 12) {
+                        miniStat(label: "SCORE", value: "\(engine.score)", color: .white)
+                        miniStat(label: "WORDS", value: "\(engine.wordCount)", color: Color(white: 0.7))
+                        miniStat(label: "LOST",  value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
                     }
+                    .padding(.leading, 16)
+
                     Spacer()
-                    Button {
-                        showDifficultyPicker = true
-                    } label: {
-                        Text(selectedDifficulty.displayName)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(white: 0.6))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(Color(white: 0.12).cornerRadius(8))
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(white: 0.2), lineWidth: 1))
-                    }
-                }
-                .padding(.horizontal)
 
-                // HUD
-                HUDView(
-                    score: engine.score,
-                    wordCount: engine.wordCount,
-                    lostVowels: engine.lostVowels,
-                    lastWord: engine.lastWord
-                )
-                .padding(.horizontal)
-
-                // Vowel radar
-                VowelRadarView(counts: engine.vowelCounts())
-                    .padding(.horizontal)
-
-                // Grid
-                GridView(engine: engine)
-                    .padding(.horizontal)
-
-                // D-pad + selected tile display
-                HStack(alignment: .center, spacing: 24) {
-                    // Selected tile
-                    VStack(spacing: 4) {
-                        Text("SELECTED")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(Color(white: 0.3))
-                            .tracking(2)
-                        if let pos = engine.selectedPosition,
-                           let tile = engine.grid[pos.row][pos.col] {
-                            Text(String(tile.letter))
-                                .font(.system(size: 42, weight: .black, design: .rounded))
-                                .foregroundColor(tileDisplayColor(tile))
-                        } else {
-                            Text("—")
-                                .font(.system(size: 42, weight: .black))
-                                .foregroundColor(Color(white: 0.2))
-                        }
-                    }
-                    .frame(width: 80)
-
-                    DirectionPadView { dir in
-                        engine.slide(direction: dir)
-                    }
-
-                    // Reset button
-                    Button {
-                        engine.reset(difficulty: selectedDifficulty)
-                    } label: {
-                        VStack(spacing: 4) {
-                            Text("↺")
-                                .font(.system(size: 22))
+                    // Controls
+                    HStack(spacing: 8) {
+                        iconButton("questionmark.circle") { showInstructions = true }
+                        iconButton("arrow.counterclockwise") { engine.reset(difficulty: selectedDifficulty) }
+                        Button {
+                            showDifficultyPicker = true
+                        } label: {
+                            Text(selectedDifficulty.displayName.uppercased())
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(Color(white: 0.5))
-                            Text("RESET")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundColor(Color(white: 0.3))
-                                .tracking(1)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color(white: 0.12).cornerRadius(8))
                         }
-                        .frame(width: 80)
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.trailing, 12)
                 }
-                .padding(.horizontal)
+                .padding(.vertical, 10)
 
-                Spacer(minLength: 0)
+                // ── Vowel radar ──────────────────────────────────────────
+                VowelRadarView(counts: engine.vowelCounts())
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+
+                // ── GRID — fills all remaining space ─────────────────────
+                GridView(engine: engine)
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // ── Bottom hint strip ────────────────────────────────────
+                hintStrip
+                    .padding(.bottom, 8)
             }
-            .padding(.top)
 
-            // Game over overlay
+            // ── Toast for word scored ─────────────────────────────────
+            if let msg = toastMessage {
+                VStack {
+                    Spacer()
+                    Text(msg)
+                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.yellow.cornerRadius(14))
+                        .padding(.bottom, 100)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+
+            // ── Instructions overlay ──────────────────────────────────
+            if showInstructions || isFirstLaunch {
+                InstructionsView {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        showInstructions = false
+                        isFirstLaunch = false
+                    }
+                    UserDefaults.standard.set(true, forKey: "vexed.launched")
+                }
+                .zIndex(10)
+            }
+
+            // ── Game over overlay ─────────────────────────────────────
             if engine.gameOver {
-                gameOverOverlay
+                gameOverOverlay.zIndex(9)
             }
         }
         .preferredColorScheme(.dark)
+        .ignoresSafeArea(edges: .bottom)
         .confirmationDialog("Difficulty", isPresented: $showDifficultyPicker, titleVisibility: .visible) {
             ForEach(Difficulty.allCases) { diff in
                 Button(diff.displayName) {
@@ -116,36 +103,100 @@ struct GameView: View {
                 }
             }
         }
+        .onChange(of: engine.lastWord) { _, word in
+            guard let word else { return }
+            showToast("✨ \(word)")
+        }
+    }
+
+    // MARK: - Subviews
+
+    private func miniStat(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 18, weight: .black, design: .monospaced))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundColor(Color(white: 0.3))
+                .tracking(1)
+        }
+    }
+
+    private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: name)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(Color(white: 0.45))
+                .frame(width: 36, height: 36)
+                .background(Color(white: 0.12).cornerRadius(8))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var hintStrip: some View {
+        Group {
+            if let pos = engine.selectedPosition, let tile = engine.grid[pos.row][pos.col] {
+                HStack(spacing: 6) {
+                    Text(String(tile.letter))
+                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .foregroundColor(tileColor(tile))
+                    Text("selected — swipe to slide")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color(white: 0.35))
+                }
+                .padding(.vertical, 8)
+                .transition(.opacity)
+            } else {
+                Text("drag any tile to slide it")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color(white: 0.22))
+                    .padding(.vertical, 8)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
     }
 
     private var gameOverOverlay: some View {
         ZStack {
-            Color.black.opacity(0.7).ignoresSafeArea()
-            VStack(spacing: 20) {
+            Color.black.opacity(0.75).ignoresSafeArea()
+            VStack(spacing: 18) {
+                Text("BOARD FULL")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Color(white: 0.4))
+                    .tracking(4)
                 Text("VEXED")
-                    .font(.system(size: 48, weight: .black, design: .rounded))
+                    .font(.system(size: 52, weight: .black, design: .rounded))
                     .foregroundColor(.white)
-                Text("Score: \(engine.score)")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.yellow)
-                Text("Words: \(engine.wordCount)  •  Vowels lost: \(engine.lostVowels)")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(white: 0.6))
-                Button("Play Again") {
-                    engine.reset(difficulty: selectedDifficulty)
+                    .tracking(10)
+                VStack(spacing: 6) {
+                    Text("\(engine.score)")
+                        .font(.system(size: 42, weight: .black, design: .monospaced))
+                        .foregroundColor(.yellow)
+                    Text("\(engine.wordCount) word\(engine.wordCount == 1 ? "" : "s")  •  \(engine.lostVowels) vowel\(engine.lostVowels == 1 ? "" : "s") lost")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(white: 0.4))
                 }
-                .font(.system(size: 18, weight: .bold))
-                .padding(.horizontal, 32)
-                .padding(.vertical, 14)
-                .background(Color.white)
-                .foregroundColor(.black)
-                .cornerRadius(14)
+                Button {
+                    engine.reset(difficulty: selectedDifficulty)
+                } label: {
+                    Text("PLAY AGAIN")
+                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .tracking(3)
+                        .foregroundColor(.black)
+                        .frame(width: 200)
+                        .padding(.vertical, 16)
+                        .background(Color.white.cornerRadius(14))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
             }
-            .padding(32)
         }
     }
 
-    private func tileDisplayColor(_ tile: Tile) -> Color {
+    // MARK: - Helpers
+
+    private func tileColor(_ tile: Tile) -> Color {
         switch tile.type {
         case .consonant:  return Color(white: 0.7)
         case .vowel(.A):  return Color(red: 1.0, green: 0.42, blue: 0.42)
@@ -153,6 +204,13 @@ struct GameView: View {
         case .vowel(.I):  return Color(red: 0.42, green: 0.56, blue: 1.0)
         case .vowel(.O):  return Color(red: 1.0, green: 0.8, blue: 0.33)
         case .vowel(.U):  return Color(red: 0.8, green: 0.47, blue: 1.0)
+        }
+    }
+
+    private func showToast(_ message: String) {
+        withAnimation(.spring(response: 0.3)) { toastMessage = message }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+            withAnimation(.easeOut(duration: 0.25)) { toastMessage = nil }
         }
     }
 }

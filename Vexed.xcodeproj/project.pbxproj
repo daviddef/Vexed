@@ -8,9 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		086DCC3609708329E5604A3D /* TileCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66A7018BFE1BA853288B8CE /* TileCellView.swift */; };
-		1ACC848BE81809777E29A920 /* DirectionPadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4898C90C3CB567554E61A8 /* DirectionPadView.swift */; };
 		1F8B8C9F301E36C12BA60E1C /* GridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFF4E29B41C4E7EE1FAE1A8 /* GridView.swift */; };
 		390F72CAE1FCBFA057E1E06C /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6304962939BAB59E4179777F /* GameEngine.swift */; };
+		39C44BF25D20D8CB0289483E /* InstructionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233E208FD9087F702149CA1A /* InstructionsView.swift */; };
 		7C98B292CCDE6827788F9331 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373DC80F055AE84737CE034F /* Position.swift */; };
 		87A3D5D6F10BCE8D63C4A652 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CEB73563ADF803D330B29F36 /* Assets.xcassets */; };
 		87CD95C576B7B0565CF31C5E /* VexedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6317CB0814BBBB7866C13144 /* VexedApp.swift */; };
@@ -24,6 +24,7 @@
 
 /* Begin PBXFileReference section */
 		0DFF4E29B41C4E7EE1FAE1A8 /* GridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GridView.swift; sourceTree = "<group>"; };
+		233E208FD9087F702149CA1A /* InstructionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstructionsView.swift; sourceTree = "<group>"; };
 		373DC80F055AE84737CE034F /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
 		5177A1E4925AF3AE770B3C7F /* WordValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordValidator.swift; sourceTree = "<group>"; };
 		6304962939BAB59E4179777F /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
@@ -32,7 +33,6 @@
 		837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyConfig.swift; sourceTree = "<group>"; };
 		88BBA04D81502D71C8038A3C /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
 		8D4456B2579A8873E94240D2 /* Tile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tile.swift; sourceTree = "<group>"; };
-		9B4898C90C3CB567554E61A8 /* DirectionPadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionPadView.swift; sourceTree = "<group>"; };
 		A66A7018BFE1BA853288B8CE /* TileCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileCellView.swift; sourceTree = "<group>"; };
 		CEB73563ADF803D330B29F36 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CFD9766732EA984CE8848033 /* Vexed.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vexed.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -90,10 +90,10 @@
 		911EF9586A19B63F165A687D /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				9B4898C90C3CB567554E61A8 /* DirectionPadView.swift */,
 				F960993D28D90F8FA73D8796 /* GameView.swift */,
 				0DFF4E29B41C4E7EE1FAE1A8 /* GridView.swift */,
 				88BBA04D81502D71C8038A3C /* HUDView.swift */,
+				233E208FD9087F702149CA1A /* InstructionsView.swift */,
 				A66A7018BFE1BA853288B8CE /* TileCellView.swift */,
 				821B3C52BF6D510BC2277796 /* VowelRadarView.swift */,
 			);
@@ -168,11 +168,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				C0749D677FB0E877095FF31E /* DifficultyConfig.swift in Sources */,
-				1ACC848BE81809777E29A920 /* DirectionPadView.swift in Sources */,
 				390F72CAE1FCBFA057E1E06C /* GameEngine.swift in Sources */,
 				DA0561F3EDFD2C2C70C0C2F6 /* GameView.swift in Sources */,
 				1F8B8C9F301E36C12BA60E1C /* GridView.swift in Sources */,
 				E0EAC1BEFADB65A8D1030763 /* HUDView.swift in Sources */,
+				39C44BF25D20D8CB0289483E /* InstructionsView.swift in Sources */,
 				7C98B292CCDE6827788F9331 /* Position.swift in Sources */,
 				C7DC3191486A857C4A1E2631 /* Tile.swift in Sources */,
 				086DCC3609708329E5604A3D /* TileCellView.swift in Sources */,

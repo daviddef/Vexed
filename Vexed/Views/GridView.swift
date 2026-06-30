@@ -2,41 +2,59 @@ import SwiftUI
 
 struct GridView: View {
     @ObservedObject var engine: GameEngine
+    @State private var dragStart: Position? = nil
 
     var body: some View {
-        let rows = engine.config.rows
-        let cols = engine.config.cols
-        let tileSize = tileSize(cols: cols)
-        let gap: CGFloat = 4
+        GeometryReader { geo in
+            let rows = engine.config.rows
+            let cols = engine.config.cols
+            let gap: CGFloat = 5
+            let totalGapW = gap * CGFloat(cols - 1) + 16
+            let totalGapH = gap * CGFloat(rows - 1) + 16
+            let tileW = (geo.size.width - totalGapW) / CGFloat(cols)
+            let tileH = (geo.size.height - totalGapH) / CGFloat(rows)
+            let tileSize = min(tileW, tileH)
 
-        VStack(spacing: gap) {
-            ForEach(0..<rows, id: \.self) { r in
-                HStack(spacing: gap) {
-                    ForEach(0..<cols, id: \.self) { c in
-                        let pos = Position(r, c)
-                        let isSelected = engine.selectedPosition == pos
-                        TileCellView(tile: engine.grid[r][c], isSelected: isSelected, size: tileSize)
+            VStack(spacing: gap) {
+                ForEach(0..<rows, id: \.self) { r in
+                    HStack(spacing: gap) {
+                        ForEach(0..<cols, id: \.self) { c in
+                            let pos = Position(r, c)
+                            let isSelected = engine.selectedPosition == pos
+                            TileCellView(
+                                tile: engine.grid[r][c],
+                                isSelected: isSelected,
+                                size: tileSize
+                            )
+                            .contentShape(Rectangle())
+                            .gesture(tileDragGesture(at: pos))
                             .onTapGesture { engine.select(position: pos) }
+                        }
                     }
                 }
             }
+            .padding(8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(8)
-        .background(Color(white: 0.09).cornerRadius(16))
-        .gesture(
-            DragGesture(minimumDistance: 18)
-                .onEnded { value in
-                    if let dir = Direction(translation: value.translation) {
-                        engine.slide(direction: dir)
-                    }
-                }
-        )
     }
 
-    private func tileSize(cols: Int) -> CGFloat {
-        // Fit grid to ~90% of screen width
-        let screenWidth = UIScreen.main.bounds.width * 0.9
-        let gaps = CGFloat(cols - 1) * 4 + 16 // gaps + padding
-        return max(36, (screenWidth - gaps) / CGFloat(cols))
+    // Drag on a tile: if selected tile matches, slide it; otherwise select then slide
+    private func tileDragGesture(at pos: Position) -> some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onChanged { value in
+                // Record drag origin tile once
+                if dragStart == nil { dragStart = pos }
+            }
+            .onEnded { value in
+                guard let origin = dragStart else { return }
+                dragStart = nil
+                guard let dir = Direction(translation: value.translation) else { return }
+
+                // Select origin tile if not already, then slide
+                if engine.selectedPosition != origin {
+                    engine.select(position: origin)
+                }
+                engine.slide(direction: dir)
+            }
     }
 }
