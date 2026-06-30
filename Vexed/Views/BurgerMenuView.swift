@@ -35,24 +35,14 @@ struct BurgerMenuView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             menuSectionHeader("GAME")
 
-                            HStack {
-                                Text("Difficulty")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white)
-                                Spacer()
-                                Picker("Difficulty", selection: $difficulty) {
-                                    ForEach(Difficulty.allCases) { d in
-                                        Text(d.description).tag(d)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-                                .accentColor(Color(white: 0.5))
-                                .onChange(of: difficulty) { _, _ in
-                                    onReset()
-                                }
+                            VStack(spacing: 10) {
+                                difficultyPill
+                                Text(difficulty.description)
+                                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                                    .foregroundColor(Color(white: 0.4))
                             }
                             .padding(.horizontal, 20)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 16)
                             .background(Color(white: 0.08))
 
                             Divider().background(Color(white: 0.1))
@@ -144,6 +134,42 @@ struct BurgerMenuView: View {
             .toolbarBackground(.visible, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
+    }
+
+    private var difficultyPill: some View {
+        HStack(spacing: 0) {
+            ForEach(Difficulty.allCases) { d in
+                Button {
+                    guard d != difficulty else { return }
+                    difficulty = d
+                    onReset()
+                } label: {
+                    Text(d.displayName)
+                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .tracking(1)
+                        .foregroundColor(d == difficulty ? .black : Color(white: 0.5))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(d == difficulty ? pillColor(d) : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: difficulty)
+            }
+        }
+        .padding(4)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 0.06)))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.12), lineWidth: 1))
+    }
+
+    private func pillColor(_ d: Difficulty) -> Color {
+        switch d {
+        case .easy:   return Color(red: 0.3, green: 0.9, blue: 0.5)
+        case .medium: return Color(red: 1.0, green: 0.75, blue: 0.1)
+        case .hard:   return Color(red: 1.0, green: 0.3, blue: 0.3)
+        }
     }
 
     private func menuSectionHeader(_ title: String) -> some View {
