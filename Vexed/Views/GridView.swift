@@ -23,7 +23,7 @@ struct GridView: View {
                     .fill(Color(red: 0.07, green: 0.07, blue: 0.11))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color(white: 0.16), lineWidth: 1)
+                            .stroke(Color(white: 0.35), lineWidth: 1)
                     )
 
                 // ── Tile grid ─────────────────────────────────────────

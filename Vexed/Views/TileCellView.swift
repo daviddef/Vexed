@@ -27,9 +27,9 @@ struct TileCellView: View {
                 // Empty cell — always-visible dashed outline so grid structure shows
                 RoundedRectangle(cornerRadius: size * 0.30)
                     .strokeBorder(
-                        style: StrokeStyle(lineWidth: 1.2, dash: [4, 4])
+                        style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
                     )
-                    .foregroundColor(Color(white: 0.18))
+                    .foregroundColor(Color(white: 0.55))
             }
         }
         .frame(width: size, height: size)
