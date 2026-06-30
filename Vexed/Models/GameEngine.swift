@@ -536,7 +536,9 @@ final class GameEngine: ObservableObject {
     private func lineLettersHaveWord(_ letters: [Character]) -> Bool {
         guard letters.count >= config.minWordLength else { return false }
         for start in 0..<letters.count {
-            for len in config.minWordLength...min(10, letters.count - start) {
+            let maxLen = min(10, letters.count - start)
+            guard maxLen >= config.minWordLength else { break }
+            for len in config.minWordLength...maxLen {
                 if validator.isValid(String(letters[start..<(start + len)])) { return true }
             }
         }
