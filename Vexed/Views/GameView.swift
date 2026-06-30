@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct GameView: View {
-    @StateObject private var engine = GameEngine(difficulty: .medium)
-    @State private var selectedDifficulty: Difficulty = .medium
+    @StateObject private var engine = GameEngine(difficulty: .easy)
+    @State private var selectedDifficulty: Difficulty = .easy
     @State private var showBurgerMenu = false
     @State private var showInstructions = false
     @State private var showMissedWords = false
@@ -48,11 +48,10 @@ struct GameView: View {
                 HStack(spacing: 0) {
                     // Score cluster
                     HStack(spacing: 12) {
-                        miniStat(label: "SCORE", value: "\(displayScore)", color: .white, isScore: true)
-                        miniStat(label: "BEST", value: "\(engine.potentialScore)", color: Color(red:0.3,green:1.0,blue:0.5))
-                        miniStat(label: "PEAK%", value: "\(securedPct())%", color: peakColor())
-                        miniStat(label: "WORDS", value: "\(engine.wordCount)", color: Color(white: 0.7))
-                        miniStat(label: "LOST",  value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
+                        miniStat(label: "SCORE",  value: "\(displayScore)", color: .white, isScore: true)
+                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: Color(white: 0.7))
+                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: Color(red: 0.3, green: 0.9, blue: 1.0))
+                        miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
                     }
                     .padding(.leading, 16)
 
@@ -117,6 +116,9 @@ struct GameView: View {
 
             // ── Vowel vanish banner ───────────────────────────────────
             if let msg = vanishMessage { vanishBanner(msg) }
+
+            // ── Tile Forge banner ─────────────────────────────────────
+            if let msg = engine.forgeMessage { forgeBanner(msg) }
 
             // ── No-words-left overlay ─────────────────────────────────
             if showNoWordsLeft && !engine.gameOver {
@@ -409,6 +411,21 @@ struct GameView: View {
                 .shadow(color: Color.yellow.opacity(0.6), radius: 12, x: 0, y: 4)
                 .rotationEffect(.degrees(toastRotation))
                 .padding(.bottom, 100)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder private func forgeBanner(_ msg: String) -> some View {
+        VStack {
+            Spacer()
+            Text(msg)
+                .font(.system(size: 14, weight: .black, design: .rounded))
+                .foregroundColor(.black)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 9)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(red: 0.3, green: 0.9, blue: 1.0)))
+                .shadow(color: Color.cyan.opacity(0.5), radius: 10, x: 0, y: 3)
+                .padding(.bottom, 80)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }

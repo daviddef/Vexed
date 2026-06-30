@@ -42,7 +42,7 @@ struct BurgerMenuView: View {
                                 Spacer()
                                 Picker("Difficulty", selection: $difficulty) {
                                     ForEach(Difficulty.allCases) { d in
-                                        Text(d.displayName).tag(d)
+                                        Text(d.description).tag(d)
                                     }
                                 }
                                 .pickerStyle(.menu)

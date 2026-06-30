@@ -6,39 +6,45 @@ enum AdjacencyMode {
 }
 
 enum Difficulty: String, CaseIterable, Identifiable {
-    case kids, medium, hard, expert
+    case easy, medium, hard
     var id: String { rawValue }
 
     var config: DifficultyConfig {
         switch self {
-        case .kids:   return DifficultyConfig(rows: 4, cols: 4, adjacency: .orthogonal, minWordLength: 3, pressureRate: 0,   dictionaryTier: .simple)
-        case .medium: return DifficultyConfig(rows: 6, cols: 6, adjacency: .all8,       minWordLength: 3, pressureRate: 0,   dictionaryTier: .standard)
-        case .hard:   return DifficultyConfig(rows: 8, cols: 8, adjacency: .all8,       minWordLength: 3, pressureRate: 0.3, dictionaryTier: .standard)
-        case .expert: return DifficultyConfig(rows: 8, cols: 8, adjacency: .all8,       minWordLength: 4, pressureRate: 0.6, dictionaryTier: .full)
+        case .easy:   return DifficultyConfig(rows: 5, cols: 5, adjacency: .orthogonal, minWordLength: 3)
+        case .medium: return DifficultyConfig(rows: 7, cols: 7, adjacency: .orthogonal, minWordLength: 3)
+        case .hard:   return DifficultyConfig(rows: 9, cols: 9, adjacency: .orthogonal, minWordLength: 3)
         }
     }
 
     var displayName: String {
         switch self {
-        case .kids:   return "Kids"
+        case .easy:   return "Easy"
         case .medium: return "Medium"
         case .hard:   return "Hard"
-        case .expert: return "Expert"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .easy:   return "5×5 · Learn the ropes"
+        case .medium: return "7×7 · The sweet spot"
+        case .hard:   return "9×9 · Chain or perish"
         }
     }
 }
-
-enum DictionaryTier { case simple, standard, full }
 
 struct DifficultyConfig {
     let rows: Int
     let cols: Int
     let adjacency: AdjacencyMode
     let minWordLength: Int
-    let pressureRate: Double  // new tiles per second from edges (0 = no pressure)
-    let dictionaryTier: DictionaryTier
 
-    var adjacentDirections: [Direction] {
-        adjacency == .orthogonal ? Direction.cardinal : Direction.allCases
+    var adjacentDirections: [Direction] { Direction.cardinal }
+
+    /// Bonus tiles awarded per word based on letter count beyond 3.
+    /// 3 letters = 0, 4 = 1, 5 = 2, 6+ = 3 (capped).
+    static func forgeBonusCount(wordLength: Int) -> Int {
+        min(3, max(0, wordLength - 3))
     }
 }

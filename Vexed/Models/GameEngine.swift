@@ -34,6 +34,8 @@ final class GameEngine: ObservableObject {
     @Published var boardVersion: Int = 0   // increments on each reset to trigger animation
     @Published var dangerVowelColor: Color? = nil   // non-nil when a cluster of 3+ same vowel exists
     @Published var celebrationWord: String? = nil   // set to the word when 5+ letters scored
+    @Published var tilesForged: Int = 0             // cumulative bonus tiles spawned by Tile Forge
+    @Published var forgeMessage: String? = nil      // brief "+N tiles" banner
     /// Cells each cardinal-direction slide would pass through. Key = direction, value = ordered path including destination.
     @Published var slidePaths: [Direction: [Position]] = [:]
     @Published var burstEvents: [BurstEvent] = []
@@ -335,15 +337,70 @@ final class GameEngine: ObservableObject {
         }
 
         if !found.isEmpty {
+            // Calculate Tile Forge bonus: extra letters beyond 3 per word
+            let forgeCount = found.reduce(0) { $0 + DifficultyConfig.forgeBonusCount(wordLength: $1.word.count) }
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 guard let self else { return }
                 for word in found {
                     for pos in word.positions { self.grid[pos.row][pos.col] = nil }
                 }
                 self.updateDangerStates()
+
+                // Spawn bonus tiles after scored tiles are cleared
+                if forgeCount > 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                        self?.spawnForgeTiles(count: forgeCount)
+                    }
+                }
             }
         }
         return found
+    }
+
+    // MARK: - Tile Forge
+
+    private func spawnForgeTiles(count: Int) {
+        // Gather empty cells
+        var emptyCells: [Position] = []
+        for r in 0..<config.rows {
+            for c in 0..<config.cols {
+                if grid[r][c] == nil { emptyCells.append(Position(r, c)) }
+            }
+        }
+        // Don't overfill — leave at least 20% empty
+        let maxFill = Int(Double(config.rows * config.cols) * 0.80)
+        let occupiedCount = config.rows * config.cols - emptyCells.count
+        let canSpawn = min(count, max(0, maxFill - occupiedCount), emptyCells.count)
+        guard canSpawn > 0 else { return }
+
+        emptyCells.shuffle()
+        let targets = Array(emptyCells.prefix(canSpawn))
+
+        for pos in targets {
+            grid[pos.row][pos.col] = Tile(letter: randomForgeLetter())
+        }
+
+        tilesForged += canSpawn
+        let msg = "+\(canSpawn) tile\(canSpawn == 1 ? "" : "s") forged!"
+        forgeMessage = msg
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self] in
+            self?.forgeMessage = nil
+        }
+        recalculatePotentialScore()
+        updateDangerStates()
+    }
+
+    private func randomForgeLetter() -> Character {
+        // Weight vowels to match current board balance: if vowel-light, spawn more vowels
+        let vowels: [Character] = ["A", "E", "I", "O", "U"]
+        let consonants: [Character] = "BCDFGHJKLMNPRSTVWX".map { $0 }
+        let totalTiles = grid.flatMap { $0 }.compactMap { $0 }.count
+        let vowelTiles = grid.flatMap { $0 }.compactMap { $0 }.filter { $0.vowel != nil }.count
+        let vowelRatio = totalTiles > 0 ? Double(vowelTiles) / Double(totalTiles) : 0.4
+        // Target ~40% vowels — spawn vowel if currently below that
+        let spawnVowel = vowelRatio < 0.40 ? true : Double.random(in: 0..<1) < 0.35
+        return spawnVowel ? (vowels.randomElement()!) : (consonants.randomElement()!)
     }
 
     private func scanLine(_ positions: [Position]) -> [ScoredWord] {
@@ -525,22 +582,7 @@ final class GameEngine: ObservableObject {
     // MARK: - Pressure (tile flow from edges on Hard/Expert)
 
     private func startPressureTimer() {
-        guard config.pressureRate > 0 else { return }
-        let interval = 1.0 / config.pressureRate
-        pressureTimer = Timer.publish(every: interval, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in self?.addPressureTile() }
-    }
-
-    private func addPressureTile() {
-        // Pick a random empty edge cell and fill it
-        let edges = edgePositions().filter { grid[$0.row][$0.col] == nil }
-        guard let pos = edges.randomElement() else { gameOver = true; return }
-        let all = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map { $0 }
-        // Weight toward vowels slightly to keep board playable
-        let pool: [Character] = Array(repeating: "AEIOU".randomElement()!, count: 3) + [all.randomElement()!]
-        grid[pos.row][pos.col] = Tile(letter: pool.randomElement()!)
-        updateDangerStates()
+        // Pressure timer removed — difficulty now comes from board size and Tile Forge chain length
     }
 
     private func edgePositions() -> [Position] {
@@ -597,6 +639,7 @@ final class GameEngine: ObservableObject {
         combo = 0; comboMultiplier = 1.0
         dangerVowelColor = nil
         celebrationWord = nil
+        tilesForged = 0; forgeMessage = nil
         startPressureTimer()
         updateDangerStates()
         peakScore = 0
