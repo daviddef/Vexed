@@ -8,6 +8,7 @@ struct GameView: View {
     @State private var showMissedWords = false
     @State private var isFirstLaunch = !UserDefaults.standard.bool(forKey: "vexed.launched")
     @State private var toastMessage: String? = nil
+    @State private var toastRotation: Double = 0
 
     var body: some View {
         ZStack {
@@ -56,16 +57,16 @@ struct GameView: View {
                                 Text(String(tile.letter))
                                     .font(.system(size: 20, weight: .black, design: .rounded))
                                     .foregroundColor(tileColor(tile))
-                                Text("selected — swipe to slide")
+                                Text("selected — swipe!")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(Color(white: 0.35))
                             }
                             .padding(.vertical, 4)
                             .transition(.opacity)
                         } else {
-                            Text("drag any tile to slide it")
+                            Text("✦ drag any tile to slide")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(Color(white: 0.22))
+                                .foregroundColor(Color(white: 0.28))
                                 .padding(.vertical, 4)
                         }
                     }
@@ -87,7 +88,9 @@ struct GameView: View {
                         .foregroundColor(.black)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 12)
-                        .background(Color.yellow.cornerRadius(14))
+                        .background(Color.yellow.cornerRadius(16))
+                        .shadow(color: Color.yellow.opacity(0.6), radius: 12, x: 0, y: 4)
+                        .rotationEffect(.degrees(toastRotation))
                         .padding(.bottom, 100)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -149,8 +152,10 @@ struct GameView: View {
                 .tracking(1)
         }
         .padding(.vertical, 10)
+        .padding(.horizontal, 6)
         .frame(maxWidth: .infinity)
         .background(Color(white: 0.1).cornerRadius(10))
+        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
         .animation(.easeInOut(duration: 0.3), value: potential)
     }
 
@@ -165,17 +170,19 @@ struct GameView: View {
                             .padding(.horizontal, 12)
                     } else {
                         ForEach(Array(engine.wordHistory.enumerated()), id: \.offset) { idx, entry in
+                            let chipColor = chipTint(for: entry.word)
                             HStack(spacing: 4) {
                                 Text(entry.word)
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color(white: 0.7))
+                                    .foregroundColor(chipColor.foreground)
                                 Text("+\(entry.points)")
                                     .font(.system(size: 10, weight: .semibold, design: .monospaced))
                                     .foregroundColor(.yellow)
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 5)
-                            .background(Color(white: 0.1).cornerRadius(8))
+                            .background(chipColor.background.cornerRadius(10))
+                            .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
                             .id(idx)
                         }
                     }
@@ -202,15 +209,19 @@ struct GameView: View {
                 .foregroundColor(Color(white: 0.3))
                 .tracking(1)
         }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
+        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
     }
 
     private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: name)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(Color(white: 0.45))
-                .frame(width: 36, height: 36)
-                .background(Color(white: 0.12).cornerRadius(8))
+                .foregroundColor(Color(white: 0.55))
+                .frame(width: 40, height: 40)
+                .background(Color(white: 0.13).cornerRadius(12))
+                .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
     }
@@ -245,6 +256,7 @@ struct GameView: View {
                         .frame(width: 200)
                         .padding(.vertical, 16)
                         .background(Color.white.cornerRadius(14))
+                        .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 8)
@@ -254,19 +266,53 @@ struct GameView: View {
 
     // MARK: - Helpers
 
+    private struct ChipTint {
+        let foreground: Color
+        let background: Color
+    }
+
+    private func chipTint(for word: String) -> ChipTint {
+        switch word.count {
+        case 6...:
+            return ChipTint(
+                foreground: Color(red: 1.0, green: 0.85, blue: 0.3),
+                background: Color(red: 0.22, green: 0.18, blue: 0.04)
+            )
+        case 5:
+            return ChipTint(
+                foreground: Color(red: 0.5, green: 0.75, blue: 1.0),
+                background: Color(red: 0.06, green: 0.12, blue: 0.22)
+            )
+        default:
+            return ChipTint(
+                foreground: Color(white: 0.70),
+                background: Color(white: 0.10)
+            )
+        }
+    }
+
     private func tileColor(_ tile: Tile) -> Color {
         switch tile.type {
-        case .consonant:  return Color(white: 0.7)
-        case .vowel(.A):  return Color(red: 1.0, green: 0.42, blue: 0.42)
-        case .vowel(.E):  return Color(red: 0.42, green: 1.0, blue: 0.53)
-        case .vowel(.I):  return Color(red: 0.42, green: 0.56, blue: 1.0)
-        case .vowel(.O):  return Color(red: 1.0, green: 0.8, blue: 0.33)
-        case .vowel(.U):  return Color(red: 0.8, green: 0.47, blue: 1.0)
+        case .consonant:  return Color(white: 0.72)
+        case .vowel(.A):  return Color(red: 1.0, green: 0.35, blue: 0.35)
+        case .vowel(.E):  return Color(red: 0.3, green: 1.0, blue: 0.5)
+        case .vowel(.I):  return Color(red: 0.45, green: 0.6, blue: 1.0)
+        case .vowel(.O):  return Color(red: 1.0, green: 0.75, blue: 0.2)
+        case .vowel(.U):  return Color(red: 0.85, green: 0.4, blue: 1.0)
         }
     }
 
     private func showToast(_ message: String) {
-        withAnimation(.spring(response: 0.3)) { toastMessage = message }
+        toastRotation = 0
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
+            toastMessage = message
+        }
+        // Wobble
+        withAnimation(.easeInOut(duration: 0.08).delay(0.05)) { toastRotation = 3 }
+        withAnimation(.easeInOut(duration: 0.08).delay(0.13)) { toastRotation = -3 }
+        withAnimation(.easeInOut(duration: 0.08).delay(0.21)) { toastRotation = 2 }
+        withAnimation(.easeInOut(duration: 0.08).delay(0.29)) { toastRotation = 0 }
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
             withAnimation(.easeOut(duration: 0.25)) { toastMessage = nil }
         }

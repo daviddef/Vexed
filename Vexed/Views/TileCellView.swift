@@ -6,84 +6,144 @@ struct TileCellView: View {
     let size: CGFloat
     var isTouching: Bool = false
 
+    // Rotation used during vanish
+    @State private var vanishRotation: Double = 0
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.18)
-                .fill(background)
-                .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.18)
-                        .stroke(borderColor, lineWidth: isSelected ? 2.5 : 1.5)
-                )
-
             if let tile {
+                // Filled tile with gradient
+                RoundedRectangle(cornerRadius: size * 0.30)
+                    .fill(backgroundGradient(for: tile))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: size * 0.30)
+                            .stroke(borderColor(for: tile), lineWidth: isSelected ? 3.0 : 2.5)
+                    )
+
                 Text(String(tile.letter))
-                    .font(.system(size: size * 0.42, weight: .black, design: .rounded))
+                    .font(.system(size: size * 0.46, weight: .black, design: .rounded))
                     .foregroundColor(letterColor(for: tile))
+            } else {
+                // Empty cell — always-visible dashed outline so grid structure shows
+                RoundedRectangle(cornerRadius: size * 0.30)
+                    .strokeBorder(
+                        style: StrokeStyle(lineWidth: 1.2, dash: [4, 4])
+                    )
+                    .foregroundColor(Color(white: 0.18))
             }
         }
         .frame(width: size, height: size)
-        .scaleEffect(isTouching ? 1.05 : scaleFor(tile?.animState))
+        .scaleEffect(isTouching ? 1.12 : scaleFor(tile?.animState))
+        .rotationEffect(.degrees(tile?.animState == .vanishing ? vanishRotation : 0))
         .opacity(tile?.animState == .vanishing ? 0 : 1)
+        // Drop shadow: colored for vowels, dark for consonants/nil
+        .shadow(color: dropShadowColor, radius: 6, x: 0, y: 4)
+        // Touch glow or danger glow on top of drop shadow
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
-                radius: isTouching ? 12 : (isDanger ? 8 : 0))
-        .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isSelected)
-        .animation(.spring(response: 0.12, dampingFraction: 0.6), value: isTouching)
+                radius: isTouching ? 16 : (isDanger ? 14 : 0))
+        .animation(.spring(response: 0.18, dampingFraction: 0.55), value: isSelected)
+        .animation(.spring(response: 0.12, dampingFraction: 0.55), value: isTouching)
         .animation(.easeInOut(duration: 0.35), value: tile?.animState)
+        .onChange(of: tile?.animState) { _, newState in
+            if newState == .vanishing {
+                withAnimation(.easeIn(duration: 0.3)) {
+                    vanishRotation = Bool.random() ? 18 : -18
+                }
+            } else {
+                vanishRotation = 0
+            }
+        }
+    }
+
+    // MARK: - Gradient backgrounds
+
+    private func backgroundGradient(for tile: Tile) -> LinearGradient {
+        switch tile.type {
+        case .consonant:
+            return LinearGradient(
+                colors: [Color(white: 0.18), Color(white: 0.11)],
+                startPoint: .top, endPoint: .bottom
+            )
+        case .vowel(.A):
+            return LinearGradient(
+                colors: [Color(red: 0.35, green: 0.12, blue: 0.12), Color(red: 0.22, green: 0.07, blue: 0.07)],
+                startPoint: .top, endPoint: .bottom
+            )
+        case .vowel(.E):
+            return LinearGradient(
+                colors: [Color(red: 0.12, green: 0.32, blue: 0.15), Color(red: 0.07, green: 0.20, blue: 0.09)],
+                startPoint: .top, endPoint: .bottom
+            )
+        case .vowel(.I):
+            return LinearGradient(
+                colors: [Color(red: 0.12, green: 0.15, blue: 0.38), Color(red: 0.07, green: 0.09, blue: 0.25)],
+                startPoint: .top, endPoint: .bottom
+            )
+        case .vowel(.O):
+            return LinearGradient(
+                colors: [Color(red: 0.35, green: 0.26, blue: 0.06), Color(red: 0.22, green: 0.16, blue: 0.03)],
+                startPoint: .top, endPoint: .bottom
+            )
+        case .vowel(.U):
+            return LinearGradient(
+                colors: [Color(red: 0.30, green: 0.10, blue: 0.38), Color(red: 0.18, green: 0.06, blue: 0.24)],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
     }
 
     // MARK: - Colours
 
-    private var background: Color {
-        guard let tile else { return Color(white: 0.07) }
-        switch tile.type {
-        case .consonant:      return Color(white: 0.12)
-        case .vowel(.A):      return Color(red: 0.18, green: 0.10, blue: 0.10)
-        case .vowel(.E):      return Color(red: 0.10, green: 0.18, blue: 0.10)
-        case .vowel(.I):      return Color(red: 0.10, green: 0.10, blue: 0.22)
-        case .vowel(.O):      return Color(red: 0.18, green: 0.15, blue: 0.06)
-        case .vowel(.U):      return Color(red: 0.16, green: 0.10, blue: 0.18)
-        }
-    }
-
-    private var borderColor: Color {
-        guard let tile else { return Color(white: 0.12) }
+    private func borderColor(for tile: Tile) -> Color {
         if isSelected { return .white }
         switch tile.type {
-        case .consonant:  return Color(white: 0.22)
-        case .vowel(.A):  return Color(red: 0.6, green: 0.15, blue: 0.15)
-        case .vowel(.E):  return Color(red: 0.15, green: 0.55, blue: 0.2)
-        case .vowel(.I):  return Color(red: 0.2, green: 0.28, blue: 0.7)
-        case .vowel(.O):  return Color(red: 0.65, green: 0.5, blue: 0.1)
-        case .vowel(.U):  return Color(red: 0.55, green: 0.2, blue: 0.7)
+        case .consonant:  return Color(white: 0.28)
+        case .vowel(.A):  return Color(red: 0.7, green: 0.20, blue: 0.20)
+        case .vowel(.E):  return Color(red: 0.20, green: 0.65, blue: 0.28)
+        case .vowel(.I):  return Color(red: 0.25, green: 0.35, blue: 0.80)
+        case .vowel(.O):  return Color(red: 0.75, green: 0.58, blue: 0.12)
+        case .vowel(.U):  return Color(red: 0.62, green: 0.24, blue: 0.78)
         }
     }
 
     private func letterColor(for tile: Tile) -> Color {
         switch tile.type {
-        case .consonant:  return Color(white: 0.6)
-        case .vowel(.A):  return Color(red: 1.0, green: 0.42, blue: 0.42)
-        case .vowel(.E):  return Color(red: 0.42, green: 1.0, blue: 0.53)
-        case .vowel(.I):  return Color(red: 0.42, green: 0.56, blue: 1.0)
-        case .vowel(.O):  return Color(red: 1.0, green: 0.8, blue: 0.33)
-        case .vowel(.U):  return Color(red: 0.8, green: 0.47, blue: 1.0)
+        case .consonant:  return Color(white: 0.72)
+        case .vowel(.A):  return Color(red: 1.0, green: 0.35, blue: 0.35)
+        case .vowel(.E):  return Color(red: 0.3, green: 1.0, blue: 0.5)
+        case .vowel(.I):  return Color(red: 0.45, green: 0.6, blue: 1.0)
+        case .vowel(.O):  return Color(red: 1.0, green: 0.75, blue: 0.2)
+        case .vowel(.U):  return Color(red: 0.85, green: 0.4, blue: 1.0)
+        }
+    }
+
+    // Drop shadow color: vivid colored for vowels, muted dark for consonants
+    private var dropShadowColor: Color {
+        guard let tile else { return .clear }
+        switch tile.type {
+        case .consonant:  return Color.black.opacity(0.5)
+        case .vowel(.A):  return Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.6)
+        case .vowel(.E):  return Color(red: 0.3, green: 1.0, blue: 0.5).opacity(0.6)
+        case .vowel(.I):  return Color(red: 0.45, green: 0.6, blue: 1.0).opacity(0.6)
+        case .vowel(.O):  return Color(red: 1.0, green: 0.75, blue: 0.2).opacity(0.6)
+        case .vowel(.U):  return Color(red: 0.85, green: 0.4, blue: 1.0).opacity(0.6)
         }
     }
 
     private var isDanger: Bool { tile?.animState == .danger }
 
     private var touchGlowColor: Color {
-        // Bright gold/white glow on touch
-        Color(red: 1.0, green: 0.92, blue: 0.6).opacity(0.85)
+        Color(red: 1.0, green: 0.95, blue: 0.5).opacity(0.9)
     }
 
     private var dangerGlowColor: Color {
         guard isDanger, let tile, let v = tile.vowel else { return .clear }
         switch v {
-        case .A: return .red
-        case .E: return .green
-        case .I: return .blue
-        case .O: return .orange
-        case .U: return .purple
+        case .A: return Color(red: 1.0, green: 0.2, blue: 0.2)
+        case .E: return Color(red: 0.2, green: 1.0, blue: 0.3)
+        case .I: return Color(red: 0.3, green: 0.5, blue: 1.0)
+        case .O: return Color(red: 1.0, green: 0.6, blue: 0.1)
+        case .U: return Color(red: 0.8, green: 0.2, blue: 1.0)
         }
     }
 

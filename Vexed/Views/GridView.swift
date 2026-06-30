@@ -10,49 +10,60 @@ struct GridView: View {
         GeometryReader { geo in
             let rows = engine.config.rows
             let cols = engine.config.cols
-            let gap: CGFloat = 5
-            let totalGapW = gap * CGFloat(cols - 1) + 16
-            let totalGapH = gap * CGFloat(rows - 1) + 16
+            let gap: CGFloat = 6
+            let totalGapW = gap * CGFloat(cols - 1) + 20
+            let totalGapH = gap * CGFloat(rows - 1) + 20
             let tileW = (geo.size.width - totalGapW) / CGFloat(cols)
             let tileH = (geo.size.height - totalGapH) / CGFloat(rows)
             let tileSize = min(tileW, tileH)
 
-            VStack(spacing: gap) {
-                ForEach(0..<rows, id: \.self) { r in
-                    HStack(spacing: gap) {
-                        ForEach(0..<cols, id: \.self) { c in
-                            let pos = Position(r, c)
-                            let tile = engine.grid[r][c]
-                            let isSelected = engine.selectedPosition == pos
-                            let isTouching = touchedPosition == pos
+            ZStack {
+                // ── Game board background ──────────────────────────────
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(red: 0.07, green: 0.07, blue: 0.11))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color(white: 0.16), lineWidth: 1)
+                    )
 
-                            Group {
-                                if let tile {
-                                    TileCellView(
-                                        tile: tile,
-                                        isSelected: isSelected,
-                                        size: tileSize,
-                                        isTouching: isTouching
-                                    )
-                                    .matchedGeometryEffect(id: tile.id, in: tileNamespace)
-                                } else {
-                                    TileCellView(
-                                        tile: nil,
-                                        isSelected: false,
-                                        size: tileSize,
-                                        isTouching: false
-                                    )
+                // ── Tile grid ─────────────────────────────────────────
+                VStack(spacing: gap) {
+                    ForEach(0..<rows, id: \.self) { r in
+                        HStack(spacing: gap) {
+                            ForEach(0..<cols, id: \.self) { c in
+                                let pos = Position(r, c)
+                                let tile = engine.grid[r][c]
+                                let isSelected = engine.selectedPosition == pos
+                                let isTouching = touchedPosition == pos
+
+                                Group {
+                                    if let tile {
+                                        TileCellView(
+                                            tile: tile,
+                                            isSelected: isSelected,
+                                            size: tileSize,
+                                            isTouching: isTouching
+                                        )
+                                        .matchedGeometryEffect(id: tile.id, in: tileNamespace)
+                                    } else {
+                                        TileCellView(
+                                            tile: nil,
+                                            isSelected: false,
+                                            size: tileSize,
+                                            isTouching: false
+                                        )
+                                    }
                                 }
+                                .contentShape(Rectangle())
+                                .gesture(tileDragGesture(at: pos))
+                                .onTapGesture { engine.select(position: pos) }
                             }
-                            .contentShape(Rectangle())
-                            .gesture(tileDragGesture(at: pos))
-                            .onTapGesture { engine.select(position: pos) }
                         }
                     }
                 }
+                .padding(10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .padding(8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
