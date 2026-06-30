@@ -38,6 +38,8 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         ITSAppUsesNonExemptEncryption: false
+    dependencies:
+      - sdk: CoreServices.framework
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

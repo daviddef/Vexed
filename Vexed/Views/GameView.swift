@@ -26,6 +26,7 @@ struct GameView: View {
     @State private var breathPhase: Bool = false
     @State private var wordScoreFlash: Bool = false
     @State private var tutorialStep: Int = 0
+    @State private var definitionEntry: DefinitionEntry? = nil
 
     var body: some View {
         ZStack {
@@ -154,6 +155,7 @@ struct GameView: View {
             if engine.gameOver {
                 endScreenOverlay(isGameOver: true).zIndex(9)
             }
+
         }
         .preferredColorScheme(.dark)
         .ignoresSafeArea(edges: .bottom)
@@ -172,6 +174,14 @@ struct GameView: View {
             MissedWordsView(grid: engine.grid, config: engine.config)
                 .preferredColorScheme(.dark)
         }
+        .sheet(item: Binding(
+            get: { definitionEntry },
+            set: { definitionEntry = $0 }
+        )) { entry in
+            DefinitionSheetView(entry: entry)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
         .onChange(of: selectedDifficulty) { _, d in savedDifficultyRaw = d.rawValue }
         // React when splash screen (or any external writer) changes the stored difficulty
         .onChange(of: savedDifficultyRaw) { _, raw in
@@ -186,6 +196,11 @@ struct GameView: View {
             withAnimation(.easeOut(duration: 0.15)) { wordScoreFlash = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 withAnimation(.easeIn(duration: 0.6)) { wordScoreFlash = false }
+            }
+            // Show definition card after tiles score
+            let pts = engine.wordHistory.last?.points
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+                showDefinition(for: word, points: pts)
             }
         }
         .onChange(of: engine.lostVowels) { old, new in
@@ -471,7 +486,9 @@ struct GameView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(engine.availableWords) { entry in
-                    AvailableWordChip(entry: entry, engine: engine)
+                    AvailableWordChip(entry: entry, engine: engine) { word in
+                        showDefinition(for: word, points: nil)
+                    }
                 }
             }
             .padding(.horizontal, 12)
@@ -778,6 +795,10 @@ struct GameView: View {
         case .vowel(.O):  return Color(red: 1.0, green: 0.75, blue: 0.2)
         case .vowel(.U):  return Color(red: 0.85, green: 0.4, blue: 1.0)
         }
+    }
+
+    func showDefinition(for word: String, points: Int?) {
+        definitionEntry = DefinitionEntry(word: word, points: points)
     }
 
     private func showToast(_ message: String) {

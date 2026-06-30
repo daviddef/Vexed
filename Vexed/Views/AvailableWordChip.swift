@@ -3,6 +3,7 @@ import SwiftUI
 struct AvailableWordChip: View {
     let entry: GameEngine.AvailableWord
     @ObservedObject var engine: GameEngine
+    var onShowDefinition: (String) -> Void
 
     private var isHighlighted: Bool {
         engine.highlightedPositions == Set(entry.positions)
@@ -13,35 +14,25 @@ struct AvailableWordChip: View {
 
     var body: some View {
         Button {
+            // Single tap: show definition + highlight the word on board
+            onShowDefinition(entry.word)
             withAnimation(.easeInOut(duration: 0.18)) {
-                if isHighlighted {
-                    // Second tap: collect the word
-                    engine.collectWord(entry)
-                } else {
-                    engine.highlightedPositions = Set(entry.positions)
-                }
+                engine.highlightedPositions = isHighlighted ? nil : Set(entry.positions)
             }
         } label: {
-            HStack(spacing: 4) {
-                Text(entry.word)
-                    .font(.system(size: 11, weight: .black, design: .rounded))
-                    .foregroundColor(isHighlighted ? .black : red)
-                if isHighlighted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.black.opacity(0.7))
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isHighlighted ? gold : red.opacity(0.12))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(isHighlighted ? gold : red.opacity(0.5), lineWidth: 1)
-            )
+            Text(entry.word)
+                .font(.system(size: 11, weight: .black, design: .rounded))
+                .foregroundColor(isHighlighted ? .black : red)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(isHighlighted ? gold : red.opacity(0.12))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(isHighlighted ? gold : red.opacity(0.5), lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: isHighlighted)
