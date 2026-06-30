@@ -7,6 +7,7 @@ struct GridView: View {
     @Namespace private var tileNamespace
     @State private var revealedRows: Set<Int> = []
     @State private var lastBoardVersion: Int = -1
+    @State private var wordPulse: Bool = false
 
     var body: some View {
         GeometryReader { geo in
@@ -23,6 +24,7 @@ struct GridView: View {
             let pathSet: Set<Position> = Set(engine.slidePaths.values.flatMap { $0 })
             let destSet: Set<Position> = Set(engine.slidePaths.values.compactMap { $0.last })
             let pathColor: Color = selectedTileColor()
+            let availablePositions: Set<Position> = Set(engine.availableWords.flatMap { $0.positions })
 
             ZStack {
                 // ── Game board background ──────────────────────────────
@@ -48,6 +50,7 @@ struct GridView: View {
                                     guard let hl = engine.highlightedPositions else { return false }
                                     return tile != nil && !hl.contains(pos)
                                 }()
+                                let isWordTile = tile != nil && availablePositions.contains(pos)
 
                                 ZStack {
                                     if let tile {
@@ -67,6 +70,16 @@ struct GridView: View {
                                             pathColor: isPath ? pathColor : nil,
                                             isDestination: isDest
                                         )
+                                    }
+                                    // Pulsing gold border on tiles that form a collectable word
+                                    if isWordTile && !isDimmed {
+                                        RoundedRectangle(cornerRadius: tileSize * 0.2)
+                                            .stroke(
+                                                Color(red: 1.0, green: 0.85, blue: 0.2)
+                                                    .opacity(wordPulse ? 0.9 : 0.25),
+                                                lineWidth: 2.5
+                                            )
+                                            .allowsHitTesting(false)
                                     }
                                     // Dimming overlay: separate from matchedGeometryEffect to avoid SwiftUI animation conflicts
                                     if isDimmed {
@@ -109,6 +122,9 @@ struct GridView: View {
                                 _ = revealedRows.insert(r)
                             }
                         }
+                    }
+                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                        wordPulse = true
                     }
                 }
             }

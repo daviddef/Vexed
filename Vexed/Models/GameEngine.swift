@@ -203,12 +203,11 @@ final class GameEngine: ObservableObject {
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
 
         slidePaths = [:]
-        // Vowel vanish first, then word scoring — staggered so each phase is visible
+        // Vowel vanish only — word scoring is now triggered manually by the player
         let vanished = applyVowelVanish()
         let vanishDelay = vanished.isEmpty ? 0.0 : 0.55
         DispatchQueue.main.asyncAfter(deadline: .now() + vanishDelay) { [weak self] in
             guard let self else { return }
-            self.applyWordScoring()
             self.updateDangerStates()
             self.recalculatePotentialScore()
             self.updateSlidePaths()
@@ -292,6 +291,51 @@ final class GameEngine: ObservableObject {
     // MARK: - Word Scoring
 
     @discardableResult
+    /// Player-triggered word collection. Called when the player double-taps a word chip.
+    func collectWord(_ word: AvailableWord) {
+        guard availableWords.contains(where: { $0.id == word.id }) else { return }
+
+        combo += 1
+        comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
+
+        for pos in word.positions { grid[pos.row][pos.col]?.animState = .scoring }
+        let multiplied = Int(Double(word.points) * comboMultiplier)
+        score += multiplied
+        wordCount += 1
+        lastWord = word.word
+        wordHistory.append((word: word.word, points: multiplied))
+        addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
+
+        Haptics.wordScore()
+        flashWord = word.word
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in self?.flashWord = nil }
+
+        if word.word.count >= 5 {
+            celebrationWord = word.word
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.celebrationWord = nil }
+        }
+
+        burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2)))
+
+        let forgeCount = DifficultyConfig.forgeBonusCount(wordLength: word.word.count)
+
+        // Remove from pending list immediately so it can't be double-collected
+        availableWords.removeAll { $0.id == word.id }
+        highlightedPositions = nil
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self else { return }
+            for pos in word.positions { self.grid[pos.row][pos.col] = nil }
+            self.updateDangerStates()
+            self.recalculatePotentialScore()
+            if forgeCount > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                    self?.spawnForgeTiles(count: forgeCount)
+                }
+            }
+        }
+    }
+
     private func applyWordScoring() -> [ScoredWord] {
         var found: [ScoredWord] = []
 
