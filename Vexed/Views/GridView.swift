@@ -25,6 +25,11 @@ struct GridView: View {
             let pathSet: Set<Position> = Set(engine.slidePaths.values.flatMap { $0 })
             let destSet: Set<Position> = Set(engine.slidePaths.values.compactMap { $0.last })
             let pathColor: Color = selectedTileColor()
+            // Map each position to the longest available word it belongs to (already sorted longest-first)
+            let wordAtPosition: [Position: GameEngine.AvailableWord] = Dictionary(
+                engine.availableWords.flatMap { w in w.positions.map { ($0, w) } },
+                uniquingKeysWith: { first, _ in first }
+            )
 
             // Where the tile content actually starts within the ZStack
             // (VStack with maxWidth/Height:infinity centers its content)
@@ -89,7 +94,13 @@ struct GridView: View {
                                 .animation(.easeInOut(duration: 0.18), value: isDimmed)
                                 .contentShape(Rectangle())
                                 .gesture(tileDragGesture(at: pos))
-                                .onTapGesture { engine.select(position: pos) }
+                                .onTapGesture {
+                                    if let word = wordAtPosition[pos] {
+                                        engine.collectWord(word)
+                                    } else {
+                                        engine.select(position: pos)
+                                    }
+                                }
                             }
                         }
                         .opacity(revealedRows.contains(r) ? 1 : 0)
@@ -141,25 +152,15 @@ struct GridView: View {
                         let h = CGFloat(maxR - minR + 1) * tileSize + CGFloat(maxR - minR) * gap + outset * 2
                         let cr = tileSize * 0.26 + outset
 
-                        ZStack {
-                            // Pulsing stroke
-                            RoundedRectangle(cornerRadius: cr)
-                                .stroke(
-                                    Color(red: 1.0, green: 0.85, blue: 0.2)
-                                        .opacity(wordPulse ? 0.85 : 0.2),
-                                    lineWidth: 2.5
-                                )
-                                .allowsHitTesting(false)
-                            // Transparent fill — makes the whole interior tappable to collect
-                            RoundedRectangle(cornerRadius: cr)
-                                .fill(Color.clear)
-                                .contentShape(RoundedRectangle(cornerRadius: cr))
-                                .onTapGesture {
-                                    engine.collectWord(word)
-                                }
-                        }
-                        .frame(width: w, height: h)
-                        .offset(x: x, y: y)
+                        RoundedRectangle(cornerRadius: cr)
+                            .stroke(
+                                Color(red: 1.0, green: 0.85, blue: 0.2)
+                                    .opacity(wordPulse ? 0.85 : 0.2),
+                                lineWidth: 2.5
+                            )
+                            .frame(width: w, height: h)
+                            .offset(x: x, y: y)
+                            .allowsHitTesting(false)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
