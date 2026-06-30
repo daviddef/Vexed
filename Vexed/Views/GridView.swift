@@ -26,6 +26,13 @@ struct GridView: View {
             let destSet: Set<Position> = Set(engine.slidePaths.values.compactMap { $0.last })
             let pathColor: Color = selectedTileColor()
 
+            // Where the tile content actually starts within the ZStack
+            // (VStack with maxWidth/Height:infinity centers its content)
+            let contentWidth  = CGFloat(cols) * tileSize + CGFloat(cols - 1) * gap
+            let contentHeight = CGFloat(rows) * tileSize + CGFloat(rows - 1) * gap
+            let gridX = (geo.size.width  - contentWidth)  / 2
+            let gridY = (geo.size.height - contentHeight) / 2
+
             ZStack {
                 // ── Game board background ──────────────────────────────
                 RoundedRectangle(cornerRadius: 20)
@@ -127,8 +134,8 @@ struct GridView: View {
                         let minC = word.positions.map({ $0.col }).min() ?? 0
                         let maxC = word.positions.map({ $0.col }).max() ?? 0
                         let outset: CGFloat = 3
-                        let x = padding + CGFloat(minC) * (tileSize + gap) - outset
-                        let y = padding + CGFloat(minR) * (tileSize + gap) - outset
+                        let x = gridX + CGFloat(minC) * (tileSize + gap) - outset
+                        let y = gridY + CGFloat(minR) * (tileSize + gap) - outset
                         let w = CGFloat(maxC - minC + 1) * tileSize + CGFloat(maxC - minC) * gap + outset * 2
                         let h = CGFloat(maxR - minR + 1) * tileSize + CGFloat(maxR - minR) * gap + outset * 2
                         let cr = tileSize * 0.26 + outset
