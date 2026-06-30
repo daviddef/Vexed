@@ -46,10 +46,20 @@ final class GameEngine: ObservableObject {
     // MARK: - Grid Setup
 
     private static func makeGrid(rows: Int, cols: Int) -> [[Tile?]] {
+        // Regenerate until the starting board contains no pre-existing words.
+        // With ~20% empty cells this typically resolves in 1-3 attempts.
+        var attempts = 0
+        while true {
+            let g = generateGrid(rows: rows, cols: cols)
+            attempts += 1
+            if !boardHasWords(g, rows: rows, cols: cols) || attempts > 50 { return g }
+        }
+    }
+
+    private static func generateGrid(rows: Int, cols: Int) -> [[Tile?]] {
         let consonants = "BCDFGHJKLMNPQRSTVWXYZ".map { $0 }
         let vowelChars = "AEIOU".map { $0 }
 
-        // Seed: ~40% vowels, 40% consonants, 20% empty
         var chars: [Character?] = []
         let total = rows * cols
         let vowelCount = total * 4 / 10
@@ -69,6 +79,33 @@ final class GameEngine: ObservableObject {
             }
         }
         return g
+    }
+
+    // Returns true if any row or column contains a valid word of 3+ letters.
+    private static func boardHasWords(_ grid: [[Tile?]], rows: Int, cols: Int) -> Bool {
+        let v = WordValidator.shared
+        // Scan rows
+        for r in 0..<rows {
+            let letters = (0..<cols).compactMap { grid[r][$0]?.letter }
+            if lineHasWord(letters, validator: v) { return true }
+        }
+        // Scan columns
+        for c in 0..<cols {
+            let letters = (0..<rows).compactMap { grid[$0][c]?.letter }
+            if lineHasWord(letters, validator: v) { return true }
+        }
+        return false
+    }
+
+    private static func lineHasWord(_ letters: [Character], validator: WordValidator) -> Bool {
+        guard letters.count >= 3 else { return false }
+        for start in 0..<letters.count {
+            for end in (start + 3)...letters.count {
+                let word = String(letters[start..<end])
+                if validator.isValid(word) { return true }
+            }
+        }
+        return false
     }
 
     // MARK: - Selection

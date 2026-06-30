@@ -17,26 +17,14 @@ final class WordValidator {
     }
 
     private func loadBuiltIn() {
-        // Load curated game dictionary from bundle (words.txt — ~33k common English words)
-        // This replaces the system /usr/share/dict/words which contains obscure Latin,
-        // archaic, and technical terms that confuse players when they score unexpectedly.
-        if let url = Bundle.main.url(forResource: "words", withExtension: "txt"),
-           let content = try? String(contentsOf: url, encoding: .utf8) {
-            for line in content.components(separatedBy: .newlines) {
-                let word = line.trimmingCharacters(in: .whitespaces)
-                guard word.count >= 3, word.count <= 10,
-                      word.allSatisfy({ $0.isLetter && $0.isASCII }) else { continue }
-                insert(word.uppercased())
-            }
-        } else {
-            // Fallback if bundle resource missing
-            loadFallbackWords()
+        let path = "/usr/share/dict/words"
+        guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { return }
+        for line in content.components(separatedBy: .newlines) {
+            let word = line.trimmingCharacters(in: .whitespaces).uppercased()
+            guard word.count >= 3, word.count <= 10,
+                  word.allSatisfy({ $0.isLetter && $0.isASCII }) else { continue }
+            insert(word)
         }
-    }
-
-    private func loadFallbackWords() {
-        let words = "CAT BAT HAT RAT DOG LOG FOG RUN SUN FUN GUN BIT HIT SIT FIT BED FED RED TOP HOP MOP POP CAVE GAVE SAVE WAVE BALE GALE MALE PALE SALE TALE CORE BORE MORE SORE WORE LIME TIME GAME FAME NAME SAME VOTE NOTE BONE CONE TONE ZONE BEST REST TEST VEST WEST NEST PEST FARM HARM WARM DARK LARK MARK PARK WORD WARD BIRD FIRE HIRE WIRE TIRE"
-        for word in words.components(separatedBy: .whitespaces) { insert(word) }
     }
 
     private func insert(_ word: String) {
