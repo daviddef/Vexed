@@ -24,6 +24,7 @@ targets:
     resources:
       - path: Vexed/Resources/Assets.xcassets
       - path: Vexed/Resources/words.txt
+      - path: Vexed/Resources/dictionary.txt
     info:
       path: Vexed/Resources/Info.plist
       properties:

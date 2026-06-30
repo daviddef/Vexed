@@ -17,8 +17,15 @@ final class WordValidator {
     }
 
     private func loadBuiltIn() {
-        let path = "/usr/share/dict/words"
-        guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { return }
+        // Load bundled dictionary (works on device + simulator)
+        // Falls back to system path in Simulator if bundle resource missing
+        let content: String?
+        if let url = Bundle.main.url(forResource: "dictionary", withExtension: "txt") {
+            content = try? String(contentsOf: url, encoding: .utf8)
+        } else {
+            content = try? String(contentsOfFile: "/usr/share/dict/words", encoding: .utf8)
+        }
+        guard let content else { return }
         for line in content.components(separatedBy: .newlines) {
             let word = line.trimmingCharacters(in: .whitespaces).uppercased()
             guard word.count >= 3, word.count <= 10,
