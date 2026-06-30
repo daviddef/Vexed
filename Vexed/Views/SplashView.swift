@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SplashView: View {
     var onDismiss: () -> Void
+    @AppStorage("selectedDifficulty") private var difficultyRaw: String = Difficulty.easy.rawValue
+    private var difficulty: Difficulty { Difficulty(rawValue: difficultyRaw) ?? .easy }
 
     // Each tile animates in independently
     @State private var tileVisible: [Bool] = Array(repeating: false, count: 5)
@@ -84,12 +86,18 @@ struct SplashView: View {
                 Spacer().frame(height: 52)
 
                 // ── Tap prompt ────────────────────────────────────────
-                Text("TAP TO PLAY")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white.opacity(tapPulse ? 0.75 : 0.30))
-                    .tracking(5)
-                    .opacity(tapPromptVisible ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: tapPulse)
+                VStack(spacing: 6) {
+                    Text(difficulty.displayName.uppercased())
+                        .font(.system(size: 18, weight: .black, design: .rounded))
+                        .foregroundColor(.white.opacity(tapPulse ? 0.90 : 0.45))
+                        .tracking(6)
+                    Text(difficulty.description.uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.white.opacity(tapPulse ? 0.55 : 0.22))
+                        .tracking(3)
+                }
+                .opacity(tapPromptVisible ? 1 : 0)
+                .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: tapPulse)
 
                 Spacer()
             }

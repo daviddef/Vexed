@@ -2,7 +2,12 @@ import SwiftUI
 
 struct GameView: View {
     @StateObject private var engine = GameEngine(difficulty: .easy)
-    @State private var selectedDifficulty: Difficulty = .easy
+    @AppStorage("selectedDifficulty") private var difficultyRaw: String = Difficulty.easy.rawValue
+    private var selectedDifficulty: Difficulty { Difficulty(rawValue: difficultyRaw) ?? .easy }
+    private var difficultyBinding: Binding<Difficulty> {
+        Binding(get: { selectedDifficulty },
+                set: { difficultyRaw = $0.rawValue })
+    }
     @State private var showBurgerMenu = false
     @State private var showInstructions = false
     @State private var showMissedWords = false
@@ -151,7 +156,7 @@ struct GameView: View {
         .ignoresSafeArea(edges: .bottom)
         .sheet(isPresented: $showBurgerMenu) {
             BurgerMenuView(
-                difficulty: $selectedDifficulty,
+                difficulty: difficultyBinding,
                 onReset: {
                     showNoWordsLeft = false
                     engine.reset(difficulty: selectedDifficulty)
