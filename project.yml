@@ -23,6 +23,7 @@ targets:
           - "Resources/Info.plist"
     resources:
       - path: Vexed/Resources/Assets.xcassets
+      - path: Vexed/Resources/words.txt
     info:
       path: Vexed/Resources/Info.plist
       properties:

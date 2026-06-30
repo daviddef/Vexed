@@ -16,6 +16,7 @@
 		7C98B292CCDE6827788F9331 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373DC80F055AE84737CE034F /* Position.swift */; };
 		87A3D5D6F10BCE8D63C4A652 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CEB73563ADF803D330B29F36 /* Assets.xcassets */; };
 		87CD95C576B7B0565CF31C5E /* VexedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6317CB0814BBBB7866C13144 /* VexedApp.swift */; };
+		984C35E29C05E0AE72CFD927 /* words.txt in Resources */ = {isa = PBXBuildFile; fileRef = 344B437F00ADDE56B9361A4E /* words.txt */; };
 		B3A765E2552955D9E5A4584E /* MissedWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDC70987CA16B6B7F67F776 /* MissedWordsView.swift */; };
 		C0749D677FB0E877095FF31E /* DifficultyConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */; };
 		C7DC3191486A857C4A1E2631 /* Tile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4456B2579A8873E94240D2 /* Tile.swift */; };
@@ -28,6 +29,7 @@
 /* Begin PBXFileReference section */
 		0DFF4E29B41C4E7EE1FAE1A8 /* GridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GridView.swift; sourceTree = "<group>"; };
 		233E208FD9087F702149CA1A /* InstructionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstructionsView.swift; sourceTree = "<group>"; };
+		344B437F00ADDE56B9361A4E /* words.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = words.txt; sourceTree = "<group>"; };
 		373DC80F055AE84737CE034F /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
 		5177A1E4925AF3AE770B3C7F /* WordValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordValidator.swift; sourceTree = "<group>"; };
 		6304962939BAB59E4179777F /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
@@ -73,6 +75,7 @@
 			isa = PBXGroup;
 			children = (
 				CEB73563ADF803D330B29F36 /* Assets.xcassets */,
+				344B437F00ADDE56B9361A4E /* words.txt */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -166,6 +169,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				87A3D5D6F10BCE8D63C4A652 /* Assets.xcassets in Resources */,
+				984C35E29C05E0AE72CFD927 /* words.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
