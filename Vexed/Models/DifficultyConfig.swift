@@ -44,11 +44,13 @@ struct DifficultyConfig {
     let rows: Int
     let cols: Int
     let adjacency: AdjacencyMode
-    let minWordLength: Int
-    let wordListName: String       // default (clean, no archaic/rare words)
+    var minWordLength: Int
+    var wordListName: String       // default (clean, no archaic/rare words)
     let wordListNameFull: String   // when "include rare words" toggle is on
     /// Forge tiles = max(0, wordLength − forgeMinLength), uncapped.
     let forgeMinLength: Int
+    /// If > 0, forge bonus is this flat value instead of the length formula.
+    var flatForgeBonus: Int = 0
 
     func activeWordList(includeRare: Bool) -> String {
         includeRare ? wordListNameFull : wordListName
@@ -57,7 +59,7 @@ struct DifficultyConfig {
     var adjacentDirections: [Direction] { Direction.cardinal }
 
     func forgeBonusCount(wordLength: Int) -> Int {
-        max(0, wordLength - forgeMinLength)
+        flatForgeBonus > 0 ? flatForgeBonus : max(0, wordLength - forgeMinLength)
     }
 
     /// Computes a screen-filling config for Hard: 9 cols, 4-letter min, forge-3.

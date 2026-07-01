@@ -11,7 +11,14 @@ struct BurgerMenuView: View {
 
     @AppStorage("includeRareWords") private var includeRareWords: Bool = false
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
+    @AppStorage("kidMode") private var kidMode: Bool = false
+    @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
     @State private var showTips = false
+
+    private var currentKidAge: KidAge {
+        get { KidAge(rawValue: kidAgeRaw) ?? .explorer }
+        set { kidAgeRaw = newValue.rawValue }
+    }
 
     private var highScore: Int { GameEngine.highScore(for: difficulty) }
 
@@ -58,13 +65,58 @@ struct BurgerMenuView: View {
 
                     // Menu rows
                     VStack(spacing: 0) {
-                        // Difficulty picker
+                        // Kid Mode + Game section
                         VStack(alignment: .leading, spacing: 0) {
+                            menuSectionHeader("KID MODE")
+
+                            // Kid mode toggle
+                            HStack(spacing: 14) {
+                                Image(systemName: "star.circle.fill")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(kidMode ? Color(red: 1.0, green: 0.75, blue: 0.1) : .white)
+                                    .frame(width: 24)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Kid Mode")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                    Text("Shorter words · hints · bigger forge bonus")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(Color(white: 0.4))
+                                }
+                                Spacer()
+                                Toggle("", isOn: $kidMode)
+                                    .labelsHidden()
+                                    .tint(Color(red: 1.0, green: 0.75, blue: 0.1))
+                                    .onChange(of: kidMode) { _, _ in
+                                        onReset()
+                                    }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.08))
+
+                            if kidMode {
+                                Divider().background(Color(white: 0.1))
+                                // Age tier picker
+                                VStack(spacing: 8) {
+                                    HStack(spacing: 4) {
+                                        ForEach(KidAge.allCases) { age in
+                                            ageTierButton(age)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(Color(white: 0.08))
+                            }
+
+                            Divider().background(Color(white: 0.1))
+
                             menuSectionHeader("GAME")
 
                             VStack(spacing: 10) {
                                 difficultyPill
-                                Text(difficulty.description)
+                                Text(kidMode ? kidBoardDescription : difficulty.description)
                                     .font(.system(size: 11, weight: .medium, design: .rounded))
                                     .foregroundColor(Color(white: 0.4))
                             }
@@ -235,15 +287,26 @@ struct BurgerMenuView: View {
     }
 
     private var difficultyPill: some View {
-        // 2×2 grid: [Easy | Medium] / [Hard | Fill]
-        VStack(spacing: 4) {
-            HStack(spacing: 0) {
-                difficultyButton(.easy)
-                difficultyButton(.medium)
-            }
-            HStack(spacing: 0) {
-                difficultyButton(.hard)
-                difficultyButton(.fill)
+        Group {
+            if kidMode {
+                // Kid mode: Small / Medium / Full (3 options, no Hard)
+                HStack(spacing: 0) {
+                    kidBoardButton(.easy,   label: "Small")
+                    kidBoardButton(.medium, label: "Medium")
+                    kidBoardButton(.fill,   label: "Full")
+                }
+            } else {
+                // Normal: 2×2 grid
+                VStack(spacing: 4) {
+                    HStack(spacing: 0) {
+                        difficultyButton(.easy)
+                        difficultyButton(.medium)
+                    }
+                    HStack(spacing: 0) {
+                        difficultyButton(.hard)
+                        difficultyButton(.fill)
+                    }
+                }
             }
         }
         .padding(4)
@@ -270,6 +333,64 @@ struct BurgerMenuView: View {
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: difficulty)
+    }
+
+    private func kidBoardButton(_ d: Difficulty, label: String) -> some View {
+        Button {
+            guard d != difficulty else { return }
+            difficulty = d
+            onReset()
+        } label: {
+            Text(label)
+                .font(.system(size: 13, weight: .black, design: .rounded))
+                .tracking(1)
+                .foregroundColor(d == difficulty ? .black : Color(white: 0.5))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(d == difficulty ? Color(red: 1.0, green: 0.75, blue: 0.1) : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: difficulty)
+    }
+
+    private func ageTierButton(_ age: KidAge) -> some View {
+        let isSelected = kidAgeRaw == age.rawValue
+        return Button {
+            guard !isSelected else { return }
+            kidAgeRaw = age.rawValue
+            onReset()
+        } label: {
+            VStack(spacing: 3) {
+                Text(age.emoji)
+                    .font(.system(size: 20))
+                Text(age.displayName)
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .tracking(0.5)
+                Text(age.ageRange)
+                    .font(.system(size: 9, weight: .medium))
+            }
+            .foregroundColor(isSelected ? .black : Color(white: 0.5))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color(red: 1.0, green: 0.75, blue: 0.1) : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: kidAgeRaw)
+    }
+
+    private var kidBoardDescription: String {
+        switch difficulty {
+        case .easy:   return "Small board (5×5) · \(KidAge(rawValue: kidAgeRaw)?.minWordLength ?? 2)+ letters"
+        case .medium: return "Medium board (7×7) · \(KidAge(rawValue: kidAgeRaw)?.minWordLength ?? 2)+ letters"
+        case .fill:   return "Full screen · \(KidAge(rawValue: kidAgeRaw)?.minWordLength ?? 2)+ letters"
+        default:      return "Small board · \(KidAge(rawValue: kidAgeRaw)?.minWordLength ?? 2)+ letters"
+        }
     }
 
     private func pillColor(_ d: Difficulty) -> Color {

@@ -8,6 +8,7 @@ struct GridView: View {
     @State private var revealedRows: Set<Int> = []
     @State private var lastBoardVersion: Int = -1
     @State private var wordPulse: Bool = false
+    @State private var hintPulse: Bool = false
 
     var body: some View {
         GeometryReader { geo in
@@ -30,6 +31,8 @@ struct GridView: View {
                 engine.availableWords.flatMap { w in w.positions.map { ($0, w) } },
                 uniquingKeysWith: { first, _ in first }
             )
+            let hintWord = engine.hintWordId.flatMap { id in engine.availableWords.first { $0.id == id } }
+            let hintPositions: Set<Position> = Set(hintWord?.positions ?? [])
 
             // Where the tile content actually starts within the ZStack
             // (VStack with maxWidth/Height:infinity centers its content)
@@ -90,6 +93,22 @@ struct GridView: View {
                                             .allowsHitTesting(false)
                                             .transition(.opacity)
                                     }
+                                    // Kid hint glow: extra bright pulsing border on the hinted word's tiles
+                                    if tile != nil && hintPositions.contains(pos) {
+                                        RoundedRectangle(cornerRadius: tileSize * 0.22)
+                                            .strokeBorder(
+                                                Color(red: 1.0, green: 0.85, blue: 0.2)
+                                                    .opacity(hintPulse ? 1.0 : 0.35),
+                                                lineWidth: 4
+                                            )
+                                            .allowsHitTesting(false)
+                                            .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.2).opacity(hintPulse ? 0.8 : 0.2), radius: hintPulse ? 12 : 4)
+                                    }
+                                    // Kid hint beacon: pulsing tap-here circle on the first tile (phase 2)
+                                    if engine.hintBeaconActive && hintWord?.positions.first == pos {
+                                        BeaconView(size: tileSize)
+                                            .allowsHitTesting(false)
+                                    }
                                 }
                                 .frame(width: tileSize, height: tileSize)
                                 .animation(.easeInOut(duration: 0.18), value: isDimmed)
@@ -134,6 +153,9 @@ struct GridView: View {
                     }
                     withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
                         wordPulse = true
+                    }
+                    withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                        hintPulse = true
                     }
                 }
 

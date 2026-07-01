@@ -38,6 +38,9 @@ final class GameEngine: ObservableObject {
     @Published var forgeMessage: String? = nil      // brief "+N tiles" banner
     @Published var availableWords: [AvailableWord] = []   // words scoreable RIGHT NOW on the board
     @Published var highlightedPositions: Set<Position>? = nil  // non-nil = dim all other tiles
+    @Published var interactionTick: Int = 0  // incremented on every user action (slide/select/collect)
+    @Published var hintWordId: UUID? = nil   // kid mode: ID of word to highlight as hint
+    @Published var hintBeaconActive: Bool = false  // kid mode phase-2: show tap beacon
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -71,9 +74,26 @@ final class GameEngine: ObservableObject {
 
     init(difficulty: Difficulty = .medium) {
         self.config = difficulty.config
+        Self.applyKidOverrides(to: &self.config)
         self.grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
         startPressureTimer()
         recalculatePotentialScore()
+    }
+
+    // MARK: - Kid Mode
+
+    static func applyKidOverrides(to config: inout DifficultyConfig) {
+        guard UserDefaults.standard.bool(forKey: "kidMode") else { return }
+        let ageRaw = UserDefaults.standard.string(forKey: "kidAge") ?? KidAge.explorer.rawValue
+        let age = KidAge(rawValue: ageRaw) ?? .explorer
+        config.minWordLength = age.minWordLength
+        config.wordListName  = age.wordListName
+        if age.flatForgeBonus > 0 { config.flatForgeBonus = age.flatForgeBonus }
+    }
+
+    func clearHint() {
+        hintWordId = nil
+        hintBeaconActive = false
     }
 
     // MARK: - Grid Setup
@@ -176,6 +196,7 @@ final class GameEngine: ObservableObject {
     func select(position: Position) {
         if grid[position.row][position.col] == nil { selectedPosition = nil; slidePaths = [:]; return }
         selectedPosition = (selectedPosition == position) ? nil : position
+        interactionTick += 1
         updateSlidePaths()
     }
 
@@ -208,6 +229,7 @@ final class GameEngine: ObservableObject {
               grid[src.row][src.col] != nil else {
             return SlideResult(moved: false, vanishedPositions: [], scoredWords: [])
         }
+        interactionTick += 1
 
         // Ice physics: glide until wall or occupied cell
         var dest = src
@@ -326,6 +348,7 @@ final class GameEngine: ObservableObject {
     /// Player-triggered word collection. Called when the player double-taps a word chip.
     func collectWord(_ word: AvailableWord) {
         guard availableWords.contains(where: { $0.id == word.id }) else { return }
+        interactionTick += 1
 
         combo += 1
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
@@ -834,6 +857,7 @@ final class GameEngine: ObservableObject {
     func reset(difficulty: Difficulty) {
         pressureTimer?.cancel()
         config = difficulty.config
+        Self.applyKidOverrides(to: &config)
         grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
         selectedPosition = nil
         score = 0; wordCount = 0; lostVowels = 0
@@ -843,6 +867,7 @@ final class GameEngine: ObservableObject {
         celebrationWord = nil
         tilesForged = 0; forgeMessage = nil
         availableWords = []; highlightedPositions = nil
+        interactionTick = 0; hintWordId = nil; hintBeaconActive = false
         startPressureTimer()
         updateDangerStates()
         peakScore = 0

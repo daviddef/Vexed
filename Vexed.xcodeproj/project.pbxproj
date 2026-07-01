@@ -23,11 +23,14 @@
 		87A3D5D6F10BCE8D63C4A652 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CEB73563ADF803D330B29F36 /* Assets.xcassets */; };
 		87CD95C576B7B0565CF31C5E /* VexedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6317CB0814BBBB7866C13144 /* VexedApp.swift */; };
 		92ED70249397E34C3A1D01B3 /* easy_words.txt in Resources */ = {isa = PBXBuildFile; fileRef = CF9EB42E00F71C437FA39EE6 /* easy_words.txt */; };
+		F1A2B3C4D5E6F7A8B9C0D1E2 /* kid_words.txt in Resources */ = {isa = PBXBuildFile; fileRef = E2D1C0B9A8F7E6D5C4B3A2F1 /* kid_words.txt */; };
 		984C35E29C05E0AE72CFD927 /* words.txt in Resources */ = {isa = PBXBuildFile; fileRef = 344B437F00ADDE56B9361A4E /* words.txt */; };
 		B3A765E2552955D9E5A4584E /* MissedWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDC70987CA16B6B7F67F776 /* MissedWordsView.swift */; };
 		BFA99D7E002D44E78FB671D5 /* ParticleBurstView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D060CF8F9C75D0B6E61153C0 /* ParticleBurstView.swift */; };
 		C05646D5A22789482E4B8401 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E379D33E0B517CC2BB3E4D8 /* Haptics.swift */; };
+		B7D1E4F2A3C58091E6D4B729 /* KidAge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F2C891D4E5B6074F8A9C30 /* KidAge.swift */; };
 		C0749D677FB0E877095FF31E /* DifficultyConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */; };
+		D9B3C7E4F2A18506D3F7C841 /* BeaconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E8A2F1B3D64709C8E1A053 /* BeaconView.swift */; };
 		C37CFECCFAE080EE3D0871A9 /* dictionary.txt in Resources */ = {isa = PBXBuildFile; fileRef = 450B73D4A73D4042A6EA4E33 /* dictionary.txt */; };
 		C7DC3191486A857C4A1E2631 /* Tile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4456B2579A8873E94240D2 /* Tile.swift */; };
 		D62873766BDFA0DD4E9F303B /* VowelRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821B3C52BF6D510BC2277796 /* VowelRadarView.swift */; };
@@ -54,7 +57,9 @@
 		6E379D33E0B517CC2BB3E4D8 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		7E1C41036AC2AAA5C4CD95C4 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		821B3C52BF6D510BC2277796 /* VowelRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowelRadarView.swift; sourceTree = "<group>"; };
+		A3F2C891D4E5B6074F8A9C30 /* KidAge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KidAge.swift; sourceTree = "<group>"; };
 		837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyConfig.swift; sourceTree = "<group>"; };
+		C5E8A2F1B3D64709C8E1A053 /* BeaconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeaconView.swift; sourceTree = "<group>"; };
 		88BBA04D81502D71C8038A3C /* HUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDView.swift; sourceTree = "<group>"; };
 		8D4456B2579A8873E94240D2 /* Tile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tile.swift; sourceTree = "<group>"; };
 		9B222A449F73E06EAB0FB804 /* BurgerMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BurgerMenuView.swift; sourceTree = "<group>"; };
@@ -65,6 +70,7 @@
 		C0E94B94BCA0CE35AADDD1F9 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		CEB73563ADF803D330B29F36 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CF9EB42E00F71C437FA39EE6 /* easy_words.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = easy_words.txt; sourceTree = "<group>"; };
+		E2D1C0B9A8F7E6D5C4B3A2F1 /* kid_words.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = kid_words.txt; sourceTree = "<group>"; };
 		CFD9766732EA984CE8848033 /* Vexed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vexed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D060CF8F9C75D0B6E61153C0 /* ParticleBurstView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleBurstView.swift; sourceTree = "<group>"; };
 		D1C9DCAF78FD1EADEF2DA098 /* AvailableWordChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailableWordChip.swift; sourceTree = "<group>"; };
@@ -90,6 +96,7 @@
 			children = (
 				837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */,
 				6304962939BAB59E4179777F /* GameEngine.swift */,
+				A3F2C891D4E5B6074F8A9C30 /* KidAge.swift */,
 				373DC80F055AE84737CE034F /* Position.swift */,
 				8D4456B2579A8873E94240D2 /* Tile.swift */,
 				5177A1E4925AF3AE770B3C7F /* WordValidator.swift */,
@@ -125,6 +132,7 @@
 				450B73D4A73D4042A6EA4E33 /* dictionary.txt */,
 				CF9EB42E00F71C437FA39EE6 /* easy_words.txt */,
 				53DF8A852959B44BB137FCC7 /* HowToPlay.md */,
+				E2D1C0B9A8F7E6D5C4B3A2F1 /* kid_words.txt */,
 				AC8D6A41D7615A6607F203DD /* medium_words.txt */,
 				344B437F00ADDE56B9361A4E /* words.txt */,
 			);
@@ -152,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				D1C9DCAF78FD1EADEF2DA098 /* AvailableWordChip.swift */,
+				C5E8A2F1B3D64709C8E1A053 /* BeaconView.swift */,
 				9B222A449F73E06EAB0FB804 /* BurgerMenuView.swift */,
 				249270D3AA15409BB3EF1915 /* DefinitionCard.swift */,
 				1E304DCF014FD496D6DA6AB6 /* GameTheme.swift */,
@@ -237,6 +246,7 @@
 				FEABD7318A5C975546F4B60D /* HowToPlay.md in Resources */,
 				C37CFECCFAE080EE3D0871A9 /* dictionary.txt in Resources */,
 				92ED70249397E34C3A1D01B3 /* easy_words.txt in Resources */,
+				F1A2B3C4D5E6F7A8B9C0D1E2 /* kid_words.txt in Resources */,
 				2238E577C18A7022A9B6CAE5 /* medium_words.txt in Resources */,
 				984C35E29C05E0AE72CFD927 /* words.txt in Resources */,
 			);
@@ -250,10 +260,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				E5E9C7A32E33B1D82D1A0E06 /* AvailableWordChip.swift in Sources */,
+				D9B3C7E4F2A18506D3F7C841 /* BeaconView.swift in Sources */,
 				6C2ADD19137134E85A042D92 /* BurgerMenuView.swift in Sources */,
 				375CEF8DE85D4FA8C9073AE7 /* DefinitionCard.swift in Sources */,
 				C0749D677FB0E877095FF31E /* DifficultyConfig.swift in Sources */,
 				390F72CAE1FCBFA057E1E06C /* GameEngine.swift in Sources */,
+				B7D1E4F2A3C58091E6D4B729 /* KidAge.swift in Sources */,
 				3EE9306923F400EA2DB822DF /* GameTheme.swift in Sources */,
 				DA0561F3EDFD2C2C70C0C2F6 /* GameView.swift in Sources */,
 				1F8B8C9F301E36C12BA60E1C /* GridView.swift in Sources */,
