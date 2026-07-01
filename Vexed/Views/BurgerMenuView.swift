@@ -21,6 +21,7 @@ struct BurgerMenuView: View {
     }
 
     private var highScore: Int { GameEngine.highScore(for: difficulty) }
+    @State private var showAllScores = false
 
     var body: some View {
         NavigationStack {
@@ -55,17 +56,21 @@ struct BurgerMenuView: View {
                                 .fill(Color(white: 0.12))
                                 .frame(width: 1)
                                 .padding(.vertical, 12)
-                            scoreCell(
-                                label: "PEAK VEXATION",
-                                value: highScore,
-                                color: highScore > 0 && currentScore >= highScore
-                                    ? Color(red: 1, green: 0.85, blue: 0.2)
-                                    : Color(red: 1, green: 0.85, blue: 0.2).opacity(0.6)
-                            )
+                            Button { showAllScores = true } label: {
+                                scoreCell(
+                                    label: "PEAK VEXATION ›",
+                                    value: highScore,
+                                    color: highScore > 0 && currentScore >= highScore
+                                        ? Color(red: 1, green: 0.85, blue: 0.2)
+                                        : Color(red: 1, green: 0.85, blue: 0.2).opacity(0.6)
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 0.07)))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.11), lineWidth: 1))
                         .padding(.horizontal, 20)
+                        .sheet(isPresented: $showAllScores) { allScoresSheet }
 
                         // ── Mode cards ───────────────────────────────────
                         sectionCard {
@@ -126,6 +131,30 @@ struct BurgerMenuView: View {
                         }
                         .padding(.horizontal, 20)
 
+                        // ── Theme ────────────────────────────────────────
+                        sectionCard {
+                            sectionLabel("THEME")
+                            HStack(spacing: 10) {
+                                modeCard(
+                                    icon: "moon.stars.fill",
+                                    title: "Regular",
+                                    subtitle: "Clean dark look\nfocused gameplay",
+                                    isSelected: !arcadeMode,
+                                    accentColor: Color(red: 0.5, green: 0.8, blue: 1.0)
+                                ) { arcadeMode = false }
+                                modeCard(
+                                    icon: "gamecontroller.fill",
+                                    title: "Arcade",
+                                    subtitle: "Vivid colours\nbold tiles & glows",
+                                    isSelected: arcadeMode,
+                                    accentColor: Color(red: 0.7, green: 0.4, blue: 1.0)
+                                ) { arcadeMode = true }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 14)
+                        }
+                        .padding(.horizontal, 20)
+
                         // ── Help ─────────────────────────────────────────
                         sectionCard {
                             sectionLabel("HELP")
@@ -152,30 +181,6 @@ struct BurgerMenuView: View {
                                 menuLinkRow(icon: "magnifyingglass", label: "Show Missed Words")
                             }
                             .buttonStyle(.plain)
-                        }
-                        .padding(.horizontal, 20)
-
-                        // ── Theme ────────────────────────────────────────
-                        sectionCard {
-                            sectionLabel("THEME")
-                            HStack(spacing: 10) {
-                                modeCard(
-                                    icon: "moon.stars.fill",
-                                    title: "Regular",
-                                    subtitle: "Clean dark look\nfocused gameplay",
-                                    isSelected: !arcadeMode,
-                                    accentColor: Color(red: 0.5, green: 0.8, blue: 1.0)
-                                ) { arcadeMode = false }
-                                modeCard(
-                                    icon: "gamecontroller.fill",
-                                    title: "Arcade",
-                                    subtitle: "Vivid colours\nbold tiles & glows",
-                                    isSelected: arcadeMode,
-                                    accentColor: Color(red: 0.7, green: 0.4, blue: 1.0)
-                                ) { arcadeMode = true }
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.bottom, 14)
                         }
                         .padding(.horizontal, 20)
 
@@ -448,6 +453,77 @@ struct BurgerMenuView: View {
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: kidAgeRaw)
+    }
+
+    // MARK: - All scores sheet
+
+    private var allScoresSheet: some View {
+        NavigationStack {
+            ZStack {
+                Color(red: 0.06, green: 0.06, blue: 0.09).ignoresSafeArea()
+                let scores = GameEngine.allHighScores()
+                if scores.isEmpty {
+                    VStack(spacing: 12) {
+                        Text("No scores yet")
+                            .font(.system(size: 18, weight: .black, design: .rounded))
+                            .foregroundColor(Color(white: 0.4))
+                        Text("Complete a game to set your first peak vexation score.")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(white: 0.3))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                } else {
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            ForEach(Array(scores.enumerated()), id: \.offset) { idx, entry in
+                                HStack {
+                                    Text("#\(idx + 1)")
+                                        .font(.system(size: 13, weight: .black, design: .rounded))
+                                        .foregroundColor(idx == 0 ? Color(red: 1, green: 0.85, blue: 0.2) : Color(white: 0.3))
+                                        .frame(width: 32, alignment: .leading)
+                                    Text(entry.label)
+                                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                    Text("\(entry.score)")
+                                        .font(.system(size: 20, weight: .black, design: .rounded))
+                                        .foregroundColor(idx == 0 ? Color(red: 1, green: 0.85, blue: 0.2) : Color(white: 0.7))
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color(white: idx == 0 ? 0.09 : 0.05)))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                                    idx == 0 ? Color(red: 1, green: 0.85, blue: 0.2).opacity(0.3) : Color(white: 0.08),
+                                    lineWidth: 1))
+                                .padding(.horizontal, 20)
+                            }
+                        }
+                        .padding(.top, 8)
+                        .padding(.bottom, 32)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("PEAK VEXATION")
+                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .tracking(4)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showAllScores = false } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(Color(white: 0.35))
+                    }
+                }
+            }
+            .toolbarBackground(Color(red: 0.06, green: 0.06, blue: 0.09), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Helpers

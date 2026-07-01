@@ -82,6 +82,7 @@ struct GameView: View {
                     HStack(spacing: kidMode ? 10 : 12) {
                         miniStat(label: "SCORE",  value: "\(displayScore)", color: kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2) : .white, isScore: true)
                         miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: Color(white: 0.7))
+                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: Color(red: 0.3, green: 0.9, blue: 1.0))
                         if kidMode {
                             // Inline combo badge (replaces STARS; no floating overlay in kid mode)
                             kidComboStat
@@ -90,7 +91,6 @@ struct GameView: View {
                                 .font(.system(size: 22))
                                 .padding(.horizontal, 4)
                         } else {
-                            miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: Color(red: 0.3, green: 0.9, blue: 1.0))
                             miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
                         }
                     }
@@ -100,10 +100,6 @@ struct GameView: View {
 
                     // Controls
                     HStack(spacing: 8) {
-                        iconButton("arrow.counterclockwise") {
-                            showNoWordsLeft = false
-                            engine.reset(difficulty: selectedDifficulty)
-                        }
                         iconButton("line.3.horizontal") { showBurgerMenu = true }
                     }
                     .padding(.trailing, 12)
@@ -858,11 +854,13 @@ struct GameView: View {
     // MARK: - Reset everything
 
     private func resetEverything() {
-        // Clear high scores for all difficulties
+        // Clear high scores — new stable keys
+        let ud = UserDefaults.standard
         for d in Difficulty.allCases {
-            let c = d.config
-            let key = "highScore_\(c.wordListName)_\(c.rows)x\(c.cols)"
-            UserDefaults.standard.removeObject(forKey: key)
+            ud.removeObject(forKey: "hs_\(d.rawValue)")
+            for age in KidAge.allCases {
+                ud.removeObject(forKey: "hs_kid_\(age.rawValue)_\(d.rawValue)")
+            }
         }
         // Clear tutorial-seen flag so it replays
         UserDefaults.standard.removeObject(forKey: "vexed.launched")

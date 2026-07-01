@@ -61,6 +61,7 @@ final class GameEngine: ObservableObject {
     }
 
     var config: DifficultyConfig
+    private(set) var currentDifficulty: Difficulty = .fill
     private var hintTask: Task<Void, Never>? = nil
     private var validator: WordValidator {
         let includeRare = UserDefaults.standard.bool(forKey: "includeRareWords")
@@ -76,6 +77,7 @@ final class GameEngine: ObservableObject {
     }
 
     init(difficulty: Difficulty = .medium) {
+        self.currentDifficulty = difficulty
         self.config = difficulty.config
         Self.applyKidOverrides(to: &self.config)
         self.grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
@@ -927,7 +929,7 @@ final class GameEngine: ObservableObject {
     }
 
     private func saveHighScoreIfBetter() {
-        let key = "highScore_\(config.wordListName)_\(config.rows)x\(config.cols)"
+        let key = Self.highScoreKey(difficulty: currentDifficulty)
         let current = UserDefaults.standard.integer(forKey: key)
         if score > current && score > 0 {
             UserDefaults.standard.set(score, forKey: key)
@@ -936,14 +938,39 @@ final class GameEngine: ObservableObject {
     }
 
     static func highScore(for difficulty: Difficulty) -> Int {
-        var c = difficulty.config
-        Self.applyKidOverrides(to: &c)
-        let key = "highScore_\(c.wordListName)_\(c.rows)x\(c.cols)"
-        return UserDefaults.standard.integer(forKey: key)
+        UserDefaults.standard.integer(forKey: highScoreKey(difficulty: difficulty))
+    }
+
+    static func highScoreKey(difficulty: Difficulty) -> String {
+        let isKid = UserDefaults.standard.bool(forKey: "kidMode")
+        if isKid {
+            let ageRaw = UserDefaults.standard.string(forKey: "kidAge") ?? KidAge.explorer.rawValue
+            return "hs_kid_\(ageRaw)_\(difficulty.rawValue)"
+        }
+        return "hs_\(difficulty.rawValue)"
+    }
+
+    static func allHighScores() -> [(label: String, score: Int)] {
+        let ud = UserDefaults.standard
+        var result: [(label: String, score: Int)] = []
+        for d in Difficulty.allCases {
+            let key = "hs_\(d.rawValue)"
+            let val = ud.integer(forKey: key)
+            if val > 0 { result.append((label: "Adult · \(d.displayName)", score: val)) }
+        }
+        for age in KidAge.allCases {
+            for d in Difficulty.allCases {
+                let key = "hs_kid_\(age.rawValue)_\(d.rawValue)"
+                let val = ud.integer(forKey: key)
+                if val > 0 { result.append((label: "Kid \(age.displayName) · \(d.displayName)", score: val)) }
+            }
+        }
+        return result.sorted { $0.score > $1.score }
     }
 
     func reset(difficulty: Difficulty) {
         pressureTimer?.cancel()
+        currentDifficulty = difficulty
         config = difficulty.config
         Self.applyKidOverrides(to: &config)
         grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
