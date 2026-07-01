@@ -83,6 +83,16 @@ final class GameEngine: ObservableObject {
 
     // MARK: - Kid Mode
 
+    private var celebrationMinLength: Int {
+        guard UserDefaults.standard.bool(forKey: "kidMode") else { return 5 }
+        let ageRaw = UserDefaults.standard.string(forKey: "kidAge") ?? KidAge.explorer.rawValue
+        switch KidAge(rawValue: ageRaw) ?? .explorer {
+        case .little:      return 2
+        case .explorer:    return 3
+        case .challenger:  return 4
+        }
+    }
+
     static func applyKidOverrides(to config: inout DifficultyConfig) {
         guard UserDefaults.standard.bool(forKey: "kidMode") else { return }
         let ageRaw = UserDefaults.standard.string(forKey: "kidAge") ?? KidAge.explorer.rawValue
@@ -396,7 +406,7 @@ final class GameEngine: ObservableObject {
         flashWord = word.word
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in self?.flashWord = nil }
 
-        if word.word.count >= 5 {
+        if word.word.count >= celebrationMinLength {
             celebrationWord = word.word
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.celebrationWord = nil }
         }
@@ -465,8 +475,8 @@ final class GameEngine: ObservableObject {
                 }
             }
 
-            // Celebration for 5+ letter words
-            if let best = found.max(by: { $0.word.count < $1.word.count }), best.word.count >= 5 {
+            // Celebration for words meeting the length threshold (lower in Kid Mode)
+            if let best = found.max(by: { $0.word.count < $1.word.count }), best.word.count >= celebrationMinLength {
                 celebrationWord = best.word
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                     self?.celebrationWord = nil

@@ -30,23 +30,24 @@ struct GameView: View {
     @State private var tutorialStep: Int = 0
     @State private var definitionEntry: DefinitionEntry? = nil
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
-    private var theme: GameTheme { GameTheme(isArcade: arcadeMode) }
+    @AppStorage("kidMode") private var kidMode: Bool = false
+    @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
+    private var theme: GameTheme { GameTheme(isArcade: arcadeMode, isKid: kidMode) }
+    private var currentKidAge: KidAge { KidAge(rawValue: kidAgeRaw) ?? .explorer }
 
     var body: some View {
         ZStack {
             theme.bgBase.ignoresSafeArea()
-            // Corner glows (arcade only)
+            // Corner glows (arcade + kid mode)
             if theme.showCornerGlows {
                 GeometryReader { geo in
-                    // Top-right purple glow
                     RadialGradient(
-                        colors: [Color(red: 0.55, green: 0.1, blue: 0.9).opacity(0.35), .clear],
+                        colors: [theme.cornerGlowColors.topRight.opacity(theme.cornerGlowOpacity.topRight), .clear],
                         center: .topTrailing, startRadius: 0, endRadius: geo.size.width * 0.7
                     )
                     .ignoresSafeArea()
-                    // Bottom-left teal glow
                     RadialGradient(
-                        colors: [Color(red: 0.0, green: 0.7, blue: 0.8).opacity(0.22), .clear],
+                        colors: [theme.cornerGlowColors.bottomLeft.opacity(theme.cornerGlowOpacity.bottomLeft), .clear],
                         center: .bottomLeading, startRadius: 0, endRadius: geo.size.width * 0.6
                     )
                     .ignoresSafeArea()
@@ -78,11 +79,20 @@ struct GameView: View {
                 // ── Compact top bar ──────────────────────────────────────
                 HStack(spacing: 0) {
                     // Score cluster
-                    HStack(spacing: 12) {
-                        miniStat(label: "SCORE",  value: "\(displayScore)", color: .white, isScore: true)
+                    HStack(spacing: kidMode ? 10 : 12) {
+                        miniStat(label: "SCORE",  value: "\(displayScore)", color: kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2) : .white, isScore: true)
                         miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: Color(white: 0.7))
-                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: Color(red: 0.3, green: 0.9, blue: 1.0))
-                        miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
+                        if kidMode {
+                            // Kid mode: show STARS (word count as emoji) instead of FORGED/LOST
+                            miniStat(label: "STARS", value: String(repeating: "⭐", count: min(engine.wordCount, 5)), color: Color(red: 1.0, green: 0.85, blue: 0.2))
+                            // Age badge
+                            Text(currentKidAge.emoji)
+                                .font(.system(size: 22))
+                                .padding(.horizontal, 4)
+                        } else {
+                            miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: Color(red: 0.3, green: 0.9, blue: 1.0))
+                            miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
+                        }
                     }
                     .padding(.leading, 16)
 

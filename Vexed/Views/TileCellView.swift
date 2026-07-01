@@ -10,7 +10,8 @@ struct TileCellView: View {
     var isDestination: Bool = false
 
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
-    private var theme: GameTheme { GameTheme(isArcade: arcadeMode) }
+    @AppStorage("kidMode") private var kidMode: Bool = false
+    private var theme: GameTheme { GameTheme(isArcade: arcadeMode, isKid: kidMode) }
 
     @State private var vanishRotation: Double = 0
     // Forge animation: scale pops in from 0; pulse (0→1) drives color brightness & glow
