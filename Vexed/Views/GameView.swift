@@ -197,11 +197,6 @@ struct GameView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 withAnimation(.easeIn(duration: 0.6)) { wordScoreFlash = false }
             }
-            // Show definition card after tiles score
-            let pts = engine.wordHistory.last?.points
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
-                showDefinition(for: word, points: pts)
-            }
         }
         .onChange(of: engine.lostVowels) { old, new in
             let just = new - old
