@@ -462,11 +462,16 @@ final class GameEngine: ObservableObject {
             guard let self else { return }
             for pos in word.positions { self.grid[pos.row][pos.col] = nil }
             self.updateDangerStates()
-            self.recalculatePotentialScore()
             if forgeCount > 0 {
+                // Delay game-over check until AFTER forge tiles land — spawnForgeTiles
+                // calls recalculatePotentialScore() itself, so we skip the early call here.
+                // Without this guard, the check fires on a board that's missing the
+                // scored tiles but not yet has the replacement tiles, causing false game-over.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                     self?.spawnForgeTiles(count: forgeCount)
                 }
+            } else {
+                self.recalculatePotentialScore()
             }
         }
     }

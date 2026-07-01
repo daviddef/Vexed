@@ -243,7 +243,7 @@ struct GameView: View {
             }
         }
         .onChange(of: engine.noWordsLeft) { _, isLeft in
-            if isLeft { showNoWordsLeft = true }
+            showNoWordsLeft = isLeft
         }
         .onChange(of: engine.score) { _, newScore in
             let start = displayScore
