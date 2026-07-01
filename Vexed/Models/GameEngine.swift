@@ -41,7 +41,7 @@ final class GameEngine: ObservableObject {
     @Published var interactionTick: Int = 0  // incremented on every user action (slide/select/collect)
     @Published var hintWordId: UUID? = nil   // kid mode: ID of word to highlight as hint
     @Published var hintBeaconActive: Bool = false  // kid mode phase-2: show tap beacon
-    @Published var hintMove: (from: Position, direction: Direction)? = nil  // kid mode: slide hint when no word ready
+    @Published var hintMoves: [(from: Position, direction: Direction)] = []  // kid mode: slide hint sequence (1 or 2 steps)
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -108,27 +108,44 @@ final class GameEngine: ObservableObject {
         hintTask = nil
         hintWordId = nil
         hintBeaconActive = false
-        hintMove = nil
+        hintMoves = []
     }
 
-    private func findHintMove() -> (from: Position, direction: Direction)? {
-        for (src, dest) in allSlides(in: grid) {
+    private func slideDirection(_ src: Position, _ dest: Position) -> Direction {
+        let dr = dest.row - src.row, dc = dest.col - src.col
+        return dr > 0 ? .down : dr < 0 ? .up : dc > 0 ? .right : .left
+    }
+
+    private func findHintMoves() -> [(from: Position, direction: Direction)] {
+        let slides = allSlides(in: grid)
+        // Single-slide: find a move that immediately forms a word
+        for (src, dest) in slides {
             let g1 = applying(grid, from: src, to: dest)
             if gridHasWordAt(g1, dest: dest) {
-                let dr = dest.row - src.row
-                let dc = dest.col - src.col
-                let dir: Direction = dr > 0 ? .down : dr < 0 ? .up : dc > 0 ? .right : .left
-                return (from: src, direction: dir)
+                return [(from: src, direction: slideDirection(src, dest))]
             }
         }
-        return nil
+        // Two-slide: find a sequence whose first step moves us toward a word
+        for (src1, dest1) in slides {
+            let g1 = applying(grid, from: src1, to: dest1)
+            for (src2, dest2) in allSlides(in: g1) {
+                let g2 = applying(g1, from: src2, to: dest2)
+                if gridHasWordAt(g2, dest: dest2) {
+                    return [
+                        (from: src1, direction: slideDirection(src1, dest1)),
+                        (from: src2, direction: slideDirection(src2, dest2))
+                    ]
+                }
+            }
+        }
+        return []
     }
 
     private func rescheduleHint() {
         hintTask?.cancel()
         hintWordId = nil
         hintBeaconActive = false
-        hintMove = nil
+        hintMoves = []
         guard UserDefaults.standard.bool(forKey: "kidMode") else { return }
         let ageRaw = UserDefaults.standard.string(forKey: "kidAge") ?? KidAge.explorer.rawValue
         let age = KidAge(rawValue: ageRaw) ?? .explorer
@@ -142,11 +159,10 @@ final class GameEngine: ObservableObject {
             if let word = self.availableWords.randomElement() {
                 print("[KidHint] setting hintWordId for word at \(word.positions)")
                 self.hintWordId = word.id
-            } else if let move = self.findHintMove() {
-                print("[KidHint] no available words — setting hintMove from \(move.from) dir \(move.direction)")
-                self.hintMove = move
             } else {
-                print("[KidHint] no hint possible")
+                let moves = self.findHintMoves()
+                print("[KidHint] no available words — hintMoves: \(moves.count) step(s)")
+                self.hintMoves = moves
             }
             guard age.beaconDelay > age.hintDelay else { return }
             do {
@@ -932,7 +948,7 @@ final class GameEngine: ObservableObject {
         tilesForged = 0; forgeMessage = nil
         availableWords = []; highlightedPositions = nil
         hintTask?.cancel(); hintTask = nil
-        interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMove = nil
+        interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMoves = []
         startPressureTimer()
         updateDangerStates()
         peakScore = 0

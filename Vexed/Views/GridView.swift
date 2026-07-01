@@ -33,6 +33,7 @@ struct GridView: View {
             )
             let hintWord = engine.hintWordId.flatMap { id in engine.availableWords.first { $0.id == id } }
             let hintPositions: Set<Position> = Set(hintWord?.positions ?? [])
+            let hintMovePositions: Set<Position> = Set(engine.hintMoves.map { $0.from })
 
             // Where the tile content actually starts within the ZStack
             // (VStack with maxWidth/Height:infinity centers its content)
@@ -62,11 +63,13 @@ struct GridView: View {
                                 let isTouching = touchedPosition == pos
                                 let isPath = pathSet.contains(pos)
                                 let isDest = destSet.contains(pos)
+                                let isHintTile = tile != nil && (hintPositions.contains(pos) || hintMovePositions.contains(pos))
                                 let isDimmed: Bool = {
                                     guard let hl = engine.highlightedPositions else { return false }
+                                    // Never dim a tile that the hint is pointing to
+                                    if isHintTile { return false }
                                     return tile != nil && !hl.contains(pos)
                                 }()
-                                let isHintTile = tile != nil && (hintPositions.contains(pos) || engine.hintMove?.from == pos)
 
                                 ZStack {
                                     if let tile {
@@ -95,27 +98,21 @@ struct GridView: View {
                                             .allowsHitTesting(false)
                                             .transition(.opacity)
                                     }
-                                    // Kid hint beacon: expanding rings on the tap target (phase 2)
+                                    // Kid hint beacon: expanding rings on the first tap target (phase 2)
                                     if engine.hintBeaconActive &&
-                                       (hintWord?.positions.first == pos || engine.hintMove?.from == pos) {
+                                       (hintWord?.positions.first == pos || engine.hintMoves.first?.from == pos) {
                                         BeaconView(size: tileSize)
                                             .allowsHitTesting(false)
                                     }
-                                    // Kid slide hint: directional arrow when no formed word to collect
-                                    if let move = engine.hintMove, move.from == pos {
-                                        let (dx, dy): (CGFloat, CGFloat) = switch move.direction {
-                                        case .right: (tileSize * 0.7, 0)
-                                        case .left:  (-tileSize * 0.7, 0)
-                                        case .down:  (0, tileSize * 0.7)
-                                        default:     (0, -tileSize * 0.7)  // .up
-                                        }
-                                        Image(systemName: arrowSymbol(for: move.direction))
-                                            .font(.system(size: tileSize * 0.38, weight: .black))
-                                            .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.2))
-                                            .shadow(color: Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.85), radius: 10)
-                                            .scaleEffect(hintPulse ? 1.25 : 0.8)
-                                            .offset(x: dx, y: dy)
-                                            .allowsHitTesting(false)
+                                    // Kid slide hint: arrow(s) showing which tile(s) to move
+                                    // Step 1 arrow — always shown when hintMoves is non-empty
+                                    if let move = engine.hintMoves.first, move.from == pos {
+                                        hintArrow(direction: move.direction, tileSize: tileSize, scale: hintPulse ? 1.25 : 0.8, opacity: 1.0)
+                                    }
+                                    // Step 2 arrow — revealed only in phase 2 (beacon active) if a 2-step path exists
+                                    if engine.hintBeaconActive, engine.hintMoves.count > 1,
+                                       let move2 = engine.hintMoves.dropFirst().first, move2.from == pos {
+                                        hintArrow(direction: move2.direction, tileSize: tileSize, scale: hintPulse ? 1.1 : 0.75, opacity: 0.7)
                                     }
                                 }
                                 .frame(width: tileSize, height: tileSize)
@@ -207,6 +204,23 @@ struct GridView: View {
         case .left:  return "arrow.left"
         default:     return "arrow.right"
         }
+    }
+
+    @ViewBuilder
+    private func hintArrow(direction: Direction, tileSize: CGFloat, scale: CGFloat, opacity: Double) -> some View {
+        let (dx, dy): (CGFloat, CGFloat) = switch direction {
+        case .right: (tileSize * 0.7, 0)
+        case .left:  (-tileSize * 0.7, 0)
+        case .down:  (0, tileSize * 0.7)
+        default:     (0, -tileSize * 0.7)
+        }
+        Image(systemName: arrowSymbol(for: direction))
+            .font(.system(size: tileSize * 0.38, weight: .black))
+            .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(opacity))
+            .shadow(color: Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.85 * opacity), radius: 10)
+            .scaleEffect(scale)
+            .offset(x: dx, y: dy)
+            .allowsHitTesting(false)
     }
 
     private func selectedTileColor() -> Color {
