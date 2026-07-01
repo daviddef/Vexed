@@ -929,7 +929,8 @@ final class GameEngine: ObservableObject {
     }
 
     static func highScore(for difficulty: Difficulty) -> Int {
-        let c = difficulty.config
+        var c = difficulty.config
+        Self.applyKidOverrides(to: &c)
         let key = "highScore_\(c.wordListName)_\(c.rows)x\(c.cols)"
         return UserDefaults.standard.integer(forKey: key)
     }

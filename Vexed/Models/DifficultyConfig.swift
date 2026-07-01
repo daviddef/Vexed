@@ -29,6 +29,26 @@ enum Difficulty: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Label used in kid mode (hides Hard; renames boards by size)
+    var kidDisplayName: String {
+        switch self {
+        case .easy:   return "Small"
+        case .medium: return "Medium"
+        case .fill:   return "Full"
+        case .hard:   return "Hard"   // not shown in kid mode, but needs a value
+        }
+    }
+
+    /// Human-readable description shown below the splash difficulty pill in kid mode
+    var kidDescription: String {
+        switch self {
+        case .easy:   return "5×5 · Short words welcome"
+        case .medium: return "7×7 · Growing challenge"
+        case .fill:   return "7×screen · Packed & playful"
+        case .hard:   return description
+        }
+    }
+
     var description: String {
         let c = DifficultyConfig.fillConfig()
         switch self {

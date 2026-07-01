@@ -3,7 +3,9 @@ import SwiftUI
 struct SplashView: View {
     var onDismiss: () -> Void
     @AppStorage("selectedDifficulty") private var difficultyRaw: String = Difficulty.easy.rawValue
+    @AppStorage("kidMode") private var kidMode: Bool = false
     private var difficulty: Difficulty { Difficulty(rawValue: difficultyRaw) ?? .easy }
+    private var splashDifficulties: [Difficulty] { kidMode ? [.easy, .medium, .fill] : Difficulty.allCases }
 
     // Each tile animates in independently
     @State private var tileVisible: [Bool] = Array(repeating: false, count: 5)
@@ -85,34 +87,68 @@ struct SplashView: View {
                     .tracking(6)
                     .opacity(taglineVisible ? 1 : 0)
 
-                Spacer().frame(height: 32)
+                Spacer().frame(height: 24)
 
-                // ── Peak Vexation (high score) ────────────────────────
+                // ── Kid Mode toggle ───────────────────────────────────
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                        kidMode.toggle()
+                        // Hard isn't available in kid mode — fall back to Medium
+                        if kidMode && difficulty == .hard { difficultyRaw = Difficulty.medium.rawValue }
+                        highScore = GameEngine.highScore(for: difficulty)
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: kidMode ? "star.circle.fill" : "star.circle")
+                            .font(.system(size: 15, weight: .bold))
+                        Text("KID MODE")
+                            .font(.system(size: 11, weight: .black, design: .rounded))
+                            .tracking(2)
+                    }
+                    .foregroundColor(kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2) : Color.white.opacity(0.35))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 7)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.15) : Color.clear)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.45) : Color.white.opacity(0.15), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .opacity(tapPromptVisible ? 1 : 0)
+
+                Spacer().frame(height: 20)
+
+                // ── Peak score ────────────────────────────────────────
                 if highScore > 0 {
                     VStack(spacing: 4) {
-                        Text("PEAK VEXATION")
+                        Text(kidMode ? "TOP SCORE" : "PEAK VEXATION")
                             .font(.system(size: 9, weight: .black))
                             .foregroundColor(.white.opacity(0.30))
                             .tracking(3)
                         Text("\(highScore)")
                             .font(.system(size: 38, weight: .black, design: .rounded))
-                            .foregroundColor(.white.opacity(0.85))
-                            .shadow(color: Color(red: 1, green: 0.85, blue: 0.2).opacity(0.5), radius: 12, x: 0, y: 0)
+                            .foregroundColor(kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.9) : .white.opacity(0.85))
+                            .shadow(color: Color(red: 1, green: 0.85, blue: 0.2).opacity(kidMode ? 0.7 : 0.5), radius: 12, x: 0, y: 0)
                     }
                     .opacity(tapPromptVisible ? 1 : 0)
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
 
-                Spacer().frame(height: highScore > 0 ? 24 : 44)
+                Spacer().frame(height: highScore > 0 ? 20 : 36)
 
                 // ── Difficulty pill ───────────────────────────────────
                 VStack(spacing: 10) {
                     splashDifficultyPill
-                    Text(difficulty.description.uppercased())
+                    Text((kidMode ? difficulty.kidDescription : difficulty.description).uppercased())
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.white.opacity(0.35))
                         .tracking(3)
                         .animation(.easeInOut(duration: 0.2), value: difficulty.rawValue)
+                        .animation(.easeInOut(duration: 0.2), value: kidMode)
                 }
                 .opacity(tapPromptVisible ? 1 : 0)
 
@@ -154,17 +190,23 @@ struct SplashView: View {
                 highScore = GameEngine.highScore(for: difficulty)
             }
         }
+        .onChange(of: kidMode) { _, _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                highScore = GameEngine.highScore(for: difficulty)
+            }
+        }
     }
 
     private var splashDifficultyPill: some View {
         HStack(spacing: 0) {
-            ForEach(Difficulty.allCases) { d in
+            ForEach(splashDifficulties) { d in
                 Button {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
                         difficultyRaw = d.rawValue
+                        highScore = GameEngine.highScore(for: d)
                     }
                 } label: {
-                    Text(d.displayName.uppercased())
+                    Text((kidMode ? d.kidDisplayName : d.displayName).uppercased())
                         .font(.system(size: 13, weight: .black, design: .rounded))
                         .tracking(1)
                         .foregroundColor(d == difficulty ? .black : Color(white: 0.55))
@@ -182,6 +224,7 @@ struct SplashView: View {
         .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 1).opacity(0.06)))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 1).opacity(0.10), lineWidth: 1))
         .padding(.horizontal, 40)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: kidMode)
     }
 
     private func pillColor(_ d: Difficulty) -> Color {
