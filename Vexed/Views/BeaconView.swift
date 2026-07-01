@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Expanding pulsing circle overlay — used as the kid-mode phase-2 "tap here" hint.
+/// Expanding rounded-rect rings around a tile — kid-mode phase-2 "tap here" beacon.
+/// Rings start at tile bounds and expand outward so the tile letter remains fully visible.
 struct BeaconView: View {
     let size: CGFloat
     @State private var expand: Bool = false
@@ -8,22 +9,22 @@ struct BeaconView: View {
     var body: some View {
         ZStack {
             ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .stroke(Color(red: 1.0, green: 0.85, blue: 0.2).opacity(expand ? 0.0 : 0.7), lineWidth: 2.5)
-                    .frame(width: expand ? size * 1.5 : size * 0.6,
-                           height: expand ? size * 1.5 : size * 0.6)
+                RoundedRectangle(cornerRadius: size * 0.22 + (expand ? size * 0.3 : 0))
+                    .stroke(
+                        Color(red: 1.0, green: 0.85, blue: 0.2).opacity(expand ? 0.0 : 0.65),
+                        lineWidth: 2.5
+                    )
+                    .frame(
+                        width:  expand ? size * 1.7 : size,
+                        height: expand ? size * 1.7 : size
+                    )
                     .animation(
-                        .easeOut(duration: 1.2)
+                        .easeOut(duration: 1.3)
                             .repeatForever(autoreverses: false)
-                            .delay(Double(i) * 0.4),
+                            .delay(Double(i) * 0.43),
                         value: expand
                     )
             }
-            // Finger tap icon
-            Image(systemName: "hand.tap.fill")
-                .font(.system(size: size * 0.38, weight: .bold))
-                .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.2))
-                .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.8), radius: 6)
         }
         .onAppear { expand = true }
     }

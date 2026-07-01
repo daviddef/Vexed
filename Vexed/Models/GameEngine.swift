@@ -41,6 +41,7 @@ final class GameEngine: ObservableObject {
     @Published var interactionTick: Int = 0  // incremented on every user action (slide/select/collect)
     @Published var hintWordId: UUID? = nil   // kid mode: ID of word to highlight as hint
     @Published var hintBeaconActive: Bool = false  // kid mode phase-2: show tap beacon
+    @Published var hintMove: (from: Position, direction: Direction)? = nil  // kid mode: slide hint when no word ready
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -107,12 +108,27 @@ final class GameEngine: ObservableObject {
         hintTask = nil
         hintWordId = nil
         hintBeaconActive = false
+        hintMove = nil
+    }
+
+    private func findHintMove() -> (from: Position, direction: Direction)? {
+        for (src, dest) in allSlides(in: grid) {
+            let g1 = applying(grid, from: src, to: dest)
+            if gridHasWordAt(g1, dest: dest) {
+                let dr = dest.row - src.row
+                let dc = dest.col - src.col
+                let dir: Direction = dr > 0 ? .down : dr < 0 ? .up : dc > 0 ? .right : .left
+                return (from: src, direction: dir)
+            }
+        }
+        return nil
     }
 
     private func rescheduleHint() {
         hintTask?.cancel()
         hintWordId = nil
         hintBeaconActive = false
+        hintMove = nil
         guard UserDefaults.standard.bool(forKey: "kidMode") else { return }
         let ageRaw = UserDefaults.standard.string(forKey: "kidAge") ?? KidAge.explorer.rawValue
         let age = KidAge(rawValue: ageRaw) ?? .explorer
@@ -124,6 +140,8 @@ final class GameEngine: ObservableObject {
             guard let self, !Task.isCancelled else { return }
             if let word = self.availableWords.randomElement() {
                 self.hintWordId = word.id
+            } else if let move = self.findHintMove() {
+                self.hintMove = move
             }
             guard age.beaconDelay > age.hintDelay else { return }
             do {
@@ -909,7 +927,7 @@ final class GameEngine: ObservableObject {
         tilesForged = 0; forgeMessage = nil
         availableWords = []; highlightedPositions = nil
         hintTask?.cancel(); hintTask = nil
-        interactionTick = 0; hintWordId = nil; hintBeaconActive = false
+        interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMove = nil
         startPressureTimer()
         updateDangerStates()
         peakScore = 0

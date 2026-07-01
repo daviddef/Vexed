@@ -68,12 +68,14 @@ struct GridView: View {
                                 }()
 
                                 ZStack {
+                                    let isHintTile = tile != nil && (hintPositions.contains(pos) || engine.hintMove?.from == pos)
                                     if let tile {
                                         TileCellView(
                                             tile: tile,
                                             isSelected: isSelected,
                                             size: tileSize,
-                                            isTouching: isTouching
+                                            isTouching: isTouching,
+                                            isHintTile: isHintTile
                                         )
                                         .matchedGeometryEffect(id: tile.id, in: tileNamespace)
                                     } else {
@@ -93,20 +95,26 @@ struct GridView: View {
                                             .allowsHitTesting(false)
                                             .transition(.opacity)
                                     }
-                                    // Kid hint glow: extra bright pulsing border on the hinted word's tiles
-                                    if tile != nil && hintPositions.contains(pos) {
-                                        RoundedRectangle(cornerRadius: tileSize * 0.22)
-                                            .strokeBorder(
-                                                Color(red: 1.0, green: 0.85, blue: 0.2)
-                                                    .opacity(hintPulse ? 1.0 : 0.35),
-                                                lineWidth: 4
-                                            )
-                                            .allowsHitTesting(false)
-                                            .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.2).opacity(hintPulse ? 0.8 : 0.2), radius: hintPulse ? 12 : 4)
-                                    }
-                                    // Kid hint beacon: pulsing tap-here circle on the first tile (phase 2)
-                                    if engine.hintBeaconActive && hintWord?.positions.first == pos {
+                                    // Kid hint beacon: expanding rings on the tap target (phase 2)
+                                    if engine.hintBeaconActive &&
+                                       (hintWord?.positions.first == pos || engine.hintMove?.from == pos) {
                                         BeaconView(size: tileSize)
+                                            .allowsHitTesting(false)
+                                    }
+                                    // Kid slide hint: directional arrow when no formed word to collect
+                                    if let move = engine.hintMove, move.from == pos {
+                                        let (dx, dy): (CGFloat, CGFloat) = switch move.direction {
+                                        case .right: (tileSize * 0.7, 0)
+                                        case .left:  (-tileSize * 0.7, 0)
+                                        case .down:  (0, tileSize * 0.7)
+                                        default:     (0, -tileSize * 0.7)  // .up
+                                        }
+                                        Image(systemName: arrowSymbol(for: move.direction))
+                                            .font(.system(size: tileSize * 0.38, weight: .black))
+                                            .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.2))
+                                            .shadow(color: Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.85), radius: 10)
+                                            .scaleEffect(hintPulse ? 1.25 : 0.8)
+                                            .offset(x: dx, y: dy)
                                             .allowsHitTesting(false)
                                     }
                                 }
@@ -189,6 +197,15 @@ struct GridView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: wordPulse)
             }
+        }
+    }
+
+    private func arrowSymbol(for direction: Direction) -> String {
+        switch direction {
+        case .up:    return "arrow.up"
+        case .down:  return "arrow.down"
+        case .left:  return "arrow.left"
+        default:     return "arrow.right"
         }
     }
 

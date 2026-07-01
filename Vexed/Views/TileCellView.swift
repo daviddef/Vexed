@@ -8,6 +8,8 @@ struct TileCellView: View {
     // Path glow: non-nil when this empty cell is in the slide path of the selected tile
     var pathColor: Color? = nil
     var isDestination: Bool = false
+    // Kid mode hint: tile glows gold while hint is active
+    var isHintTile: Bool = false
 
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
@@ -17,6 +19,8 @@ struct TileCellView: View {
     // Forge animation: scale pops in from 0; pulse (0→1) drives color brightness & glow
     @State private var forgeScale: CGFloat = 1.0
     @State private var forgePulse: CGFloat = 0.0
+    // Hint animation: pulse (0→1) drives gold brightness & glow
+    @State private var hintPulse: CGFloat = 0.0
 
     private var isForged: Bool { tile?.animState == .forged }
 
@@ -68,8 +72,8 @@ struct TileCellView: View {
                 // 5. Border
                 RoundedRectangle(cornerRadius: cr)
                     .strokeBorder(
-                        isSelected ? Color.white : (isForged ? Color(white: 0.6) : darkenedColor(base, factor: 0.65)),
-                        lineWidth: isSelected ? 3.5 : theme.tileBorderWidth
+                        isSelected ? Color.white : (isForged ? Color(white: 0.6) : isHintTile ? Color(red: 1.0, green: 0.65, blue: 0.0) : darkenedColor(base, factor: 0.65)),
+                        lineWidth: isSelected ? 3.5 : isHintTile ? 2.5 : theme.tileBorderWidth
                     )
 
                 // 6. Outer highlight — skip when forged
@@ -78,11 +82,11 @@ struct TileCellView: View {
                         .stroke(Color.white.opacity(theme.showGlossStripe ? 0.35 : 0.25), lineWidth: 0.75)
                 }
 
-                // Letter — dark on white forged tile, white otherwise
+                // Letter — dark on forged/hint tiles, white otherwise
                 Text(String(tile.letter))
                     .font(.system(size: size * 0.50, weight: .black, design: .rounded))
-                    .foregroundColor(isForged ? Color(white: 0.08) : .white)
-                    .shadow(color: isForged ? .clear : .black.opacity(0.4), radius: 1, x: 0, y: 1)
+                    .foregroundColor((isForged || isHintTile) ? Color(white: 0.08) : .white)
+                    .shadow(color: (isForged || isHintTile) ? .clear : .black.opacity(0.4), radius: 1, x: 0, y: 1)
 
             } else {
                 // Empty cell
@@ -108,6 +112,8 @@ struct TileCellView: View {
         .opacity(tile?.animState == .vanishing ? 0 : 1)
         // White pulse glow — driven by forgePulse (CGFloat 0→1)
         .shadow(color: Color.white.opacity(forgePulse * 0.85), radius: forgePulse * 28, x: 0, y: 0)
+        // Gold pulse glow — driven by hintPulse (CGFloat 0→1)
+        .shadow(color: Color(red: 1.0, green: 0.75, blue: 0.0).opacity(isHintTile ? hintPulse * 0.75 : 0), radius: isHintTile ? hintPulse * 22 : 0, x: 0, y: 0)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
                 radius: isTouching ? 18 : (isDanger ? 14 : 0))
@@ -128,6 +134,17 @@ struct TileCellView: View {
         .animation(.spring(response: 0.12, dampingFraction: 0.55), value: isTouching)
         .animation(.easeInOut(duration: 0.25), value: pathColor != nil)
         .animation(.easeInOut(duration: 0.35), value: tile?.animState)
+        .onChange(of: isHintTile) { _, active in
+            if active {
+                withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
+                    hintPulse = 1.0
+                }
+            } else {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    hintPulse = 0.0
+                }
+            }
+        }
         .onChange(of: tile) { oldTile, newTile in
             // Forged tile entry: nil → .forged
             if oldTile == nil, let newTile, newTile.animState == .forged {
@@ -171,6 +188,10 @@ struct TileCellView: View {
         // Forged tiles are white, pulsing brighter with forgePulse (0→1 CGFloat)
         if tile.animState == .forged {
             return Color(white: 0.85 + forgePulse * 0.15)
+        }
+        // Hint tiles pulse between deep gold and bright amber
+        if isHintTile {
+            return Color(red: 1.0, green: 0.60 + hintPulse * 0.20, blue: 0.0 + hintPulse * 0.08)
         }
         switch tile.type {
         case .consonant:
