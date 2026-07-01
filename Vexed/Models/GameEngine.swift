@@ -558,8 +558,10 @@ final class GameEngine: ObservableObject {
         let tilesExist = grid.flatMap { $0 }.contains { $0 != nil }
         // Scan current words first — if any are already collectable, game is not over.
         availableWords = scanAvailableWords()
+        let wasOver = noWordsLeft
         noWordsLeft = tilesExist && wordCount > 0 && !gameOver
             && availableWords.isEmpty && !anySlideCanScoreWord()
+        if noWordsLeft && !wasOver { saveHighScoreIfBetter() }
     }
 
     private func scanAvailableWords() -> [AvailableWord] {
@@ -813,6 +815,20 @@ final class GameEngine: ObservableObject {
     private func addLog(_ message: String, _ kind: LogEntry.Kind) {
         log.append(LogEntry(message: message, kind: kind))
         if log.count > 50 { log.removeFirst() }
+    }
+
+    private func saveHighScoreIfBetter() {
+        let key = "highScore_\(config.wordListName)_\(config.rows)x\(config.cols)"
+        let current = UserDefaults.standard.integer(forKey: key)
+        if score > current {
+            UserDefaults.standard.set(score, forKey: key)
+        }
+    }
+
+    static func highScore(for difficulty: Difficulty) -> Int {
+        let c = difficulty.config
+        let key = "highScore_\(c.wordListName)_\(c.rows)x\(c.cols)"
+        return UserDefaults.standard.integer(forKey: key)
     }
 
     func reset(difficulty: Difficulty) {

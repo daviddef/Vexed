@@ -13,6 +13,7 @@ struct SplashView: View {
     @State private var tapPulse = false
     @State private var dismissing = false
     @State private var showHelp = false
+    @State private var highScore: Int = 0
 
     // V E X / E D
     private let row1: [(String, Color)] = [
@@ -84,7 +85,25 @@ struct SplashView: View {
                     .tracking(6)
                     .opacity(taglineVisible ? 1 : 0)
 
-                Spacer().frame(height: 44)
+                Spacer().frame(height: 32)
+
+                // ── Peak Vexation (high score) ────────────────────────
+                if highScore > 0 {
+                    VStack(spacing: 4) {
+                        Text("PEAK VEXATION")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundColor(.white.opacity(0.30))
+                            .tracking(3)
+                        Text("\(highScore)")
+                            .font(.system(size: 38, weight: .black, design: .rounded))
+                            .foregroundColor(.white.opacity(0.85))
+                            .shadow(color: Color(red: 1, green: 0.85, blue: 0.2).opacity(0.5), radius: 12, x: 0, y: 0)
+                    }
+                    .opacity(tapPromptVisible ? 1 : 0)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
+
+                Spacer().frame(height: highScore > 0 ? 24 : 44)
 
                 // ── Difficulty pill ───────────────────────────────────
                 VStack(spacing: 10) {
@@ -126,7 +145,15 @@ struct SplashView: View {
         .opacity(dismissing ? 0 : 1)
         .scaleEffect(dismissing ? 1.06 : 1)
         .onTapGesture { if !showHelp { dismiss() } }
-        .onAppear { runEntrance() }
+        .onAppear {
+            runEntrance()
+            highScore = GameEngine.highScore(for: difficulty)
+        }
+        .onChange(of: difficultyRaw) { _, _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                highScore = GameEngine.highScore(for: difficulty)
+            }
+        }
     }
 
     private var splashDifficultyPill: some View {
