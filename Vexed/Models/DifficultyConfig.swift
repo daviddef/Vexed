@@ -11,13 +11,14 @@ enum Difficulty: String, CaseIterable, Identifiable {
 
     var config: DifficultyConfig {
         switch self {
-        // forgeMinLength/forgeMaxTiles → tiles = min(max, max(0, wordLen − min))
-        // Easy:   3→+1, 4→+2, 5+→+3  (small board, generous replenishment)
-        // Medium: 3→0,  4→+1, 5→+2, 6+→+3
-        // Hard:   4→+1, 5→+2, 6+→+2  (min word 4 letters, capped at 2)
-        case .easy:   return DifficultyConfig(rows: 5,  cols: 5,  adjacency: .orthogonal, minWordLength: 3, wordListName: "easy_words", forgeMinLength: 2, forgeMaxTiles: 3)
-        case .medium: return DifficultyConfig(rows: 7,  cols: 7,  adjacency: .orthogonal, minWordLength: 3, wordListName: "words",       forgeMinLength: 3, forgeMaxTiles: 3)
-        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 4, wordListName: "dictionary",   forgeMinLength: 3, forgeMaxTiles: 2)
+        // Forge tiles = max(0, wordLength − forgeMinLength), uncapped and increasing.
+        // Each difficulty step raises the threshold by 1 letter:
+        //   Easy   (min=1): 3→+2, 4→+3, 5→+4, 6→+5 …
+        //   Medium (min=2): 3→+1, 4→+2, 5→+3, 6→+4, 7→+5 …
+        //   Hard   (min=3): 4→+1, 5→+2, 6→+3, 7→+4 … (min word length 4)
+        case .easy:   return DifficultyConfig(rows: 5,  cols: 5,  adjacency: .orthogonal, minWordLength: 3, wordListName: "easy_words", forgeMinLength: 1)
+        case .medium: return DifficultyConfig(rows: 7,  cols: 7,  adjacency: .orthogonal, minWordLength: 3, wordListName: "words",       forgeMinLength: 2)
+        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 4, wordListName: "dictionary",   forgeMinLength: 3)
         }
     }
 
@@ -44,13 +45,12 @@ struct DifficultyConfig {
     let adjacency: AdjacencyMode
     let minWordLength: Int
     let wordListName: String
-    /// Forge curve: tiles awarded = min(forgeMaxTiles, max(0, wordLength − forgeMinLength))
+    /// Forge tiles = max(0, wordLength − forgeMinLength), uncapped.
     let forgeMinLength: Int
-    let forgeMaxTiles: Int
 
     var adjacentDirections: [Direction] { Direction.cardinal }
 
     func forgeBonusCount(wordLength: Int) -> Int {
-        min(forgeMaxTiles, max(0, wordLength - forgeMinLength))
+        max(0, wordLength - forgeMinLength)
     }
 }
