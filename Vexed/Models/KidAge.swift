@@ -26,7 +26,7 @@ enum KidAge: String, CaseIterable, Identifiable {
     var emoji: String {
         switch self {
         case .little:      return "🌟"
-        case .explorer:    return "🔍"
+        case .explorer:    return "🧭"
         case .challenger:  return "⚡"
         }
     }
