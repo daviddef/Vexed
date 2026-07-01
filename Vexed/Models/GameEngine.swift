@@ -498,10 +498,19 @@ final class GameEngine: ObservableObject {
 
         let pool = spawnVowel ? vowels : consonants
 
-        // Prefer letters not already represented on the board
-        let onBoard = Set(tiles.map { $0.letter })
-        let absent = pool.filter { !onBoard.contains($0) }
-        return absent.isEmpty ? pool.randomElement()! : absent.randomElement()!
+        // Weight each letter by 1/(count+1) — letters already common on the board
+        // get a much lower probability, letters absent get weight 1.0
+        var freq: [Character: Int] = [:]
+        for tile in tiles { freq[tile.letter, default: 0] += 1 }
+
+        let weights = pool.map { 1.0 / Double(freq[$0, default: 0] + 1) }
+        let total = weights.reduce(0, +)
+        var r = Double.random(in: 0..<total)
+        for (letter, weight) in zip(pool, weights) {
+            r -= weight
+            if r <= 0 { return letter }
+        }
+        return pool.last!
     }
 
     private func scanLine(_ positions: [Position]) -> [ScoredWord] {
