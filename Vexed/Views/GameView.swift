@@ -30,11 +30,7 @@ struct GameView: View {
     @State private var tutorialStep: Int = 0
     @State private var definitionEntry: DefinitionEntry? = nil
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
-    @AppStorage("kidMode") private var kidMode: Bool = false
-    @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
-    @State private var lastInteraction: Date = .now
     private var theme: GameTheme { GameTheme(isArcade: arcadeMode) }
-    private var currentKidAge: KidAge { KidAge(rawValue: kidAgeRaw) ?? .explorer }
 
     var body: some View {
         ZStack {
@@ -263,25 +259,7 @@ struct GameView: View {
         .onChange(of: engine.celebrationWord) { _, word in
             if word != nil { celebrationScale = 0.1 }
         }
-        .onChange(of: engine.interactionTick) { _, _ in
-            lastInteraction = .now
-            engine.clearHint()
-        }
-        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
-            guard kidMode else { return }
-            let age = currentKidAge
-            guard age.hintDelay > 0 else { return }
-            let elapsed = Date.now.timeIntervalSince(lastInteraction)
-            if elapsed >= age.beaconDelay, engine.hintWordId != nil {
-                engine.hintBeaconActive = true
-            } else if elapsed >= age.hintDelay, engine.hintWordId == nil {
-                if let word = engine.availableWords.randomElement() {
-                    engine.hintWordId = word.id
-                }
-            }
-        }
         .onAppear {
-            lastInteraction = .now
             if isFirstLaunch {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { tutorialStep = 1 }
             }

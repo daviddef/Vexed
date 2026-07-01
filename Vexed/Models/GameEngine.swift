@@ -59,6 +59,7 @@ final class GameEngine: ObservableObject {
     }
 
     var config: DifficultyConfig
+    private var hintTask: Task<Void, Never>? = nil
     private var validator: WordValidator {
         let includeRare = UserDefaults.standard.bool(forKey: "includeRareWords")
         return WordValidator.forResource(config.activeWordList(includeRare: includeRare))
@@ -92,8 +93,35 @@ final class GameEngine: ObservableObject {
     }
 
     func clearHint() {
+        hintTask?.cancel()
+        hintTask = nil
         hintWordId = nil
         hintBeaconActive = false
+    }
+
+    private func rescheduleHint() {
+        hintTask?.cancel()
+        hintWordId = nil
+        hintBeaconActive = false
+        guard UserDefaults.standard.bool(forKey: "kidMode") else { return }
+        let ageRaw = UserDefaults.standard.string(forKey: "kidAge") ?? KidAge.explorer.rawValue
+        let age = KidAge(rawValue: ageRaw) ?? .explorer
+        guard age.hintDelay > 0 else { return }
+        hintTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: UInt64(age.hintDelay * 1_000_000_000))
+            } catch { return }
+            guard let self, !Task.isCancelled else { return }
+            if let word = self.availableWords.randomElement() {
+                self.hintWordId = word.id
+            }
+            guard age.beaconDelay > age.hintDelay else { return }
+            do {
+                try await Task.sleep(nanoseconds: UInt64((age.beaconDelay - age.hintDelay) * 1_000_000_000))
+            } catch { return }
+            guard !Task.isCancelled else { return }
+            self.hintBeaconActive = true
+        }
     }
 
     // MARK: - Grid Setup
@@ -197,6 +225,7 @@ final class GameEngine: ObservableObject {
         if grid[position.row][position.col] == nil { selectedPosition = nil; slidePaths = [:]; return }
         selectedPosition = (selectedPosition == position) ? nil : position
         interactionTick += 1
+        rescheduleHint()
         updateSlidePaths()
     }
 
@@ -230,6 +259,7 @@ final class GameEngine: ObservableObject {
             return SlideResult(moved: false, vanishedPositions: [], scoredWords: [])
         }
         interactionTick += 1
+        rescheduleHint()
 
         // Ice physics: glide until wall or occupied cell
         var dest = src
@@ -349,6 +379,7 @@ final class GameEngine: ObservableObject {
     func collectWord(_ word: AvailableWord) {
         guard availableWords.contains(where: { $0.id == word.id }) else { return }
         interactionTick += 1
+        rescheduleHint()
 
         combo += 1
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
@@ -867,6 +898,7 @@ final class GameEngine: ObservableObject {
         celebrationWord = nil
         tilesForged = 0; forgeMessage = nil
         availableWords = []; highlightedPositions = nil
+        hintTask?.cancel(); hintTask = nil
         interactionTick = 0; hintWordId = nil; hintBeaconActive = false
         startPressureTimer()
         updateDangerStates()
