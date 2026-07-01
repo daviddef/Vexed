@@ -488,15 +488,20 @@ final class GameEngine: ObservableObject {
     }
 
     private func randomForgeLetter() -> Character {
-        // Weight vowels to match current board balance: if vowel-light, spawn more vowels
         let vowels: [Character] = ["A", "E", "I", "O", "U"]
         let consonants: [Character] = "BCDFGHJKLMNPRSTVWX".map { $0 }
-        let totalTiles = grid.flatMap { $0 }.compactMap { $0 }.count
-        let vowelTiles = grid.flatMap { $0 }.compactMap { $0 }.filter { $0.vowel != nil }.count
-        let vowelRatio = totalTiles > 0 ? Double(vowelTiles) / Double(totalTiles) : 0.4
-        // Target ~40% vowels — spawn vowel if currently below that
+
+        // Maintain vowel/consonant balance — target ~40% vowels
+        let tiles = grid.flatMap { $0 }.compactMap { $0 }
+        let vowelRatio = tiles.isEmpty ? 0.4 : Double(tiles.filter { $0.vowel != nil }.count) / Double(tiles.count)
         let spawnVowel = vowelRatio < 0.40 ? true : Double.random(in: 0..<1) < 0.35
-        return spawnVowel ? (vowels.randomElement()!) : (consonants.randomElement()!)
+
+        let pool = spawnVowel ? vowels : consonants
+
+        // Prefer letters not already represented on the board
+        let onBoard = Set(tiles.map { $0.letter })
+        let absent = pool.filter { !onBoard.contains($0) }
+        return absent.isEmpty ? pool.randomElement()! : absent.randomElement()!
     }
 
     private func scanLine(_ positions: [Position]) -> [ScoredWord] {
