@@ -66,9 +66,9 @@ struct GridView: View {
                                     guard let hl = engine.highlightedPositions else { return false }
                                     return tile != nil && !hl.contains(pos)
                                 }()
+                                let isHintTile = tile != nil && (hintPositions.contains(pos) || engine.hintMove?.from == pos)
 
                                 ZStack {
-                                    let isHintTile = tile != nil && (hintPositions.contains(pos) || engine.hintMove?.from == pos)
                                     if let tile {
                                         TileCellView(
                                             tile: tile,

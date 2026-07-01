@@ -138,10 +138,15 @@ final class GameEngine: ObservableObject {
                 try await Task.sleep(nanoseconds: UInt64(age.hintDelay * 1_000_000_000))
             } catch { return }
             guard let self, !Task.isCancelled else { return }
+            print("[KidHint] fired — availableWords: \(self.availableWords.count)")
             if let word = self.availableWords.randomElement() {
+                print("[KidHint] setting hintWordId for word at \(word.positions)")
                 self.hintWordId = word.id
             } else if let move = self.findHintMove() {
+                print("[KidHint] no available words — setting hintMove from \(move.from) dir \(move.direction)")
                 self.hintMove = move
+            } else {
+                print("[KidHint] no hint possible")
             }
             guard age.beaconDelay > age.hintDelay else { return }
             do {
