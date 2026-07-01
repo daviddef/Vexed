@@ -79,12 +79,6 @@ struct TileCellView: View {
                     .foregroundColor(.white)
                     .shadow(color: .black, radius: 1, x: 0, y: 1)
 
-                // Forge entry flash — white blaze that instantly fades
-                if forgeFlash > 0 {
-                    RoundedRectangle(cornerRadius: size * 0.22)
-                        .fill(Color.white.opacity(forgeFlash))
-                }
-
             } else {
                 // Empty cell: barely visible dashed grid structure
                 RoundedRectangle(cornerRadius: size * 0.22)
@@ -108,6 +102,12 @@ struct TileCellView: View {
             }
         }
         .frame(width: size, height: size)
+        // Forge flash — always in view tree so opacity animates correctly
+        .overlay(
+            RoundedRectangle(cornerRadius: size * 0.22)
+                .fill(Color.white.opacity(forgeFlash))
+                .allowsHitTesting(false)
+        )
         .scaleEffect(tile?.animState == .forged ? forgeScale : (isTouching ? 1.10 : scaleFor(tile?.animState)))
         .rotationEffect(.degrees(tile?.animState == .vanishing ? vanishRotation : 0))
         .opacity(tile?.animState == .vanishing ? 0 : 1)
@@ -137,20 +137,24 @@ struct TileCellView: View {
         .onChange(of: tile) { oldTile, newTile in
             // Forged tile entry: nil → .forged
             if oldTile == nil, let newTile, newTile.animState == .forged {
-                forgeScale = 0
-                forgeGlow  = 0
-                forgeFlash = 0.85
-                // Scale: spring up from 0, overshoot, settle
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.42)) {
+                // Set initial values without animation so they're visible on first frame
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) {
+                    forgeScale = 0
+                    forgeGlow  = 0
+                    forgeFlash = 1.0   // full white blaze
+                }
+                // Scale: spring from 0, overshoot to ~1.3, settle at 1.0
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.38)) {
                     forgeScale = 1.0
                 }
-                // Flash: instant bright then fade
-                withAnimation(.easeOut(duration: 0.25)) {
+                // Flash: hold for a beat then fade
+                withAnimation(.easeOut(duration: 0.45).delay(0.05)) {
                     forgeFlash = 0
                 }
                 // Glow: rise then fade
-                withAnimation(.easeOut(duration: 0.15)) { forgeGlow = 1.0 }
-                withAnimation(.easeIn(duration: 0.55).delay(0.2)) { forgeGlow = 0 }
+                withAnimation(.easeOut(duration: 0.12)) { forgeGlow = 1.0 }
+                withAnimation(.easeIn(duration: 0.6).delay(0.15)) { forgeGlow = 0 }
             }
             // Vanish rotation
             if newTile?.animState == .vanishing {
