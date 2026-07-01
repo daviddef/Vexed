@@ -5,7 +5,7 @@ struct GameView: View {
     var onResetAll: (() -> Void)? = nil
     @StateObject private var engine: GameEngine
     @State private var selectedDifficulty: Difficulty
-    @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.easy.rawValue
+    @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.fill.rawValue
 
     init(initialDifficulty: Difficulty = .easy, onResetAll: (() -> Void)? = nil) {
         self.initialDifficulty = initialDifficulty

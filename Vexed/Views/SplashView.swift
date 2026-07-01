@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SplashView: View {
     var onDismiss: () -> Void
-    @AppStorage("selectedDifficulty") private var difficultyRaw: String = Difficulty.easy.rawValue
+    @AppStorage("selectedDifficulty") private var difficultyRaw: String = Difficulty.fill.rawValue
     @AppStorage("kidMode") private var kidMode: Bool = false
     private var difficulty: Difficulty { Difficulty(rawValue: difficultyRaw) ?? .easy }
     private var splashDifficulties: [Difficulty] { kidMode ? [.easy, .medium, .fill] : Difficulty.allCases }

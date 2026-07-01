@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct VexedApp: App {
     @State private var showSplash = true
-    @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.easy.rawValue
+    @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.fill.rawValue
 
     init() {
         // Kick off word-list trie builds on a background thread immediately.

@@ -51,8 +51,8 @@ enum KidAge: String, CaseIterable, Identifiable {
     /// Idle seconds before phase-1 hint (gold outline glow). 0 = no auto-hint.
     var hintDelay: Double {
         switch self {
-        case .little:      return 4
-        case .explorer:    return 8
+        case .little:      return 8
+        case .explorer:    return 14
         case .challenger:  return 0
         }
     }
@@ -60,8 +60,8 @@ enum KidAge: String, CaseIterable, Identifiable {
     /// Idle seconds before phase-2 hint (tap beacon). 0 = no beacon.
     var beaconDelay: Double {
         switch self {
-        case .little:      return 9
-        case .explorer:    return 16
+        case .little:      return 16
+        case .explorer:    return 26
         case .challenger:  return 0
         }
     }
