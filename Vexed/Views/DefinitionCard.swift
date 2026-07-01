@@ -34,8 +34,24 @@ struct DefinitionSheetView: View {
 
             Divider().background(Color(white: 0.18))
 
-            // System dictionary view
-            SystemDictionaryView(term: entry.word)
+            if UIReferenceLibraryViewController.dictionaryHasDefinition(forTerm: entry.word) {
+                SystemDictionaryView(term: entry.word)
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "text.book.closed")
+                        .font(.system(size: 36))
+                        .foregroundColor(Color(white: 0.3))
+                    Text("No dictionary entry found")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Color(white: 0.4))
+                    Text("\"\(entry.word.uppercased())\" is a valid game word\nbut isn't in the iOS system dictionary.")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.3))
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(32)
+            }
         }
         .background(Color(red: 0.08, green: 0.08, blue: 0.12))
         .preferredColorScheme(.dark)

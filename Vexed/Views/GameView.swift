@@ -515,6 +515,7 @@ struct GameView: View {
                             .background(chipColor.background.cornerRadius(10))
                             .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
                             .id(idx)
+                            .onTapGesture { showDefinition(for: entry.word, points: entry.points) }
                         }
                     }
                 }
