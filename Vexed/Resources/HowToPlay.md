@@ -58,6 +58,8 @@ Losing vowels or running out of moves resets the combo to zero.
 
 Every word you collect forges new tiles into empty spaces on the board. Longer words forge more — this is how you keep the board alive.
 
+### Standard Mode
+
 **Forge tiles = word length − difficulty threshold** (no cap, keeps increasing)
 
 | Word length | Easy (−1) | Medium/Fill (−2) | Hard (−3) |
@@ -68,7 +70,17 @@ Every word you collect forges new tiles into empty spaces on the board. Longer w
 | 6 letters | +5 | +4 | +3 |
 | 7 letters | +6 | +5 | +4 |
 
-Forged tiles flash white when they appear. They're weighted toward vowels when the board is running low.
+### Kid Mode
+
+Every word gives a **flat bonus** regardless of length:
+
+| Age tier | Forge bonus per word |
+|---|---|
+| 🌟 Little (5–7) | +4 tiles |
+| 🔍 Explorer (8–10) | +3 tiles |
+| ⚡ Challenger (11+) | standard formula |
+
+Forged tiles flash white when they appear. They're weighted toward letters that are under-represented on the board.
 
 ---
 
@@ -111,7 +123,7 @@ The game ends when no slide can form a word, even looking two moves ahead. You'l
 - Forge threshold: −2 (3-letter words give +1 tile)
 - The intended experience
 
-### Hard — 10×10 grid
+### Hard — 9 cols × screen height
 - 62,000 words by default (toggle Rare Words for 132,000)
 - Minimum word length: **4 letters** (3-letter words don't count)
 - Forge threshold: −3 (need 4+ letters to forge anything)
@@ -125,9 +137,41 @@ The game ends when no slide can form a word, even looking two moves ahead. You'l
 
 ---
 
+## Kid Mode
+
+Turn on **Kid Mode** in the ☰ menu to unlock a friendlier version of VEXED! designed for younger players. Choose an age tier — each one adjusts the rules:
+
+### 🌟 Little (5–7)
+- Minimum word length: **2 letters** (short words count!)
+- Tile forge: **flat +4 tiles** per word, every time
+- Auto-hints: gold glow after 8s idle, tap beacon after 18s
+- Dictionary: 20,000 kid-friendly words + all 2-letter Scrabble words (AM, BE, GO, HI, IN, ME, NO, SO, WE…)
+
+### 🔍 Explorer (8–10)
+- Minimum word length: 3 letters
+- Tile forge: **flat +3 tiles** per word
+- Auto-hints: gold glow after 15s idle, tap beacon after 30s
+- Dictionary: 20,000 everyday English words
+
+### ⚡ Challenger (11+)
+- Minimum word length: 3 letters
+- Tile forge: standard formula (same as adult Easy)
+- No auto-hints
+- Dictionary: 62,000 words — full adult dictionary
+
+In Kid Mode the board size picker changes to **Small / Medium / Full** (same grids as Easy / Medium / Fill). Hard is replaced by Full screen.
+
+### Auto-hints
+
+If the player hasn't moved for a while, a word that can be collected right now gets a **bright pulsing gold border** on each of its tiles. Wait a little longer and a **tap beacon** (expanding rings + hand icon) appears on the first tile — showing exactly where to tap to score it. Any interaction immediately resets the hint.
+
+---
+
 ## Settings (☰ menu)
 
-**Arcade Mode** — Vivid cosmic background, textured tiles, bold scoreboard with coloured stat pills, and serif fonts. A complete visual upgrade.
+**Kid Mode** — Friendlier rules for younger players: shorter word minimums, flat forge bonuses, and auto-hints.
+
+**Arcade Mode** — Vivid cosmic background, textured tiles, bold scoreboard with coloured stat pills. A complete visual upgrade.
 
 **Rare & archaic words** — Adds technical terms, abbreviations and non-English words to the dictionary. Off by default to keep the word list familiar.
 
@@ -141,3 +185,4 @@ The game ends when no slide can form a word, even looking two moves ahead. You'l
 - **Longer words pay double.** A 6-letter word scores roughly as much as two 3-letter words *and* forges far more tiles.
 - **Combos matter most on Hard.** A ×3 multiplier on a 7-letter word is your path to an S grade.
 - **Tap word chips to look up definitions.** History chips (bottom strip) are tappable too.
+- **Kid Mode tip:** if you're stuck, just wait — the hint will show you a word you can tap right now.

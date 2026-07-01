@@ -58,7 +58,7 @@ struct HowToPlayView: View {
 
                     section("Tile Forge") {
                         bodyText("Every word you collect forges new tiles into empty spaces. Longer words forge more — this is how you keep the board alive.")
-                        bodyText("**Forge tiles = word length − difficulty threshold** (no cap, keeps increasing)")
+                        bodyText("**Standard mode** — Forge tiles = word length − difficulty threshold (no cap):")
                         table(
                             headers: ["Word length", "Easy (−1)", "Medium/Fill (−2)", "Hard (−3)"],
                             rows: [
@@ -69,7 +69,16 @@ struct HowToPlayView: View {
                                 ["7 letters", "+6", "+5", "+4"],
                             ]
                         )
-                        bodyText("Forged tiles flash white when they appear. They're weighted toward vowels when the board is running low.")
+                        bodyText("**Kid Mode** — Every word gives a flat bonus regardless of length:")
+                        table(
+                            headers: ["Age tier", "Forge bonus per word"],
+                            rows: [
+                                ["🌟 Little (5–7)", "+4 tiles"],
+                                ["🔍 Explorer (8–10)", "+3 tiles"],
+                                ["⚡ Challenger (11+)", "standard formula"],
+                            ]
+                        )
+                        bodyText("Forged tiles flash white when they appear. They're weighted toward letters that are under-represented on the board.")
                     }
 
                     section("Word Strip") {
@@ -112,7 +121,7 @@ struct HowToPlayView: View {
                         difficultyCard(
                             name: "Hard",
                             color: Color(red: 1.0, green: 0.3, blue: 0.3),
-                            grid: "10×10",
+                            grid: "9 cols × screen height",
                             words: "62,000 words (toggle for 132k)",
                             minLen: "4 letters minimum",
                             forge: "−3 (need 4+ letters to forge anything)"
@@ -127,6 +136,41 @@ struct HowToPlayView: View {
                         )
                     }
 
+                    section("Kid Mode", accent: Color(red: 1.0, green: 0.75, blue: 0.1)) {
+                        bodyText("Turn on **Kid Mode** in the ☰ menu to unlock a friendlier version of VEXED! designed for younger players. Choose an age tier — each one adjusts the rules:")
+                        kidTierCard(
+                            emoji: "🌟",
+                            name: "Little",
+                            range: "5–7",
+                            minLen: "2+ letters",
+                            forge: "Flat +4 tiles per word",
+                            hints: "Gold hint glow after 8s idle, tap beacon after 18s",
+                            words: "20,000 kid-friendly words + all 2-letter Scrabble words"
+                        )
+                        kidTierCard(
+                            emoji: "🔍",
+                            name: "Explorer",
+                            range: "8–10",
+                            minLen: "3+ letters",
+                            forge: "Flat +3 tiles per word",
+                            hints: "Gold hint glow after 15s idle, tap beacon after 30s",
+                            words: "20,000 everyday English words"
+                        )
+                        kidTierCard(
+                            emoji: "⚡",
+                            name: "Challenger",
+                            range: "11+",
+                            minLen: "3+ letters",
+                            forge: "Standard formula (same as adult Easy)",
+                            hints: "No auto-hints",
+                            words: "62,000 words — full adult dictionary"
+                        )
+                        bodyText("In Kid Mode the board size picker changes to **Small / Medium / Full** — same grids as Easy / Medium / Fill. Hard mode is replaced by Full screen.")
+
+                        subheading("Auto-hints")
+                        bodyText("If the player hasn't moved for a while, a word that can be collected **right now** gets a bright pulsing gold border. Wait a little longer and a **tap beacon** (expanding rings + hand icon) appears on the first tile of that word to show exactly where to tap.")
+                    }
+
                     section("Tips") {
                         tip("Think before you slide. Tiles move fast; vowels vanish faster.")
                         tip("Check the word strip first — there may already be words to collect without moving anything.")
@@ -137,6 +181,7 @@ struct HowToPlayView: View {
                     }
 
                     section("Settings") {
+                        bodyText("**Kid Mode** — Friendlier rules for younger players: shorter word minimums, flat forge bonuses, and auto-hints. Toggle in the ☰ menu.")
                         bodyText("**Arcade Mode** — Vivid background, textured tiles, bold scoreboard, and serif fonts. Toggle in the ☰ menu.")
                         bodyText("**Rare & archaic words** — Adds technical, abbreviations and non-English words to the dictionary. Off by default.")
                     }
@@ -258,6 +303,34 @@ struct HowToPlayView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.3), lineWidth: 1))
             }
         }
+    }
+
+    private func kidTierCard(emoji: String, name: String, range: String, minLen: String, forge: String, hints: String, words: String) -> some View {
+        let color = Color(red: 1.0, green: 0.75, blue: 0.1)
+        return HStack(alignment: .top, spacing: 12) {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(color.opacity(0.18))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.5), lineWidth: 1))
+                .frame(width: 4)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(emoji).font(.system(size: 16))
+                    Text("\(name)")
+                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .foregroundColor(color)
+                    Text("· \(range)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+                row("Min word", minLen)
+                row("Tile forge", forge)
+                row("Hints", hints)
+                row("Dictionary", words)
+            }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 10).fill(color.opacity(0.05)))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.15), lineWidth: 1))
     }
 
     private func difficultyCard(name: String, color: Color, grid: String, words: String, minLen: String, forge: String) -> some View {
