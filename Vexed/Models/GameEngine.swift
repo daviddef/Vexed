@@ -79,14 +79,44 @@ final class GameEngine: ObservableObject {
     // MARK: - Grid Setup
 
     private static func makeGrid(rows: Int, cols: Int, validator: WordValidator) -> [[Tile?]] {
-        // Regenerate until the starting board contains no pre-existing words.
+        // Regenerate until the board has no pre-existing words AND no 3+ same-vowel clusters.
         // With ~20% empty cells this typically resolves in 1-3 attempts.
         var attempts = 0
         while true {
             let g = generateGrid(rows: rows, cols: cols)
             attempts += 1
-            if !boardHasWords(g, rows: rows, cols: cols, validator: validator) || attempts > 50 { return g }
+            let clean = !boardHasWords(g, rows: rows, cols: cols, validator: validator)
+                     && !boardHasVowelCluster(g, rows: rows, cols: cols)
+            if clean || attempts > 50 { return g }
         }
+    }
+
+    /// Returns true if any 3+ orthogonally-connected group of identical vowels exists.
+    private static func boardHasVowelCluster(_ grid: [[Tile?]], rows: Int, cols: Int) -> Bool {
+        var visited = Array(repeating: Array(repeating: false, count: cols), count: rows)
+        for r in 0..<rows {
+            for c in 0..<cols {
+                guard let vowel = grid[r][c]?.vowel, !visited[r][c] else { continue }
+                // BFS to count connected same-vowel tiles
+                var queue = [(r, c)]
+                var size = 0
+                visited[r][c] = true
+                while !queue.isEmpty {
+                    let (cr, cc) = queue.removeFirst()
+                    size += 1
+                    for (dr, dc) in [(-1,0),(1,0),(0,-1),(0,1)] {
+                        let nr = cr + dr; let nc = cc + dc
+                        guard nr >= 0, nr < rows, nc >= 0, nc < cols,
+                              !visited[nr][nc],
+                              grid[nr][nc]?.vowel == vowel else { continue }
+                        visited[nr][nc] = true
+                        queue.append((nr, nc))
+                    }
+                }
+                if size >= 3 { return true }
+            }
+        }
+        return false
     }
 
     private static func generateGrid(rows: Int, cols: Int) -> [[Tile?]] {
