@@ -15,7 +15,7 @@ enum Difficulty: String, CaseIterable, Identifiable {
         // Forge tiles = max(0, wordLength − forgeMinLength), uncapped and increasing.
         case .easy:   return DifficultyConfig(rows: 5,  cols: 5,  adjacency: .orthogonal, minWordLength: 3, wordListName: "easy_words",   wordListNameFull: "easy_words", forgeMinLength: 1)
         case .medium: return DifficultyConfig(rows: 7,  cols: 7,  adjacency: .orthogonal, minWordLength: 3, wordListName: "medium_words", wordListNameFull: "words",       forgeMinLength: 2)
-        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 4, wordListName: "medium_words", wordListNameFull: "dictionary",  forgeMinLength: 3)
+        case .hard:   return DifficultyConfig.hardConfig()
         case .fill:   return DifficultyConfig.fillConfig()
         }
     }
@@ -34,7 +34,7 @@ enum Difficulty: String, CaseIterable, Identifiable {
         switch self {
         case .easy:   return "5×5 · Learn the ropes"
         case .medium: return "7×7 · The sweet spot"
-        case .hard:   return "10×10 · Chain or perish"
+        case .hard:   return "9×\(DifficultyConfig.hardConfig().rows) · Chain or perish"
         case .fill:   return "7×\(c.rows) · Pack the screen"
         }
     }
@@ -58,6 +58,35 @@ struct DifficultyConfig {
 
     func forgeBonusCount(wordLength: Int) -> Int {
         max(0, wordLength - forgeMinLength)
+    }
+
+    /// Computes a screen-filling config for Hard: 9 cols, 4-letter min, forge-3.
+    static func hardConfig() -> DifficultyConfig {
+        let screen = UIScreen.main.bounds
+        let cols   = 9
+        let gap: CGFloat     = 6
+        let gridPad: CGFloat = 10
+        let gamePad: CGFloat = 10
+
+        let availW = screen.width - gamePad * 2
+        let tileW  = (availW - gridPad * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols)
+
+        let nonGrid: CGFloat = 226
+        let safeBottom = (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first?.safeAreaInsets.bottom) ?? 34
+        let availH = screen.height - nonGrid - safeBottom
+
+        let rows = max(9, Int(floor((availH - gridPad * 2 + gap) / (tileW + gap))))
+
+        return DifficultyConfig(
+            rows: rows, cols: cols,
+            adjacency: .orthogonal,
+            minWordLength: 4,
+            wordListName: "medium_words",
+            wordListNameFull: "dictionary",
+            forgeMinLength: 3
+        )
     }
 
     /// Computes a grid config that fills the screen with 7 columns.

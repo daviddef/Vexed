@@ -53,7 +53,8 @@ struct GridView: View {
                         HStack(spacing: gap) {
                             ForEach(0..<cols, id: \.self) { c in
                                 let pos = Position(r, c)
-                                let tile = engine.grid[r][c]
+                                let tile: Tile? = r < engine.grid.count && c < engine.grid[r].count
+                                    ? engine.grid[r][c] : nil
                                 let isSelected = engine.selectedPosition == pos
                                 let isTouching = touchedPosition == pos
                                 let isPath = pathSet.contains(pos)
