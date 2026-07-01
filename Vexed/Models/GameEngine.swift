@@ -500,10 +500,10 @@ final class GameEngine: ObservableObject {
         potentialScore = total
         peakScore = max(peakScore, potentialScore)
         let tilesExist = grid.flatMap { $0 }.contains { $0 != nil }
-        // Only flag no-moves after the player has scored at least once — prevents false triggers on fresh boards
-        // where sparse tiles can't form a word in a single slide but could in two.
-        noWordsLeft = tilesExist && wordCount > 0 && !gameOver && !anySlideCanScoreWord()
+        // Scan current words first — if any are already collectable, game is not over.
         availableWords = scanAvailableWords()
+        noWordsLeft = tilesExist && wordCount > 0 && !gameOver
+            && availableWords.isEmpty && !anySlideCanScoreWord()
     }
 
     private func scanAvailableWords() -> [AvailableWord] {
