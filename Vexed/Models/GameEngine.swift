@@ -25,7 +25,7 @@ final class GameEngine: ObservableObject {
     @Published var flashWord: String? = nil
     @Published var gameOver: Bool = false
     @Published var log: [LogEntry] = []
-    @Published var wordHistory: [(word: String, points: Int)] = []
+    @Published var wordHistory: [(word: String, points: Int, multiplier: Double)] = []
     @Published var potentialScore: Int = 0
     @Published var peakScore: Int = 0      // max possible at game start, set once
     @Published var noWordsLeft: Bool = false
@@ -439,7 +439,7 @@ final class GameEngine: ObservableObject {
         score += multiplied
         wordCount += 1
         lastWord = word.word
-        wordHistory.append((word: word.word, points: multiplied))
+        wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier))
         addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
 
         Haptics.wordScore()
@@ -505,7 +505,7 @@ final class GameEngine: ObservableObject {
             score += multiplied
             wordCount += 1
             lastWord = word.word
-            wordHistory.append((word: word.word, points: multiplied))
+            wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier))
             addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
         }
 

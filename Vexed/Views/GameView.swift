@@ -150,10 +150,7 @@ struct GameView: View {
             // ── Particle bursts ───────────────────────────────────────
             particleBurstLayer
 
-            // ── Combo badge (non-kid mode only; kid mode shows it inline in the header) ──
-            if engine.combo >= 2 && !kidMode {
-                comboBadge
-            }
+            // Combo badge removed — combo shown inline in kid header; multiplier visible on word chips
 
             // ── Word length celebration ───────────────────────────────
             if let word = engine.celebrationWord { wordCelebration(word) }
@@ -577,6 +574,11 @@ struct GameView: View {
                                 Text(entry.word)
                                     .font(theme.chipFont)
                                     .foregroundColor(chipColor.foreground)
+                                if entry.multiplier > 1.0 {
+                                    Text("×\(entry.multiplier == 1.5 ? "1.5" : entry.multiplier == 2.0 ? "2" : "3")")
+                                        .font(.system(size: 9, weight: .black, design: .rounded))
+                                        .foregroundColor(comboColor())
+                                }
                                 Text("+\(entry.points)")
                                     .font(theme.chipPointsFont)
                                     .foregroundColor(.yellow)

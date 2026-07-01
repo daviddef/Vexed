@@ -116,7 +116,7 @@ struct BurgerMenuView: View {
                         // ── Board size ───────────────────────────────────
                         sectionCard {
                             sectionLabel("BOARD SIZE")
-                            difficultyPill
+                            difficultyRow
                             Text(kidMode ? kidBoardDescription : difficulty.description)
                                 .font(.system(size: 11, weight: .medium, design: .rounded))
                                 .foregroundColor(Color(white: 0.4))
@@ -155,6 +155,30 @@ struct BurgerMenuView: View {
                         }
                         .padding(.horizontal, 20)
 
+                        // ── Theme ────────────────────────────────────────
+                        sectionCard {
+                            sectionLabel("THEME")
+                            HStack(spacing: 10) {
+                                modeCard(
+                                    icon: "moon.stars.fill",
+                                    title: "Regular",
+                                    subtitle: "Clean dark look\nfocused gameplay",
+                                    isSelected: !arcadeMode,
+                                    accentColor: Color(red: 0.5, green: 0.8, blue: 1.0)
+                                ) { arcadeMode = false }
+                                modeCard(
+                                    icon: "gamecontroller.fill",
+                                    title: "Arcade",
+                                    subtitle: "Vivid colours\nbold tiles & glows",
+                                    isSelected: arcadeMode,
+                                    accentColor: Color(red: 0.7, green: 0.4, blue: 1.0)
+                                ) { arcadeMode = true }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 14)
+                        }
+                        .padding(.horizontal, 20)
+
                         // ── Settings ─────────────────────────────────────
                         sectionCard {
                             sectionLabel("SETTINGS")
@@ -165,14 +189,6 @@ struct BurgerMenuView: View {
                                 isOn: $includeRareWords,
                                 tint: Color(white: 0.8)
                             ) { onReset(); dismiss() }
-                            Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
-                            toggleRow(
-                                icon: "gamecontroller",
-                                title: "Arcade Mode",
-                                subtitle: "Vivid background, bold tiles",
-                                isOn: $arcadeMode,
-                                tint: Color(red: 0.7, green: 0.4, blue: 1.0)
-                            ) {}
                         }
                         .padding(.horizontal, 20)
 
@@ -350,27 +366,19 @@ struct BurgerMenuView: View {
         .padding(.vertical, 12)
     }
 
-    // MARK: - Difficulty picker
+    // MARK: - Difficulty picker (single row)
 
-    private var difficultyPill: some View {
-        Group {
+    private var difficultyRow: some View {
+        HStack(spacing: 0) {
             if kidMode {
-                HStack(spacing: 0) {
-                    kidBoardButton(.easy,   label: "Small")
-                    kidBoardButton(.medium, label: "Medium")
-                    kidBoardButton(.fill,   label: "Full")
-                }
+                kidBoardButton(.easy,   label: "Small")
+                kidBoardButton(.medium, label: "Medium")
+                kidBoardButton(.fill,   label: "Full")
             } else {
-                VStack(spacing: 4) {
-                    HStack(spacing: 0) {
-                        difficultyButton(.easy)
-                        difficultyButton(.medium)
-                    }
-                    HStack(spacing: 0) {
-                        difficultyButton(.hard)
-                        difficultyButton(.fill)
-                    }
-                }
+                difficultyButton(.easy)
+                difficultyButton(.medium)
+                difficultyButton(.hard)
+                difficultyButton(.fill)
             }
         }
         .padding(4)
