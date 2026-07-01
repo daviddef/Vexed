@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BurgerMenuView: View {
     @Binding var difficulty: Difficulty
+    var currentScore: Int
     @Environment(\.dismiss) private var dismiss
     var onReset: () -> Void
     var onShowInstructions: () -> Void
@@ -11,6 +12,8 @@ struct BurgerMenuView: View {
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @State private var showTips = false
 
+    private var highScore: Int { GameEngine.highScore(for: difficulty) }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -18,18 +21,39 @@ struct BurgerMenuView: View {
 
                 VStack(spacing: 0) {
                     // Header
-                    VStack(spacing: 4) {
-                        Text("VEXED")
-                            .font(.system(size: 34, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                            .tracking(10)
-                        Text("SLIDE · FORM · SURVIVE")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(Color(white: 0.3))
-                            .tracking(3)
+                    VStack(spacing: 16) {
+                        VStack(spacing: 4) {
+                            Text("VEXED")
+                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                                .tracking(10)
+                            Text("SLIDE · FORM · SURVIVE")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(Color(white: 0.3))
+                                .tracking(3)
+                        }
+
+                        // Score card
+                        HStack(spacing: 0) {
+                            scoreCell(label: "THIS GAME", value: currentScore, color: .white)
+                            Rectangle()
+                                .fill(Color(white: 0.12))
+                                .frame(width: 1)
+                                .padding(.vertical, 12)
+                            scoreCell(
+                                label: "PEAK VEXATION",
+                                value: highScore,
+                                color: highScore > 0 && currentScore >= highScore
+                                    ? Color(red: 1, green: 0.85, blue: 0.2)
+                                    : Color(red: 1, green: 0.85, blue: 0.2).opacity(0.6)
+                            )
+                        }
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 0.07)))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.11), lineWidth: 1))
+                        .padding(.horizontal, 20)
                     }
                     .padding(.top, 32)
-                    .padding(.bottom, 28)
+                    .padding(.bottom, 24)
 
                     // Menu rows
                     VStack(spacing: 0) {
@@ -252,6 +276,26 @@ struct BurgerMenuView: View {
         case .hard:   return Color(red: 1.0, green: 0.3, blue: 0.3)
         case .fill:   return Color(red: 0.55, green: 0.35, blue: 1.0)
         }
+    }
+
+    private func scoreCell(label: String, value: Int, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 8, weight: .black))
+                .foregroundColor(Color(white: 0.35))
+                .tracking(2)
+            if value > 0 {
+                Text("\(value)")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundColor(color)
+            } else {
+                Text("—")
+                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .foregroundColor(Color(white: 0.2))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
     }
 
     private func menuSectionHeader(_ title: String) -> some View {

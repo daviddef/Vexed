@@ -182,6 +182,7 @@ struct GameView: View {
         .sheet(isPresented: $showBurgerMenu) {
             BurgerMenuView(
                 difficulty: $selectedDifficulty,
+                currentScore: engine.score,
                 onReset: {
                     showNoWordsLeft = false
                     engine.reset(difficulty: selectedDifficulty)
