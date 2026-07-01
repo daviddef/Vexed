@@ -45,7 +45,13 @@ private struct VowelPill: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(isDanger ? color.opacity(pulseOpacity) : Color(white: 0.1))
+                .fill(Color(white: 0.1))
+                .overlay(
+                    // Danger tint layered ON TOP of the dark base — never the sole background,
+                    // so the same-hue letter always keeps contrast against it.
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isDanger ? color.opacity(pulseOpacity) : Color.clear)
+                )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(
