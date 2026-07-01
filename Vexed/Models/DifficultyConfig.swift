@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 enum AdjacencyMode {
     case orthogonal   // 4 directions (kids)
@@ -6,20 +7,16 @@ enum AdjacencyMode {
 }
 
 enum Difficulty: String, CaseIterable, Identifiable {
-    case easy, medium, hard
+    case easy, medium, hard, fill
     var id: String { rawValue }
 
     var config: DifficultyConfig {
         switch self {
         // Forge tiles = max(0, wordLength − forgeMinLength), uncapped and increasing.
-        // Each difficulty step raises the threshold by 1 letter:
-        //   Easy   (min=1): 3→+2, 4→+3, 5→+4, 6→+5 …
-        //   Medium (min=2): 3→+1, 4→+2, 5→+3, 6→+4, 7→+5 …
-        //   Hard   (min=3): 4→+1, 5→+2, 6→+3, 7→+4 … (min word length 4)
-        // wordListName = clean (default); wordListNameFull = unlocked by "include rare words" toggle
         case .easy:   return DifficultyConfig(rows: 5,  cols: 5,  adjacency: .orthogonal, minWordLength: 3, wordListName: "easy_words",   wordListNameFull: "easy_words", forgeMinLength: 1)
         case .medium: return DifficultyConfig(rows: 7,  cols: 7,  adjacency: .orthogonal, minWordLength: 3, wordListName: "medium_words", wordListNameFull: "words",       forgeMinLength: 2)
         case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 4, wordListName: "medium_words", wordListNameFull: "dictionary",  forgeMinLength: 3)
+        case .fill:   return DifficultyConfig.fillConfig()
         }
     }
 
@@ -28,14 +25,17 @@ enum Difficulty: String, CaseIterable, Identifiable {
         case .easy:   return "Easy"
         case .medium: return "Medium"
         case .hard:   return "Hard"
+        case .fill:   return "Fill"
         }
     }
 
     var description: String {
+        let c = DifficultyConfig.fillConfig()
         switch self {
         case .easy:   return "5×5 · Learn the ropes"
         case .medium: return "7×7 · The sweet spot"
         case .hard:   return "10×10 · Chain or perish"
+        case .fill:   return "7×\(c.rows) · Pack the screen"
         }
     }
 }
@@ -58,5 +58,37 @@ struct DifficultyConfig {
 
     func forgeBonusCount(wordLength: Int) -> Int {
         max(0, wordLength - forgeMinLength)
+    }
+
+    /// Computes a grid config that fills the screen with 7 columns.
+    /// Tile size is driven by the screen width; rows = however many fit vertically.
+    static func fillConfig() -> DifficultyConfig {
+        let screen = UIScreen.main.bounds
+        let cols   = 7
+        let gap: CGFloat    = 6
+        let gridPad: CGFloat = 10   // GridView inner padding
+        let gamePad: CGFloat = 10   // GameView .padding(.horizontal, 10)
+
+        // Tile width = what GridView computes for 7 cols
+        let availW  = screen.width - gamePad * 2
+        let tileW   = (availW - gridPad * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols)
+
+        // Non-grid UI: top bar + vowel radar + footer + bottom safe area
+        let nonGrid: CGFloat = 226
+        let safeBottom = (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first?.safeAreaInsets.bottom) ?? 34
+        let availH = screen.height - nonGrid - safeBottom
+
+        let rows = max(7, Int(floor((availH - gridPad * 2 + gap) / (tileW + gap))))
+
+        return DifficultyConfig(
+            rows: rows, cols: cols,
+            adjacency: .orthogonal,
+            minWordLength: 3,
+            wordListName: "medium_words",
+            wordListNameFull: "dictionary",
+            forgeMinLength: 2
+        )
     }
 }

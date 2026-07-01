@@ -435,7 +435,16 @@ final class GameEngine: ObservableObject {
         let targets = Array(emptyCells.prefix(canSpawn))
 
         for pos in targets {
-            grid[pos.row][pos.col] = Tile(letter: randomForgeLetter())
+            var t = Tile(letter: randomForgeLetter())
+            t.animState = .forged
+            grid[pos.row][pos.col] = t
+        }
+        // Settle forged tiles to idle after the entry animation completes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { [weak self] in
+            guard let self else { return }
+            for pos in targets where self.grid[pos.row][pos.col]?.animState == .forged {
+                self.grid[pos.row][pos.col]?.animState = .idle
+            }
         }
 
         tilesForged += canSpawn

@@ -10,7 +10,7 @@ enum TileType: Equatable {
 }
 
 enum TileAnimState {
-    case idle, selected, danger, vanishing, scoring
+    case idle, selected, danger, vanishing, scoring, forged
 }
 
 struct Tile: Identifiable, Equatable {

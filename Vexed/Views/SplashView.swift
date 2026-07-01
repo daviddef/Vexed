@@ -162,6 +162,7 @@ struct SplashView: View {
         case .easy:   return Color(red: 0.3, green: 0.9, blue: 0.5)
         case .medium: return Color(red: 1.0, green: 0.75, blue: 0.1)
         case .hard:   return Color(red: 1.0, green: 0.3, blue: 0.3)
+        case .fill:   return Color(red: 0.55, green: 0.35, blue: 1.0)
         }
     }
 
