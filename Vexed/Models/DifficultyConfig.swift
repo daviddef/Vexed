@@ -44,7 +44,7 @@ enum Difficulty: String, CaseIterable, Identifiable {
         switch self {
         case .easy:   return "5×5 · Short words welcome"
         case .medium: return "7×7 · Growing challenge"
-        case .fill:   return "7×screen · Packed & playful"
+        case .fill:   return "\(DifficultyConfig.fillConfig().cols)×screen · Packed & playful"
         case .hard:   return description
         }
     }
@@ -55,7 +55,7 @@ enum Difficulty: String, CaseIterable, Identifiable {
         case .easy:   return "5×5 · Learn the ropes"
         case .medium: return "7×7 · The sweet spot"
         case .hard:   return "9×\(DifficultyConfig.hardConfig().rows) · Chain or perish"
-        case .fill:   return "7×\(c.rows) · Pack the screen"
+        case .fill:   return "\(c.cols)×\(c.rows) · Pack the screen"
         }
     }
 }
@@ -82,16 +82,19 @@ struct DifficultyConfig {
         flatForgeBonus > 0 ? flatForgeBonus : max(0, wordLength - forgeMinLength)
     }
 
-    /// Computes a screen-filling config for Hard: 9 cols, 4-letter min, forge-3.
+    /// Computes a screen-filling config for Hard: 9-col minimum, 4-letter min, forge-3.
+    /// Columns scale with screen width to keep tiles near a target size (~46pt).
     static func hardConfig() -> DifficultyConfig {
         let screen = UIScreen.main.bounds
-        let cols   = 9
         let gap: CGFloat     = 6
         let gridPad: CGFloat = 10
         let gamePad: CGFloat = 10
-
         let availW = screen.width - gamePad * 2
-        let tileW  = (availW - gridPad * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols)
+
+        let targetTileW: CGFloat = 46
+        let rawCols = Int(floor((availW - gridPad * 2 + gap) / (targetTileW + gap)))
+        let cols = max(9, min(18, rawCols))
+        let tileW = (availW - gridPad * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols)
 
         let nonGrid: CGFloat = 226
         let safeBottom = (UIApplication.shared.connectedScenes
@@ -111,18 +114,21 @@ struct DifficultyConfig {
         )
     }
 
-    /// Computes a grid config that fills the screen with 7 columns.
-    /// Tile size is driven by the screen width; rows = however many fit vertically.
+    /// Computes a grid config that fills the screen.
+    /// Columns scale with screen width to keep tiles near a target size (~56pt),
+    /// so iPad gets more columns + more rows rather than giant sparse tiles.
     static func fillConfig() -> DifficultyConfig {
         let screen = UIScreen.main.bounds
-        let cols   = 7
-        let gap: CGFloat    = 6
-        let gridPad: CGFloat = 10   // GridView inner padding
-        let gamePad: CGFloat = 10   // GameView .padding(.horizontal, 10)
+        let gap: CGFloat     = 6
+        let gridPad: CGFloat = 10
+        let gamePad: CGFloat = 10
+        let availW = screen.width - gamePad * 2
 
-        // Tile width = what GridView computes for 7 cols
-        let availW  = screen.width - gamePad * 2
-        let tileW   = (availW - gridPad * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols)
+        // Derive columns so tiles stay close to targetTileW across all device sizes
+        let targetTileW: CGFloat = 56
+        let rawCols = Int(floor((availW - gridPad * 2 + gap) / (targetTileW + gap)))
+        let cols = max(7, min(16, rawCols))
+        let tileW = (availW - gridPad * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols)
 
         // Non-grid UI: top bar + vowel radar + footer + bottom safe area
         let nonGrid: CGFloat = 226
