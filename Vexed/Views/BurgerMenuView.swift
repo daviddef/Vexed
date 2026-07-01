@@ -5,6 +5,7 @@ struct BurgerMenuView: View {
     var currentScore: Int
     @Environment(\.dismiss) private var dismiss
     var onReset: () -> Void
+    var onResetAll: () -> Void
     var onShowInstructions: () -> Void
     var onShowMissedWords: () -> Void
 
@@ -204,8 +205,10 @@ struct BurgerMenuView: View {
                             menuSectionHeader("DANGER ZONE")
 
                             menuRow(icon: "trash", label: "Reset Everything", color: Color(red: 1, green: 0.3, blue: 0.3)) {
-                                onReset()
                                 dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                    onResetAll()
+                                }
                             }
                         }
                     }

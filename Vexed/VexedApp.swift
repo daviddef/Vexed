@@ -9,7 +9,9 @@ struct VexedApp: App {
         WindowGroup {
             let difficulty = Difficulty(rawValue: savedDifficultyRaw) ?? .easy
             ZStack {
-                GameView(initialDifficulty: difficulty)
+                GameView(initialDifficulty: difficulty, onResetAll: {
+                    withAnimation(.easeOut(duration: 0.2)) { showSplash = true }
+                })
 
                 if showSplash {
                     SplashView {

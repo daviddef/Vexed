@@ -2,12 +2,14 @@ import SwiftUI
 
 struct GameView: View {
     var initialDifficulty: Difficulty = .easy
+    var onResetAll: (() -> Void)? = nil
     @StateObject private var engine: GameEngine
     @State private var selectedDifficulty: Difficulty
     @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.easy.rawValue
 
-    init(initialDifficulty: Difficulty = .easy) {
+    init(initialDifficulty: Difficulty = .easy, onResetAll: (() -> Void)? = nil) {
         self.initialDifficulty = initialDifficulty
+        self.onResetAll = onResetAll
         _engine = StateObject(wrappedValue: GameEngine(difficulty: initialDifficulty))
         _selectedDifficulty = State(initialValue: initialDifficulty)
     }
@@ -187,6 +189,7 @@ struct GameView: View {
                     showNoWordsLeft = false
                     engine.reset(difficulty: selectedDifficulty)
                 },
+                onResetAll: { resetEverything() },
                 onShowInstructions: { showInstructions = true },
                 onShowMissedWords: { showMissedWords = true }
             )
@@ -700,10 +703,11 @@ struct GameView: View {
     // MARK: - Tutorial
 
     @ViewBuilder private var tutorialOverlay: some View {
-        let steps: [(icon: String, title: String, body: String)] = [
-            ("hand.tap", "TAP A TILE", "Select any tile — it highlights the paths it can slide along."),
-            ("arrow.right", "SWIPE TO SLIDE", "Swipe to send it flying! Tiles glide until they hit a wall or another tile."),
-            ("text.word.spacing", "SPELL WORDS", "Line up letters in a row or column to score. 3+ of the same vowel touching will vanish — watch out!")
+        let steps: [(icon: String, title: String, body: String, accent: Color)] = [
+            ("hand.tap",        "TAP TO SELECT",   "Tap any tile to select it. Arrows show every direction it can slide.", Color(red: 0.4, green: 0.8, blue: 1.0)),
+            ("arrow.right",     "SWIPE TO SLIDE",  "Swipe in any direction — the tile flies until it hits a wall or another tile.", Color(red: 0.5, green: 0.9, blue: 0.5)),
+            ("exclamationmark.triangle.fill", "THE VOWEL RULE", "3 or more of the SAME vowel touching = instant vanish. No score. Keep A E I O U separated!", Color(red: 1.0, green: 0.38, blue: 0.38)),
+            ("star.fill",       "SCORE & FORGE",   "Spell words (left→right or top→bottom) and tap the gold outline to collect them. Longer words forge more new tiles back onto the board.", Color(red: 1.0, green: 0.85, blue: 0.2)),
         ]
         let step = steps[tutorialStep - 1]
 
@@ -711,32 +715,34 @@ struct GameView: View {
             Spacer()
             VStack(spacing: 16) {
                 Image(systemName: step.icon)
-                    .font(.system(size: 36))
-                    .foregroundColor(.white)
+                    .font(.system(size: 32))
+                    .foregroundColor(step.accent)
                     .frame(width: 64, height: 64)
-                    .background(Circle().fill(Color.white.opacity(0.15)))
+                    .background(Circle().fill(step.accent.opacity(0.15)))
 
                 Text(step.title)
-                    .font(.system(size: 20, weight: .black, design: .rounded))
+                    .font(.system(size: 18, weight: .black, design: .rounded))
                     .tracking(2)
                     .foregroundColor(.white)
 
                 Text(step.body)
                     .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.white.opacity(0.75))
                     .multilineTextAlignment(.center)
+                    .lineSpacing(3)
                     .padding(.horizontal, 8)
 
                 HStack(spacing: 8) {
-                    ForEach(1...3, id: \.self) { i in
-                        Circle()
-                            .fill(i == tutorialStep ? Color.white : Color.white.opacity(0.3))
-                            .frame(width: 6, height: 6)
+                    ForEach(1...4, id: \.self) { i in
+                        Capsule()
+                            .fill(i == tutorialStep ? step.accent : Color.white.opacity(0.2))
+                            .frame(width: i == tutorialStep ? 18 : 6, height: 6)
+                            .animation(.spring(response: 0.3), value: tutorialStep)
                     }
                 }
 
                 Button {
-                    if tutorialStep < 3 {
+                    if tutorialStep < 4 {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { tutorialStep += 1 }
                     } else {
                         withAnimation(.easeOut(duration: 0.25)) {
@@ -746,13 +752,13 @@ struct GameView: View {
                         UserDefaults.standard.set(true, forKey: "vexed.launched")
                     }
                 } label: {
-                    Text(tutorialStep < 3 ? "NEXT →" : "LET'S GO!")
+                    Text(tutorialStep < 4 ? "NEXT →" : "LET'S PLAY!")
                         .font(.system(size: 14, weight: .black, design: .rounded))
                         .tracking(2)
                         .foregroundColor(.black)
                         .padding(.horizontal, 28)
                         .padding(.vertical, 12)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
+                        .background(RoundedRectangle(cornerRadius: 10).fill(step.accent))
                 }
                 .buttonStyle(.plain)
             }
@@ -769,6 +775,27 @@ struct GameView: View {
                 removal: .move(edge: .bottom).combined(with: .opacity)
             ))
         }
+    }
+
+    // MARK: - Reset everything
+
+    private func resetEverything() {
+        // Clear high scores for all difficulties
+        for d in Difficulty.allCases {
+            let c = d.config
+            let key = "highScore_\(c.wordListName)_\(c.rows)x\(c.cols)"
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+        // Clear tutorial-seen flag so it replays
+        UserDefaults.standard.removeObject(forKey: "vexed.launched")
+        // Reset game
+        showNoWordsLeft = false
+        engine.reset(difficulty: selectedDifficulty)
+        // Restore first-launch state so tutorial fires after splash
+        isFirstLaunch = true
+        tutorialStep = 0
+        // Go back to splash
+        onResetAll?()
     }
 
     // MARK: - Helpers
