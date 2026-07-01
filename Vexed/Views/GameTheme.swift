@@ -35,8 +35,8 @@ struct GameTheme {
         : isKid  ? Color(red: 0.20, green: 0.18, blue: 0.30)   // slightly warmer/lighter
                  : Color(red: 0.165, green: 0.165, blue: 0.243)
     }
-    var tileHighlightOpacity: Double { isArcade ? 0.62 : isKid ? 0.58 : 0.45 }
-    var tileHighlightStop: Double    { isArcade ? 0.55 : isKid ? 0.50 : 0.40 }
+    var tileHighlightOpacity: Double { isArcade ? 0.55 : isKid ? 0.50 : 0.40 }
+    var tileHighlightStop: Double    { 0.28 }   // fade to clear by top 28% — keeps bevel off the letter
     var tileShadowOpacity: Double    { isArcade ? 0.40 : 0.30 }
     var tileBorderWidth: CGFloat     { isArcade ? 2.0  : isKid ? 2.0 : 1.5 }
     var showGlossStripe: Bool        { isArcade || isKid }

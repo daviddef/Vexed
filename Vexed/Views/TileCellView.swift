@@ -59,12 +59,12 @@ struct TileCellView: View {
                             )
                         )
 
-                    // 4. Arcade gloss stripe
+                    // 4. Arcade gloss stripe — sits in the rounded top-cap, well above the letter
                     if theme.showGlossStripe {
-                        RoundedRectangle(cornerRadius: cr * 0.5)
-                            .fill(Color.white.opacity(0.18))
-                            .frame(width: size * 0.58, height: size * 0.08)
-                            .offset(y: -(size * 0.22))
+                        Capsule()
+                            .fill(Color.white.opacity(0.22))
+                            .frame(width: size * 0.40, height: size * 0.055)
+                            .offset(y: -(size * 0.34))
                             .blendMode(.plusLighter)
                     }
                 }
