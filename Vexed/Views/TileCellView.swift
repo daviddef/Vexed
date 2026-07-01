@@ -13,9 +13,10 @@ struct TileCellView: View {
     private var theme: GameTheme { GameTheme(isArcade: arcadeMode) }
 
     @State private var vanishRotation: Double = 0
-    @State private var forgeScale: CGFloat = 1.0
-    @State private var forgeGlow: CGFloat = 0.0
-    @State private var forgeFlash: CGFloat = 0.0
+    @State private var forgeScale: CGFloat = 0.0
+    @State private var forgePulse: Bool = false
+
+    private var isForged: Bool { tile?.animState == .forged }
 
     var body: some View {
         ZStack {
@@ -28,47 +29,49 @@ struct TileCellView: View {
                     .fill(base)
 
                 // 2. Top-light overlay (3D bevel highlight)
-                RoundedRectangle(cornerRadius: cr)
-                    .fill(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color.white.opacity(theme.tileHighlightOpacity), location: 0),
-                                .init(color: Color.clear, location: theme.tileHighlightStop)
-                            ],
-                            startPoint: .top, endPoint: .bottom
+                if !isForged {
+                    RoundedRectangle(cornerRadius: cr)
+                        .fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: Color.white.opacity(theme.tileHighlightOpacity), location: 0),
+                                    .init(color: Color.clear, location: theme.tileHighlightStop)
+                                ],
+                                startPoint: .top, endPoint: .bottom
+                            )
                         )
-                    )
 
-                // 3. Bottom-shadow overlay (3D bevel shadow)
-                RoundedRectangle(cornerRadius: cr)
-                    .fill(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color.clear, location: 0.60),
-                                .init(color: Color.black.opacity(theme.tileShadowOpacity), location: 1.0)
-                            ],
-                            startPoint: .top, endPoint: .bottom
+                    // 3. Bottom-shadow overlay (3D bevel shadow)
+                    RoundedRectangle(cornerRadius: cr)
+                        .fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: Color.clear, location: 0.60),
+                                    .init(color: Color.black.opacity(theme.tileShadowOpacity), location: 1.0)
+                                ],
+                                startPoint: .top, endPoint: .bottom
+                            )
                         )
-                    )
 
-                // 4. Arcade gloss stripe — thin horizontal shimmer near top
-                if theme.showGlossStripe {
-                    RoundedRectangle(cornerRadius: cr * 0.5)
-                        .fill(Color.white.opacity(0.18))
-                        .frame(width: size * 0.58, height: size * 0.08)
-                        .offset(y: -(size * 0.22))
-                        .blendMode(.plusLighter)
+                    // 4. Arcade gloss stripe — thin horizontal shimmer near top
+                    if theme.showGlossStripe {
+                        RoundedRectangle(cornerRadius: cr * 0.5)
+                            .fill(Color.white.opacity(0.18))
+                            .frame(width: size * 0.58, height: size * 0.08)
+                            .offset(y: -(size * 0.22))
+                            .blendMode(.plusLighter)
+                    }
                 }
 
-                // 5. Border: selected = white, else darkened inner border
+                // 5. Border: selected = white, forged = light gray, else darkened inner border
                 RoundedRectangle(cornerRadius: cr)
                     .strokeBorder(
-                        isSelected ? Color.white : darkenedColor(base, factor: 0.65),
+                        isSelected ? Color.white : (isForged ? Color(white: 0.75) : darkenedColor(base, factor: 0.65)),
                         lineWidth: isSelected ? 3.5 : theme.tileBorderWidth
                     )
 
-                // 6. Outer highlight stroke (white top shimmer)
-                if !isSelected {
+                // 6. Outer highlight stroke (white top shimmer) — skip when forged (already bright)
+                if !isSelected && !isForged {
                     RoundedRectangle(cornerRadius: cr)
                         .stroke(Color.white.opacity(theme.showGlossStripe ? 0.35 : 0.25), lineWidth: 0.75)
                 }
@@ -76,8 +79,8 @@ struct TileCellView: View {
                 // Letter
                 Text(String(tile.letter))
                     .font(.system(size: size * 0.50, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                    .shadow(color: .black, radius: 1, x: 0, y: 1)
+                    .foregroundColor(isForged ? Color(white: 0.10) : .white)
+                    .shadow(color: isForged ? .clear : .black.opacity(0.4), radius: 1, x: 0, y: 1)
 
             } else {
                 // Empty cell: barely visible dashed grid structure
@@ -102,23 +105,17 @@ struct TileCellView: View {
             }
         }
         .frame(width: size, height: size)
-        // Forge flash — always in view tree so opacity animates correctly
-        .overlay(
-            RoundedRectangle(cornerRadius: size * 0.22)
-                .fill(Color.white.opacity(forgeFlash))
-                .allowsHitTesting(false)
-        )
-        .scaleEffect(tile?.animState == .forged ? forgeScale : (isTouching ? 1.10 : scaleFor(tile?.animState)))
+        .scaleEffect(isForged ? forgeScale : (isTouching ? 1.10 : scaleFor(tile?.animState)))
         .rotationEffect(.degrees(tile?.animState == .vanishing ? vanishRotation : 0))
         .opacity(tile?.animState == .vanishing ? 0 : 1)
+        // Forged white glow — pulses while forged
+        .shadow(color: isForged ? Color.white.opacity(forgePulse ? 0.95 : 0.45) : .clear,
+                radius: isForged ? (forgePulse ? 24 : 10) : 0, x: 0, y: 0)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
                 radius: isTouching ? 18 : (isDanger ? 14 : 0))
         .shadow(color: pathColor?.opacity(isDestination ? 0.85 : 0.45) ?? .clear,
                 radius: isDestination ? 12 : 6, x: 0, y: 0)
-        // Forge glow — gold halo during entry
-        .shadow(color: Color(red: 1, green: 0.85, blue: 0.2).opacity(forgeGlow),
-                radius: 22 * forgeGlow, x: 0, y: 0)
         .rotation3DEffect(
             .degrees(tile != nil && isSelected ? -8 : 0),
             axis: (x: 1, y: 0, z: 0),
@@ -135,26 +132,27 @@ struct TileCellView: View {
         .animation(.easeInOut(duration: 0.25), value: pathColor != nil)
         .animation(.easeInOut(duration: 0.35), value: tile?.animState)
         .onChange(of: tile) { oldTile, newTile in
+            // When a tile disappears, reset forge state for the next entry
+            if newTile == nil {
+                forgeScale = 0.0
+                forgePulse = false
+            }
             // Forged tile entry: nil → .forged
             if oldTile == nil, let newTile, newTile.animState == .forged {
-                // Set initial values without animation so they're visible on first frame
-                var t = Transaction(); t.disablesAnimations = true
-                withTransaction(t) {
-                    forgeScale = 0
-                    forgeGlow  = 0
-                    forgeFlash = 1.0   // full white blaze
-                }
-                // Scale: spring from 0, overshoot to ~1.3, settle at 1.0
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.38)) {
+                // forgeScale is already 0 (reset above when prev tile vanished)
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.38)) {
                     forgeScale = 1.0
                 }
-                // Flash: hold for a beat then fade
-                withAnimation(.easeOut(duration: 0.45).delay(0.05)) {
-                    forgeFlash = 0
+                // Pulse: ramp up then maintain for duration of forged state
+                withAnimation(.easeInOut(duration: 0.3).repeatForever(autoreverses: true)) {
+                    forgePulse = true
                 }
-                // Glow: rise then fade
-                withAnimation(.easeOut(duration: 0.12)) { forgeGlow = 1.0 }
-                withAnimation(.easeIn(duration: 0.6).delay(0.15)) { forgeGlow = 0 }
+            }
+            // Stop pulse when forged state clears (idle or any other transition)
+            if oldTile?.animState == .forged, newTile?.animState != .forged {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    forgePulse = false
+                }
             }
             // Vanish rotation
             if newTile?.animState == .vanishing {
@@ -170,6 +168,9 @@ struct TileCellView: View {
     // MARK: - Base colors (bright Block Blast style)
 
     private func baseColor(for tile: Tile) -> Color {
+        if tile.animState == .forged {
+            return Color(white: forgePulse ? 1.0 : 0.88)
+        }
         switch tile.type {
         case .consonant:
             return theme.consonantBase
@@ -187,7 +188,6 @@ struct TileCellView: View {
     }
 
     private func darkenedColor(_ color: Color, factor: Double) -> Color {
-        // Approximate darkening via UIColor
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
         return Color(red: Double(r) * factor, green: Double(g) * factor, blue: Double(b) * factor)
