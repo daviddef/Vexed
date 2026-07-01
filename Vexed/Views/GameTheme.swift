@@ -7,38 +7,38 @@ struct GameTheme {
     // MARK: - Background
     var bgBase: Color {
         isArcade ? Color(red: 0.03, green: 0.01, blue: 0.12)
-        : isKid  ? Color(red: 0.04, green: 0.04, blue: 0.10)
+        : isKid  ? Color(red: 0.68, green: 0.88, blue: 1.0)
                  : Color(red: 0.06, green: 0.06, blue: 0.09)
     }
     var bgBreathColor: Color {
         isArcade ? Color(red: 0.38, green: 0.06, blue: 0.80)
-        : isKid  ? Color(red: 0.9,  green: 0.6,  blue: 0.0)   // warm golden pulse
+        : isKid  ? Color(red: 0.55, green: 0.20, blue: 1.0)   // vivid violet pulse over sky blue
                  : Color(red: 0.12, green: 0.08, blue: 0.18)
     }
-    var bgBreathOpacityHigh: Double { isArcade ? 0.55 : isKid ? 0.30 : 0.40 }
-    var bgBreathOpacityLow: Double  { isArcade ? 0.22 : isKid ? 0.08 : 0.15 }
+    var bgBreathOpacityHigh: Double { isArcade ? 0.55 : isKid ? 0.20 : 0.40 }
+    var bgBreathOpacityLow: Double  { isArcade ? 0.22 : isKid ? 0.05 : 0.15 }
     /// Always show corner glows in kid mode (cheerful) and arcade mode
     var showCornerGlows: Bool { isArcade || isKid }
     /// Kid mode: yellow top-right + green bottom-left; arcade: purple + teal
     var cornerGlowColors: (topRight: Color, bottomLeft: Color) {
         isKid
-            ? (Color(red: 1.0, green: 0.85, blue: 0.0),   Color(red: 0.1, green: 0.9, blue: 0.4))
+            ? (Color(red: 1.0, green: 0.35, blue: 0.70),   Color(red: 0.20, green: 0.85, blue: 0.45))
             : (Color(red: 0.55, green: 0.1, blue: 0.9),   Color(red: 0.0, green: 0.7, blue: 0.8))
     }
     var cornerGlowOpacity: (topRight: Double, bottomLeft: Double) {
-        isKid ? (0.28, 0.22) : (0.35, 0.22)
+        isKid ? (0.55, 0.45) : (0.35, 0.22)
     }
 
     // MARK: - Tile face
     var consonantBase: Color {
         isArcade ? Color(red: 0.18, green: 0.10, blue: 0.30)
-        : isKid  ? Color(red: 0.20, green: 0.18, blue: 0.30)   // slightly warmer/lighter
+        : isKid  ? Color(red: 0.18, green: 0.44, blue: 0.90)   // vivid cobalt blue — white text still reads fine
                  : Color(red: 0.165, green: 0.165, blue: 0.243)
     }
-    var tileHighlightOpacity: Double { isArcade ? 0.55 : isKid ? 0.50 : 0.40 }
+    var tileHighlightOpacity: Double { isArcade ? 0.55 : isKid ? 0.65 : 0.40 }
     var tileHighlightStop: Double    { 0.28 }   // fade to clear by top 28% — keeps bevel off the letter
-    var tileShadowOpacity: Double    { isArcade ? 0.40 : 0.30 }
-    var tileBorderWidth: CGFloat     { isArcade ? 2.0  : isKid ? 2.0 : 1.5 }
+    var tileShadowOpacity: Double    { isArcade ? 0.40 : isKid ? 0.20 : 0.30 }
+    var tileBorderWidth: CGFloat     { isArcade ? 2.0  : isKid ? 2.5 : 1.5 }
     var showGlossStripe: Bool        { isArcade || isKid }
 
     // MARK: - Score stat bar
@@ -53,7 +53,12 @@ struct GameTheme {
                  : .system(size: 8, weight: .semibold)
     }
     var statLabelTracking: CGFloat { isArcade ? 1.5 : isKid ? 1.0 : 1.0 }
-    var statBgOpacity: Double      { (isArcade || isKid) ? 0.18 : 0.0 }
+    var statLabelColor: Color {
+        isArcade ? Color(white: 0.45)
+        : isKid  ? Color(red: 0.10, green: 0.25, blue: 0.50)
+                 : Color(white: 0.30)
+    }
+    var statBgOpacity: Double      { isArcade ? 0.18 : isKid ? 0.22 : 0.0 }
     var statCornerRadius: CGFloat  { (isArcade || isKid) ? 10 : 0 }
     func statBgColor(for label: String) -> Color {
         switch label {
@@ -83,10 +88,12 @@ struct GameTheme {
     func chipBg(forWordLength n: Int) -> AnyShapeStyle {
         if isKid {
             if n >= 5 { return AnyShapeStyle(LinearGradient(
-                colors: [Color(red: 0.38, green: 0.22, blue: 0.02), Color(red: 0.26, green: 0.18, blue: 0.02)],
-                startPoint: .topLeading, endPoint: .bottomTrailing)) }
-            if n >= 3 { return AnyShapeStyle(Color(red: 0.08, green: 0.14, blue: 0.28)) }
-            return AnyShapeStyle(Color(red: 0.0, green: 0.22, blue: 0.12))  // 2-letter: green tint
+                colors: [Color(red: 1.0, green: 0.55, blue: 0.05), Color(red: 0.95, green: 0.15, blue: 0.55)],
+                startPoint: .topLeading, endPoint: .bottomTrailing)) }  // orange → pink
+            if n >= 4 { return AnyShapeStyle(LinearGradient(
+                colors: [Color(red: 0.15, green: 0.75, blue: 0.35), Color(red: 0.05, green: 0.55, blue: 0.90)],
+                startPoint: .topLeading, endPoint: .bottomTrailing)) }  // green → blue
+            return AnyShapeStyle(Color(red: 0.20, green: 0.45, blue: 0.90).opacity(0.85))
         }
         if isArcade && n >= 6 {
             return AnyShapeStyle(LinearGradient(
@@ -157,4 +164,6 @@ struct GameTheme {
 
     /// Minimum word length before the big celebration fires (rainbow burst + big word)
     var celebrationMinLength: Int { isKid ? 2 : 5 }
+
+    var showKidBackground: Bool { isKid }
 }

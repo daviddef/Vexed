@@ -114,6 +114,27 @@ final class GameEngine: ObservableObject {
         hintMoves = []
     }
 
+    /// On-demand hint for adult mode — same golden glow + path system as kid auto-hints, but triggered by the player.
+    func requestHint() {
+        hintTask?.cancel()
+        hintWordId = nil
+        hintBeaconActive = false
+        hintMoves = []
+        if let word = availableWords.randomElement() {
+            hintWordId = word.id
+        } else {
+            hintMoves = findHintMoves()
+        }
+        hintTask = Task { @MainActor [weak self] in
+            do { try await Task.sleep(nanoseconds: 6_000_000_000) } catch { return }
+            guard let self, !Task.isCancelled else { return }
+            self.hintBeaconActive = true
+            do { try await Task.sleep(nanoseconds: 6_000_000_000) } catch { return }
+            guard !Task.isCancelled else { return }
+            self.clearHint()
+        }
+    }
+
     private func slideDirection(_ src: Position, _ dest: Position) -> Direction {
         let dr = dest.row - src.row, dc = dest.col - src.col
         return dr > 0 ? .down : dr < 0 ? .up : dc > 0 ? .right : .left

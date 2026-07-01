@@ -29,6 +29,7 @@ struct GameView: View {
     @State private var wordScoreFlash: Bool = false
     @State private var tutorialStep: Int = 0
     @State private var definitionEntry: DefinitionEntry? = nil
+    @State private var hintCooldown = false
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
     @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
@@ -38,6 +39,19 @@ struct GameView: View {
     var body: some View {
         ZStack {
             theme.bgBase.ignoresSafeArea()
+            // Kid mode: pastel rainbow diagonal tint over the sky-blue base
+            if kidMode {
+                LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.88, blue: 0.95).opacity(0.45),
+                        Color(red: 0.68, green: 0.88, blue: 1.0).opacity(0.0),
+                        Color(red: 0.85, green: 1.0, blue: 0.88).opacity(0.35)
+                    ],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
             // Corner glows (arcade + kid mode)
             if theme.showCornerGlows {
                 GeometryReader { geo in
@@ -122,6 +136,13 @@ struct GameView: View {
                     selectedTileHint
                         .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
 
+                    // Hint button (adult only — kid mode gets automatic hints)
+                    if !kidMode {
+                        hintButton
+                            .frame(height: 32)
+                            .padding(.top, 2)
+                    }
+
                     // Line 2: available words (red) — tap to highlight on board
                     if !engine.availableWords.isEmpty {
                         availableWordsStrip
@@ -184,6 +205,7 @@ struct GameView: View {
         }
         .preferredColorScheme(.dark)
         .ignoresSafeArea(edges: .bottom)
+        .onChange(of: engine.boardVersion) { _, _ in hintCooldown = false }
         .sheet(isPresented: $showBurgerMenu) {
             BurgerMenuView(
                 difficulty: $selectedDifficulty,
@@ -619,7 +641,7 @@ struct GameView: View {
             }
             Text(label)
                 .font(theme.statLabelFont)
-                .foregroundColor(Color(white: theme.isArcade ? 0.45 : 0.30))
+                .foregroundColor(theme.statLabelColor)
                 .tracking(theme.statLabelTracking)
         }
         .padding(.vertical, theme.isArcade ? 7 : 6)
@@ -635,15 +657,56 @@ struct GameView: View {
         Button(action: action) {
             Image(systemName: name)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(Color(white: 0.55))
+                .foregroundColor(kidMode ? Color(red: 0.10, green: 0.25, blue: 0.65) : Color(white: 0.55))
                 .frame(width: 40, height: 40)
-                .background(Color(white: 0.13).cornerRadius(12))
-                .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
+                .background((kidMode ? Color(white: 0.95) : Color(white: 0.13)).cornerRadius(12))
+                .shadow(color: (kidMode ? Color(red: 0.0, green: 0.3, blue: 0.7) : Color.black).opacity(0.25), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
     }
 
     // MARK: - New UX overlays
+
+    /// Lightbulb hint button for adult mode — triggers the same path + glow system as kid auto-hints.
+    @ViewBuilder private var hintButton: some View {
+        let isActive = engine.hintWordId != nil || !engine.hintMoves.isEmpty
+        Button {
+            guard !hintCooldown else { return }
+            hintCooldown = true
+            engine.requestHint()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+                hintCooldown = false
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: isActive ? "lightbulb.fill" : "lightbulb")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(isActive
+                        ? Color(red: 1.0, green: 0.85, blue: 0.0)
+                        : hintCooldown ? Color(white: 0.22) : Color(white: 0.42))
+                Text(hintCooldown && !isActive ? "COOLING DOWN" : "HINT")
+                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .tracking(1.5)
+                    .foregroundColor(isActive
+                        ? Color(red: 1.0, green: 0.85, blue: 0.0)
+                        : hintCooldown ? Color(white: 0.20) : Color(white: 0.36))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isActive ? Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.10) : Color(white: 0.07))
+                    .overlay(RoundedRectangle(cornerRadius: 10)
+                        .stroke(isActive
+                            ? Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.45)
+                            : Color(white: hintCooldown ? 0.06 : 0.12), lineWidth: 1))
+            )
+            .animation(.easeInOut(duration: 0.3), value: isActive)
+            .animation(.easeInOut(duration: 0.3), value: hintCooldown)
+        }
+        .buttonStyle(.plain)
+        .disabled(hintCooldown && !isActive)
+    }
 
     /// Inline combo display for kid mode header — sits where STARS used to be.
     @ViewBuilder private var kidComboStat: some View {
