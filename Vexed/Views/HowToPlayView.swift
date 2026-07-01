@@ -1,0 +1,287 @@
+import SwiftUI
+
+struct HowToPlayView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private let accent = Color(red: 1.0, green: 0.85, blue: 0.2)
+    private let bg     = Color(red: 0.07, green: 0.07, blue: 0.11)
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    section("The Basics") {
+                        bodyText("Letters sit on a grid. Tap a tile to select it, then swipe in any direction — the tile slides until it hits a wall or another tile.")
+                        bodyText("When tiles spell a valid word (left→right or top→bottom), a **gold outline** appears. Tap any tile inside the outline to collect it. Tiles vanish and your score goes up.")
+                    }
+
+                    section("The Vowel Rule", accent: Color(red: 1, green: 0.38, blue: 0.38)) {
+                        bodyText("If **3 or more of the same vowel touch** — horizontally or vertically in any shape — they all vanish instantly. No warning. No score.")
+                        bodyText("The board pulses a warning colour when a cluster is growing close to 3:")
+                        tagGrid([
+                            ("A", Color(red: 0.9, green: 0.25, blue: 0.25)),
+                            ("E", Color(red: 0.25, green: 0.55, blue: 0.95)),
+                            ("I", Color(red: 0.25, green: 0.82, blue: 0.45)),
+                            ("O", Color(red: 0.95, green: 0.55, blue: 0.15)),
+                            ("U", Color(red: 0.65, green: 0.35, blue: 0.95)),
+                        ])
+                        bodyText("Slide one of those vowels away before the cluster reaches 3.")
+                    }
+
+                    section("Scoring") {
+                        table(
+                            headers: ["Word length", "Base points"],
+                            rows: [
+                                ["3 letters", "30 pts"],
+                                ["4 letters", "40 pts"],
+                                ["5 letters", "70 pts ✦"],
+                                ["6 letters", "80 pts"],
+                                ["7 letters", "90 pts"],
+                                ["+1 letter", "+10 pts"],
+                            ]
+                        )
+                        bodyText("✦ A bonus kicks in at 5 letters — longer words score disproportionately more than stacking short ones.")
+
+                        subheading("Combo Multiplier")
+                        bodyText("Score words back-to-back without losing vowels and your multiplier climbs:")
+                        table(
+                            headers: ["Consecutive words", "Multiplier"],
+                            rows: [
+                                ["1", "×1.0"],
+                                ["2", "×1.5"],
+                                ["3", "×2.0"],
+                                ["4+", "×3.0"],
+                            ]
+                        )
+                        bodyText("Losing vowels or running out of moves resets the combo to zero.")
+                    }
+
+                    section("Tile Forge") {
+                        bodyText("Every word you collect forges new tiles into empty spaces. Longer words forge more tiles — this is how you keep the board alive.")
+                        bodyText("**Forge tiles = word length − difficulty threshold** (no cap, keeps increasing)")
+                        table(
+                            headers: ["Word length", "Easy (−1)", "Medium (−2)", "Hard (−3)"],
+                            rows: [
+                                ["3 letters", "+2", "+1", "—"],
+                                ["4 letters", "+3", "+2", "+1"],
+                                ["5 letters", "+4", "+3", "+2"],
+                                ["6 letters", "+5", "+4", "+3"],
+                                ["7 letters", "+6", "+5", "+4"],
+                            ]
+                        )
+                        bodyText("Forged tiles are weighted toward vowels when the board is running low.")
+                    }
+
+                    section("Word Strip") {
+                        bodyText("The strip at the bottom shows every word scoreable **right now** without moving anything — sorted longest-first.")
+                        bodyText("Tap a chip to highlight those tiles and see the word's definition. Tap a highlighted tile on the board to collect it.")
+                    }
+
+                    section("Game Over") {
+                        bodyText("The game ends when no slide can form a word, even looking two moves ahead. You'll see a grade based on how much of the board's total potential score you captured:")
+                        table(
+                            headers: ["Grade", "Score captured"],
+                            rows: [
+                                ["S", "90%+"],
+                                ["A", "75–89%"],
+                                ["B", "60–74%"],
+                                ["C", "45–59%"],
+                                ["D", "30–44%"],
+                                ["F", "Below 30%"],
+                            ]
+                        )
+                    }
+
+                    section("Difficulty Levels") {
+                        difficultyCard(
+                            name: "Easy",
+                            color: Color(red: 0.3, green: 0.9, blue: 0.5),
+                            grid: "5×5",
+                            words: "12,500 everyday words",
+                            minLen: "3 letters",
+                            forge: "−1 threshold (3-letter words give +2 tiles)"
+                        )
+                        difficultyCard(
+                            name: "Medium",
+                            color: Color(red: 1.0, green: 0.75, blue: 0.1),
+                            grid: "7×7",
+                            words: "33,000 words",
+                            minLen: "3 letters",
+                            forge: "−2 threshold (3-letter words give +1 tile)"
+                        )
+                        difficultyCard(
+                            name: "Hard",
+                            color: Color(red: 1.0, green: 0.3, blue: 0.3),
+                            grid: "10×10",
+                            words: "132,000 words (full dictionary)",
+                            minLen: "4 letters minimum",
+                            forge: "−3 threshold (need 4+ letters to forge anything)"
+                        )
+                    }
+
+                    section("Tips") {
+                        tip("Think before you slide. Tiles move fast; vowels vanish faster.")
+                        tip("Check the word strip first — there may already be words to collect.")
+                        tip("Spread vowels deliberately. Two Es side by side is fine. Three is catastrophe.")
+                        tip("Longer words pay double. A 6-letter word scores roughly as much as two 3-letter words and forges far more tiles.")
+                        tip("Combos matter most on Hard. A ×3 multiplier on a 7-letter word is your path to an S grade.")
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 24)
+            }
+            .background(bg.ignoresSafeArea())
+            .navigationTitle("How to Play")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(bg, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(accent)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Components
+
+    @ViewBuilder
+    private func section<Content: View>(_ title: String, accent accentColor: Color? = nil, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(accentColor ?? accent)
+                    .frame(width: 3, height: 18)
+                    .cornerRadius(2)
+                Text(title.uppercased())
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .foregroundColor(accentColor ?? accent)
+                    .tracking(2)
+            }
+            content()
+        }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.07), lineWidth: 1))
+    }
+
+    private func subheading(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .foregroundColor(.white.opacity(0.7))
+            .padding(.top, 4)
+    }
+
+    private func bodyText(_ text: String) -> some View {
+        Text(AttributedString(markdown: text) ?? AttributedString(text))
+            .font(.system(size: 14, design: .default))
+            .foregroundColor(.white.opacity(0.75))
+            .lineSpacing(4)
+    }
+
+    private func tip(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text("→")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(accent)
+                .padding(.top, 1)
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.75))
+                .lineSpacing(4)
+        }
+    }
+
+    private func table(headers: [String], rows: [[String]]) -> some View {
+        VStack(spacing: 0) {
+            // Header row
+            HStack(spacing: 0) {
+                ForEach(headers.indices, id: \.self) { i in
+                    Text(headers[i])
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(accent.opacity(0.8))
+                        .frame(maxWidth: .infinity, alignment: i == 0 ? .leading : .center)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                }
+            }
+            .background(Color.white.opacity(0.06))
+            // Data rows
+            ForEach(rows.indices, id: \.self) { ri in
+                Divider().background(Color.white.opacity(0.06))
+                HStack(spacing: 0) {
+                    ForEach(rows[ri].indices, id: \.self) { ci in
+                        Text(rows[ri][ci])
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundColor(.white.opacity(ci == 0 ? 0.6 : 0.9))
+                            .frame(maxWidth: .infinity, alignment: ci == 0 ? .leading : .center)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                    }
+                }
+                .background(ri.isMultiple(of: 2) ? Color.clear : Color.white.opacity(0.025))
+            }
+        }
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.08), lineWidth: 1))
+    }
+
+    private func tagGrid(_ items: [(String, Color)]) -> some View {
+        HStack(spacing: 8) {
+            ForEach(items, id: \.0) { letter, color in
+                HStack(spacing: 5) {
+                    Circle().fill(color).frame(width: 8, height: 8)
+                    Text(letter)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 8).fill(color.opacity(0.12)))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.3), lineWidth: 1))
+            }
+        }
+    }
+
+    private func difficultyCard(name: String, color: Color, grid: String, words: String, minLen: String, forge: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(color.opacity(0.18))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.5), lineWidth: 1))
+                .frame(width: 4)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name)
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundColor(color)
+                row("Grid", grid)
+                row("Dictionary", words)
+                row("Min word", minLen)
+                row("Tile forge", forge)
+            }
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 10).fill(color.opacity(0.05)))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.15), lineWidth: 1))
+    }
+
+    private func row(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text(label + ":")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.38))
+                .frame(width: 72, alignment: .leading)
+            Text(value)
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.7))
+        }
+    }
+}
+
+private extension AttributedString {
+    init?(markdown text: String) {
+        try? self.init(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))
+    }
+}

@@ -12,6 +12,7 @@ struct SplashView: View {
     @State private var tapPromptVisible = false
     @State private var tapPulse = false
     @State private var dismissing = false
+    @State private var showHelp = false
 
     // V E X / E D
     private let row1: [(String, Color)] = [
@@ -109,9 +110,22 @@ struct SplashView: View {
                 Spacer()
             }
         }
+        // Help button — bottom-right corner, above safe area
+        .overlay(alignment: .bottomTrailing) {
+            Button { showHelp = true } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundColor(.white.opacity(0.35))
+            }
+            .padding(24)
+            .opacity(tapPromptVisible ? 1 : 0)
+        }
+        .sheet(isPresented: $showHelp) {
+            HowToPlayView()
+        }
         .opacity(dismissing ? 0 : 1)
         .scaleEffect(dismissing ? 1.06 : 1)
-        .onTapGesture { dismiss() }
+        .onTapGesture { if !showHelp { dismiss() } }
         .onAppear { runEntrance() }
     }
 

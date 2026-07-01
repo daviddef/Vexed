@@ -58,11 +58,25 @@ struct BurgerMenuView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             menuSectionHeader("HELP")
 
-                            menuRow(icon: "questionmark.circle", label: "How to Play", color: .white) {
-                                dismiss()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                    onShowInstructions()
+                            NavigationLink {
+                                HowToPlayView()
+                            } label: {
+                                HStack(spacing: 14) {
+                                    Image(systemName: "questionmark.circle")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .frame(width: 24)
+                                    Text("How to Play")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(Color(white: 0.3))
                                 }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 14)
+                                .background(Color(white: 0.08))
                             }
 
                             Divider().background(Color(white: 0.1))

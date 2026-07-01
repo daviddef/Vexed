@@ -15,6 +15,7 @@
 		474B0777A33EE9CE80DD9CE2 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E1C41036AC2AAA5C4CD95C4 /* SplashView.swift */; };
 		49ADDB9EBA6677C01ACA0F01 /* TipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8330BE04DB11CCAC18DF5EC /* TipsView.swift */; };
 		6C2ADD19137134E85A042D92 /* BurgerMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B222A449F73E06EAB0FB804 /* BurgerMenuView.swift */; };
+		6C5FB0E5711F3CF5618AE758 /* HowToPlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F74CFD0AB84C3B3C054ED406 /* HowToPlayView.swift */; };
 		7479FF7E21BDB368AE7F5645 /* WordDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D668298180128D46F9F26A /* WordDefinition.swift */; };
 		7C98B292CCDE6827788F9331 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = 373DC80F055AE84737CE034F /* Position.swift */; };
 		87A3D5D6F10BCE8D63C4A652 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CEB73563ADF803D330B29F36 /* Assets.xcassets */; };
@@ -33,6 +34,7 @@
 		E5E9C7A32E33B1D82D1A0E06 /* AvailableWordChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C9DCAF78FD1EADEF2DA098 /* AvailableWordChip.swift */; };
 		F56058127215604D24C21615 /* WordValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5177A1E4925AF3AE770B3C7F /* WordValidator.swift */; };
 		FC0B0CC45F61740064DDB0EE /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C0E94B94BCA0CE35AADDD1F9 /* CoreServices.framework */; };
+		FEABD7318A5C975546F4B60D /* HowToPlay.md in Resources */ = {isa = PBXBuildFile; fileRef = 53DF8A852959B44BB137FCC7 /* HowToPlay.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +45,7 @@
 		373DC80F055AE84737CE034F /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
 		450B73D4A73D4042A6EA4E33 /* dictionary.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = dictionary.txt; sourceTree = "<group>"; };
 		5177A1E4925AF3AE770B3C7F /* WordValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordValidator.swift; sourceTree = "<group>"; };
+		53DF8A852959B44BB137FCC7 /* HowToPlay.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HowToPlay.md; sourceTree = "<group>"; };
 		6304962939BAB59E4179777F /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
 		6317CB0814BBBB7866C13144 /* VexedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VexedApp.swift; sourceTree = "<group>"; };
 		6E379D33E0B517CC2BB3E4D8 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
@@ -62,6 +65,7 @@
 		D060CF8F9C75D0B6E61153C0 /* ParticleBurstView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleBurstView.swift; sourceTree = "<group>"; };
 		D1C9DCAF78FD1EADEF2DA098 /* AvailableWordChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailableWordChip.swift; sourceTree = "<group>"; };
 		D7D668298180128D46F9F26A /* WordDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordDefinition.swift; sourceTree = "<group>"; };
+		F74CFD0AB84C3B3C054ED406 /* HowToPlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowToPlayView.swift; sourceTree = "<group>"; };
 		F960993D28D90F8FA73D8796 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -116,6 +120,7 @@
 				CEB73563ADF803D330B29F36 /* Assets.xcassets */,
 				450B73D4A73D4042A6EA4E33 /* dictionary.txt */,
 				CF9EB42E00F71C437FA39EE6 /* easy_words.txt */,
+				53DF8A852959B44BB137FCC7 /* HowToPlay.md */,
 				344B437F00ADDE56B9361A4E /* words.txt */,
 			);
 			path = Resources;
@@ -146,6 +151,7 @@
 				249270D3AA15409BB3EF1915 /* DefinitionCard.swift */,
 				F960993D28D90F8FA73D8796 /* GameView.swift */,
 				0DFF4E29B41C4E7EE1FAE1A8 /* GridView.swift */,
+				F74CFD0AB84C3B3C054ED406 /* HowToPlayView.swift */,
 				88BBA04D81502D71C8038A3C /* HUDView.swift */,
 				233E208FD9087F702149CA1A /* InstructionsView.swift */,
 				BBDC70987CA16B6B7F67F776 /* MissedWordsView.swift */,
@@ -224,6 +230,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				87A3D5D6F10BCE8D63C4A652 /* Assets.xcassets in Resources */,
+				FEABD7318A5C975546F4B60D /* HowToPlay.md in Resources */,
 				C37CFECCFAE080EE3D0871A9 /* dictionary.txt in Resources */,
 				92ED70249397E34C3A1D01B3 /* easy_words.txt in Resources */,
 				984C35E29C05E0AE72CFD927 /* words.txt in Resources */,
@@ -246,6 +253,7 @@
 				1F8B8C9F301E36C12BA60E1C /* GridView.swift in Sources */,
 				E0EAC1BEFADB65A8D1030763 /* HUDView.swift in Sources */,
 				C05646D5A22789482E4B8401 /* Haptics.swift in Sources */,
+				6C5FB0E5711F3CF5618AE758 /* HowToPlayView.swift in Sources */,
 				39C44BF25D20D8CB0289483E /* InstructionsView.swift in Sources */,
 				B3A765E2552955D9E5A4584E /* MissedWordsView.swift in Sources */,
 				BFA99D7E002D44E78FB671D5 /* ParticleBurstView.swift in Sources */,
