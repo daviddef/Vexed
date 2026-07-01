@@ -24,6 +24,7 @@ targets:
     resources:
       - path: Vexed/Resources/Assets.xcassets
       - path: Vexed/Resources/easy_words.txt
+      - path: Vexed/Resources/medium_words.txt
       - path: Vexed/Resources/words.txt
       - path: Vexed/Resources/dictionary.txt
       - path: Vexed/Resources/HowToPlay.md

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		086DCC3609708329E5604A3D /* TileCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66A7018BFE1BA853288B8CE /* TileCellView.swift */; };
 		1F8B8C9F301E36C12BA60E1C /* GridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFF4E29B41C4E7EE1FAE1A8 /* GridView.swift */; };
+		2238E577C18A7022A9B6CAE5 /* medium_words.txt in Resources */ = {isa = PBXBuildFile; fileRef = AC8D6A41D7615A6607F203DD /* medium_words.txt */; };
 		375CEF8DE85D4FA8C9073AE7 /* DefinitionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249270D3AA15409BB3EF1915 /* DefinitionCard.swift */; };
 		390F72CAE1FCBFA057E1E06C /* GameEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6304962939BAB59E4179777F /* GameEngine.swift */; };
 		39C44BF25D20D8CB0289483E /* InstructionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233E208FD9087F702149CA1A /* InstructionsView.swift */; };
@@ -56,6 +57,7 @@
 		8D4456B2579A8873E94240D2 /* Tile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tile.swift; sourceTree = "<group>"; };
 		9B222A449F73E06EAB0FB804 /* BurgerMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BurgerMenuView.swift; sourceTree = "<group>"; };
 		A66A7018BFE1BA853288B8CE /* TileCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileCellView.swift; sourceTree = "<group>"; };
+		AC8D6A41D7615A6607F203DD /* medium_words.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = medium_words.txt; sourceTree = "<group>"; };
 		B8330BE04DB11CCAC18DF5EC /* TipsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipsView.swift; sourceTree = "<group>"; };
 		BBDC70987CA16B6B7F67F776 /* MissedWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissedWordsView.swift; sourceTree = "<group>"; };
 		C0E94B94BCA0CE35AADDD1F9 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
@@ -121,6 +123,7 @@
 				450B73D4A73D4042A6EA4E33 /* dictionary.txt */,
 				CF9EB42E00F71C437FA39EE6 /* easy_words.txt */,
 				53DF8A852959B44BB137FCC7 /* HowToPlay.md */,
+				AC8D6A41D7615A6607F203DD /* medium_words.txt */,
 				344B437F00ADDE56B9361A4E /* words.txt */,
 			);
 			path = Resources;
@@ -233,6 +236,7 @@
 				FEABD7318A5C975546F4B60D /* HowToPlay.md in Resources */,
 				C37CFECCFAE080EE3D0871A9 /* dictionary.txt in Resources */,
 				92ED70249397E34C3A1D01B3 /* easy_words.txt in Resources */,
+				2238E577C18A7022A9B6CAE5 /* medium_words.txt in Resources */,
 				984C35E29C05E0AE72CFD927 /* words.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

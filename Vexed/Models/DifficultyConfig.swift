@@ -16,9 +16,10 @@ enum Difficulty: String, CaseIterable, Identifiable {
         //   Easy   (min=1): 3→+2, 4→+3, 5→+4, 6→+5 …
         //   Medium (min=2): 3→+1, 4→+2, 5→+3, 6→+4, 7→+5 …
         //   Hard   (min=3): 4→+1, 5→+2, 6→+3, 7→+4 … (min word length 4)
-        case .easy:   return DifficultyConfig(rows: 5,  cols: 5,  adjacency: .orthogonal, minWordLength: 3, wordListName: "easy_words", forgeMinLength: 1)
-        case .medium: return DifficultyConfig(rows: 7,  cols: 7,  adjacency: .orthogonal, minWordLength: 3, wordListName: "words",       forgeMinLength: 2)
-        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 4, wordListName: "dictionary",   forgeMinLength: 3)
+        // wordListName = clean (default); wordListNameFull = unlocked by "include rare words" toggle
+        case .easy:   return DifficultyConfig(rows: 5,  cols: 5,  adjacency: .orthogonal, minWordLength: 3, wordListName: "easy_words",   wordListNameFull: "easy_words", forgeMinLength: 1)
+        case .medium: return DifficultyConfig(rows: 7,  cols: 7,  adjacency: .orthogonal, minWordLength: 3, wordListName: "medium_words", wordListNameFull: "words",       forgeMinLength: 2)
+        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 4, wordListName: "medium_words", wordListNameFull: "dictionary",  forgeMinLength: 3)
         }
     }
 
@@ -44,9 +45,14 @@ struct DifficultyConfig {
     let cols: Int
     let adjacency: AdjacencyMode
     let minWordLength: Int
-    let wordListName: String
+    let wordListName: String       // default (clean, no archaic/rare words)
+    let wordListNameFull: String   // when "include rare words" toggle is on
     /// Forge tiles = max(0, wordLength − forgeMinLength), uncapped.
     let forgeMinLength: Int
+
+    func activeWordList(includeRare: Bool) -> String {
+        includeRare ? wordListNameFull : wordListName
+    }
 
     var adjacentDirections: [Direction] { Direction.cardinal }
 

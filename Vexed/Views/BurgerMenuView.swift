@@ -7,6 +7,7 @@ struct BurgerMenuView: View {
     var onShowInstructions: () -> Void
     var onShowMissedWords: () -> Void
 
+    @AppStorage("includeRareWords") private var includeRareWords: Bool = false
     @State private var showTips = false
 
     var body: some View {
@@ -105,6 +106,36 @@ struct BurgerMenuView: View {
                                 .padding(.vertical, 14)
                                 .background(Color(white: 0.08))
                             }
+
+                            Divider().background(Color(white: 0.1))
+
+                            Divider().background(Color(white: 0.1))
+
+                            // Rare words toggle
+                            HStack(spacing: 14) {
+                                Image(systemName: "character.book.closed")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 24)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Rare & archaic words")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                    Text("Includes technical, abbreviations, non-English")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(Color(white: 0.4))
+                                }
+                                Spacer()
+                                Toggle("", isOn: $includeRareWords)
+                                    .labelsHidden()
+                                    .onChange(of: includeRareWords) { _, _ in
+                                        onReset()
+                                        dismiss()
+                                    }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.08))
 
                             Divider().background(Color(white: 0.1))
 

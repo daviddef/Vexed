@@ -56,7 +56,10 @@ final class GameEngine: ObservableObject {
     }
 
     var config: DifficultyConfig
-    private var validator: WordValidator { WordValidator.forResource(config.wordListName) }
+    private var validator: WordValidator {
+        let includeRare = UserDefaults.standard.bool(forKey: "includeRareWords")
+        return WordValidator.forResource(config.activeWordList(includeRare: includeRare))
+    }
     private var pressureTimer: AnyCancellable?
 
     struct LogEntry: Identifiable {
@@ -68,7 +71,7 @@ final class GameEngine: ObservableObject {
 
     init(difficulty: Difficulty = .medium) {
         self.config = difficulty.config
-        self.grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.wordListName))
+        self.grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
         startPressureTimer()
         recalculatePotentialScore()
     }
@@ -762,7 +765,7 @@ final class GameEngine: ObservableObject {
     func reset(difficulty: Difficulty) {
         pressureTimer?.cancel()
         config = difficulty.config
-        grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.wordListName))
+        grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
         selectedPosition = nil
         score = 0; wordCount = 0; lostVowels = 0
         lastWord = nil; gameOver = false; log = []; wordHistory = []
