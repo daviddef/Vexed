@@ -27,14 +27,34 @@ struct GameView: View {
     @State private var wordScoreFlash: Bool = false
     @State private var tutorialStep: Int = 0
     @State private var definitionEntry: DefinitionEntry? = nil
+    @AppStorage("arcadeMode") private var arcadeMode: Bool = false
+    private var theme: GameTheme { GameTheme(isArcade: arcadeMode) }
 
     var body: some View {
         ZStack {
-            Color(red: 0.06, green: 0.06, blue: 0.09).ignoresSafeArea()
+            theme.bgBase.ignoresSafeArea()
+            // Corner glows (arcade only)
+            if theme.showCornerGlows {
+                GeometryReader { geo in
+                    // Top-right purple glow
+                    RadialGradient(
+                        colors: [Color(red: 0.55, green: 0.1, blue: 0.9).opacity(0.35), .clear],
+                        center: .topTrailing, startRadius: 0, endRadius: geo.size.width * 0.7
+                    )
+                    .ignoresSafeArea()
+                    // Bottom-left teal glow
+                    RadialGradient(
+                        colors: [Color(red: 0.0, green: 0.7, blue: 0.8).opacity(0.22), .clear],
+                        center: .bottomLeading, startRadius: 0, endRadius: geo.size.width * 0.6
+                    )
+                    .ignoresSafeArea()
+                }
+                .allowsHitTesting(false)
+            }
             // Breathing overlay
             RadialGradient(
                 gradient: Gradient(colors: [
-                    Color(red: 0.12, green: 0.08, blue: 0.18).opacity(breathPhase ? 0.4 : 0.15),
+                    theme.bgBreathColor.opacity(breathPhase ? theme.bgBreathOpacityHigh : theme.bgBreathOpacityLow),
                     Color.clear
                 ]),
                 center: .center,
@@ -435,12 +455,12 @@ struct GameView: View {
         VStack {
             Spacer()
             Text(msg)
-                .font(.system(size: 22, weight: .black, design: .rounded))
+                .font(theme.toastFont)
                 .foregroundColor(.black)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(RoundedRectangle(cornerRadius: 16).fill(Color.yellow))
-                .shadow(color: Color.yellow.opacity(0.6), radius: 12, x: 0, y: 4)
+                .padding(.horizontal, theme.toastPaddingH)
+                .padding(.vertical, theme.toastPaddingV)
+                .background(RoundedRectangle(cornerRadius: theme.toastCornerRadius).fill(theme.toastFill))
+                .shadow(color: Color.yellow.opacity(0.65), radius: theme.isArcade ? 18 : 12, x: 0, y: 4)
                 .rotationEffect(.degrees(toastRotation))
                 .padding(.bottom, 100)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -451,12 +471,12 @@ struct GameView: View {
         VStack {
             Spacer()
             Text(msg)
-                .font(.system(size: 14, weight: .black, design: .rounded))
+                .font(theme.forgeBannerFont)
                 .foregroundColor(.black)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 9)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color(red: 0.3, green: 0.9, blue: 1.0)))
-                .shadow(color: Color.cyan.opacity(0.5), radius: 10, x: 0, y: 3)
+                .padding(.horizontal, theme.isArcade ? 22 : 18)
+                .padding(.vertical, theme.isArcade ? 11 : 9)
+                .background(RoundedRectangle(cornerRadius: theme.forgeBannerRadius).fill(theme.forgeBannerFill))
+                .shadow(color: Color.cyan.opacity(0.55), radius: theme.isArcade ? 16 : 10, x: 0, y: 3)
                 .padding(.bottom, 80)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
@@ -465,12 +485,12 @@ struct GameView: View {
     @ViewBuilder private func vanishBanner(_ msg: String) -> some View {
         VStack {
             Text(msg)
-                .font(.system(size: 15, weight: .black, design: .rounded))
+                .font(theme.vanishBannerFont)
                 .foregroundColor(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color(red: 0.85, green: 0.15, blue: 0.15)))
-                .shadow(color: Color.red.opacity(0.5), radius: 10, x: 0, y: 3)
+                .padding(.horizontal, theme.isArcade ? 24 : 20)
+                .padding(.vertical, theme.isArcade ? 12 : 10)
+                .background(RoundedRectangle(cornerRadius: theme.vanishBannerRadius).fill(theme.vanishBannerFill))
+                .shadow(color: Color.red.opacity(0.55), radius: theme.isArcade ? 16 : 10, x: 0, y: 3)
                 .padding(.top, 12)
                 .transition(.move(edge: .top).combined(with: .opacity))
             Spacer()
@@ -504,15 +524,18 @@ struct GameView: View {
                             let chipColor = chipTint(for: entry.word)
                             HStack(spacing: 4) {
                                 Text(entry.word)
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(theme.chipFont)
                                     .foregroundColor(chipColor.foreground)
                                 Text("+\(entry.points)")
-                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .font(theme.chipPointsFont)
                                     .foregroundColor(.yellow)
                             }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(chipColor.background.cornerRadius(10))
+                            .padding(.horizontal, theme.chipPaddingH)
+                            .padding(.vertical, theme.chipPaddingV)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.chipCornerRadius)
+                                    .fill(theme.chipBg(forWordLength: entry.word.count))
+                            )
                             .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
                             .id(idx)
                             .onTapGesture { showDefinition(for: entry.word, points: entry.points) }
@@ -536,22 +559,26 @@ struct GameView: View {
             Group {
                 if isScore {
                     Text(value)
-                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .font(theme.scoreFont)
                         .foregroundColor(color)
                         .contentTransition(.numericText())
                 } else {
                     Text(value)
-                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .font(theme.scoreFont)
                         .foregroundColor(color)
                 }
             }
             Text(label)
-                .font(.system(size: 8, weight: .semibold))
-                .foregroundColor(Color(white: 0.3))
-                .tracking(1)
+                .font(theme.statLabelFont)
+                .foregroundColor(Color(white: theme.isArcade ? 0.45 : 0.30))
+                .tracking(theme.statLabelTracking)
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 4)
+        .padding(.vertical, theme.isArcade ? 7 : 6)
+        .padding(.horizontal, theme.isArcade ? 8 : 4)
+        .background(
+            RoundedRectangle(cornerRadius: theme.statCornerRadius)
+                .fill(theme.statBgColor(for: label).opacity(theme.statBgOpacity))
+        )
         .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
     }
 

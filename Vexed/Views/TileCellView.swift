@@ -9,7 +9,13 @@ struct TileCellView: View {
     var pathColor: Color? = nil
     var isDestination: Bool = false
 
+    @AppStorage("arcadeMode") private var arcadeMode: Bool = false
+    private var theme: GameTheme { GameTheme(isArcade: arcadeMode) }
+
     @State private var vanishRotation: Double = 0
+    @State private var forgeScale: CGFloat = 1.0
+    @State private var forgeGlow: CGFloat = 0.0
+    @State private var forgeFlash: CGFloat = 0.0
 
     var body: some View {
         ZStack {
@@ -26,8 +32,8 @@ struct TileCellView: View {
                     .fill(
                         LinearGradient(
                             stops: [
-                                .init(color: Color.white.opacity(0.45), location: 0),
-                                .init(color: Color.clear, location: 0.40)
+                                .init(color: Color.white.opacity(theme.tileHighlightOpacity), location: 0),
+                                .init(color: Color.clear, location: theme.tileHighlightStop)
                             ],
                             startPoint: .top, endPoint: .bottom
                         )
@@ -39,23 +45,32 @@ struct TileCellView: View {
                         LinearGradient(
                             stops: [
                                 .init(color: Color.clear, location: 0.60),
-                                .init(color: Color.black.opacity(0.30), location: 1.0)
+                                .init(color: Color.black.opacity(theme.tileShadowOpacity), location: 1.0)
                             ],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
 
-                // 4. Border: selected = white, else darkened inner border
+                // 4. Arcade gloss stripe — thin horizontal shimmer near top
+                if theme.showGlossStripe {
+                    RoundedRectangle(cornerRadius: cr * 0.5)
+                        .fill(Color.white.opacity(0.18))
+                        .frame(width: size * 0.58, height: size * 0.08)
+                        .offset(y: -(size * 0.22))
+                        .blendMode(.plusLighter)
+                }
+
+                // 5. Border: selected = white, else darkened inner border
                 RoundedRectangle(cornerRadius: cr)
                     .strokeBorder(
                         isSelected ? Color.white : darkenedColor(base, factor: 0.65),
-                        lineWidth: isSelected ? 3.5 : 1.5
+                        lineWidth: isSelected ? 3.5 : theme.tileBorderWidth
                     )
 
-                // 5. Outer highlight stroke (white top shimmer)
+                // 6. Outer highlight stroke (white top shimmer)
                 if !isSelected {
                     RoundedRectangle(cornerRadius: cr)
-                        .stroke(Color.white.opacity(0.25), lineWidth: 0.75)
+                        .stroke(Color.white.opacity(theme.showGlossStripe ? 0.35 : 0.25), lineWidth: 0.75)
                 }
 
                 // Letter
@@ -63,6 +78,12 @@ struct TileCellView: View {
                     .font(.system(size: size * 0.50, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .shadow(color: .black, radius: 1, x: 0, y: 1)
+
+                // Forge entry flash — white blaze that instantly fades
+                if forgeFlash > 0 {
+                    RoundedRectangle(cornerRadius: size * 0.22)
+                        .fill(Color.white.opacity(forgeFlash))
+                }
 
             } else {
                 // Empty cell: barely visible dashed grid structure
@@ -87,15 +108,17 @@ struct TileCellView: View {
             }
         }
         .frame(width: size, height: size)
-        .scaleEffect(isTouching ? 1.10 : scaleFor(tile?.animState))
+        .scaleEffect(tile?.animState == .forged ? forgeScale : (isTouching ? 1.10 : scaleFor(tile?.animState)))
         .rotationEffect(.degrees(tile?.animState == .vanishing ? vanishRotation : 0))
         .opacity(tile?.animState == .vanishing ? 0 : 1)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
                 radius: isTouching ? 18 : (isDanger ? 14 : 0))
-        // Path glow on the outer border of path / destination cells
         .shadow(color: pathColor?.opacity(isDestination ? 0.85 : 0.45) ?? .clear,
                 radius: isDestination ? 12 : 6, x: 0, y: 0)
+        // Forge glow — gold halo during entry
+        .shadow(color: Color(red: 1, green: 0.85, blue: 0.2).opacity(forgeGlow),
+                radius: 22 * forgeGlow, x: 0, y: 0)
         .rotation3DEffect(
             .degrees(tile != nil && isSelected ? -8 : 0),
             axis: (x: 1, y: 0, z: 0),
@@ -111,12 +134,30 @@ struct TileCellView: View {
         .animation(.spring(response: 0.12, dampingFraction: 0.55), value: isTouching)
         .animation(.easeInOut(duration: 0.25), value: pathColor != nil)
         .animation(.easeInOut(duration: 0.35), value: tile?.animState)
-        .onChange(of: tile?.animState) { _, newState in
-            if newState == .vanishing {
+        .onChange(of: tile) { oldTile, newTile in
+            // Forged tile entry: nil → .forged
+            if oldTile == nil, let newTile, newTile.animState == .forged {
+                forgeScale = 0
+                forgeGlow  = 0
+                forgeFlash = 0.85
+                // Scale: spring up from 0, overshoot, settle
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.42)) {
+                    forgeScale = 1.0
+                }
+                // Flash: instant bright then fade
+                withAnimation(.easeOut(duration: 0.25)) {
+                    forgeFlash = 0
+                }
+                // Glow: rise then fade
+                withAnimation(.easeOut(duration: 0.15)) { forgeGlow = 1.0 }
+                withAnimation(.easeIn(duration: 0.55).delay(0.2)) { forgeGlow = 0 }
+            }
+            // Vanish rotation
+            if newTile?.animState == .vanishing {
                 withAnimation(.easeIn(duration: 0.3)) {
                     vanishRotation = Bool.random() ? 18 : -18
                 }
-            } else {
+            } else if newTile == nil || newTile?.animState != .vanishing {
                 vanishRotation = 0
             }
         }
@@ -127,7 +168,7 @@ struct TileCellView: View {
     private func baseColor(for tile: Tile) -> Color {
         switch tile.type {
         case .consonant:
-            return Color(red: 0.165, green: 0.165, blue: 0.243) // medium slate #2A2A3E
+            return theme.consonantBase
         case .vowel(.A):
             return Color(red: 0.95, green: 0.22, blue: 0.22)
         case .vowel(.E):

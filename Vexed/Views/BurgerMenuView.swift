@@ -8,6 +8,7 @@ struct BurgerMenuView: View {
     var onShowMissedWords: () -> Void
 
     @AppStorage("includeRareWords") private var includeRareWords: Bool = false
+    @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @State private var showTips = false
 
     var body: some View {
@@ -132,6 +133,31 @@ struct BurgerMenuView: View {
                                         onReset()
                                         dismiss()
                                     }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.08))
+
+                            Divider().background(Color(white: 0.1))
+
+                            // Arcade mode toggle
+                            HStack(spacing: 14) {
+                                Image(systemName: "gamecontroller")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(arcadeMode ? Color(red: 0.7, green: 0.4, blue: 1.0) : .white)
+                                    .frame(width: 24)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Arcade Mode")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                    Text("Vivid background, textured tiles, bold scoreboard")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(Color(white: 0.4))
+                                }
+                                Spacer()
+                                Toggle("", isOn: $arcadeMode)
+                                    .labelsHidden()
+                                    .tint(Color(red: 0.7, green: 0.4, blue: 1.0))
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
