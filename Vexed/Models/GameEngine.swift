@@ -56,7 +56,7 @@ final class GameEngine: ObservableObject {
     }
 
     var config: DifficultyConfig
-    private let validator = WordValidator.shared
+    private var validator: WordValidator { WordValidator.forResource(config.wordListName) }
     private var pressureTimer: AnyCancellable?
 
     struct LogEntry: Identifiable {
@@ -68,21 +68,21 @@ final class GameEngine: ObservableObject {
 
     init(difficulty: Difficulty = .medium) {
         self.config = difficulty.config
-        self.grid = Self.makeGrid(rows: config.rows, cols: config.cols)
+        self.grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.wordListName))
         startPressureTimer()
         recalculatePotentialScore()
     }
 
     // MARK: - Grid Setup
 
-    private static func makeGrid(rows: Int, cols: Int) -> [[Tile?]] {
+    private static func makeGrid(rows: Int, cols: Int, validator: WordValidator) -> [[Tile?]] {
         // Regenerate until the starting board contains no pre-existing words.
         // With ~20% empty cells this typically resolves in 1-3 attempts.
         var attempts = 0
         while true {
             let g = generateGrid(rows: rows, cols: cols)
             attempts += 1
-            if !boardHasWords(g, rows: rows, cols: cols) || attempts > 50 { return g }
+            if !boardHasWords(g, rows: rows, cols: cols, validator: validator) || attempts > 50 { return g }
         }
     }
 
@@ -112,8 +112,7 @@ final class GameEngine: ObservableObject {
     }
 
     // Returns true if any row or column contains a valid word of 3+ letters.
-    private static func boardHasWords(_ grid: [[Tile?]], rows: Int, cols: Int) -> Bool {
-        let v = WordValidator.shared
+    private static func boardHasWords(_ grid: [[Tile?]], rows: Int, cols: Int, validator v: WordValidator) -> Bool {
         // Scan rows
         for r in 0..<rows {
             let letters = (0..<cols).compactMap { grid[r][$0]?.letter }
@@ -763,7 +762,7 @@ final class GameEngine: ObservableObject {
     func reset(difficulty: Difficulty) {
         pressureTimer?.cancel()
         config = difficulty.config
-        grid = Self.makeGrid(rows: config.rows, cols: config.cols)
+        grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.wordListName))
         selectedPosition = nil
         score = 0; wordCount = 0; lostVowels = 0
         lastWord = nil; gameOver = false; log = []; wordHistory = []

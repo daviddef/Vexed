@@ -7,20 +7,28 @@ private class TrieNode {
 }
 
 final class WordValidator {
-    static let shared = WordValidator()
+    private static var cache: [String: WordValidator] = [:]
+
+    static func forResource(_ name: String) -> WordValidator {
+        if let cached = cache[name] { return cached }
+        let v = WordValidator(resourceName: name)
+        cache[name] = v
+        return v
+    }
 
     private let root = TrieNode()
     private(set) var wordCount = 0
 
-    private init() {
-        loadBuiltIn()
+    private init(resourceName: String) {
+        load(resourceName: resourceName)
     }
 
-    private func loadBuiltIn() {
-        // Load bundled dictionary (works on device + simulator)
-        // Falls back to system path in Simulator if bundle resource missing
+    private func load(resourceName: String) {
+        let parts = resourceName.components(separatedBy: ".")
+        let name = parts.first ?? resourceName
+        let ext  = parts.count > 1 ? parts.last : "txt"
         let content: String?
-        if let url = Bundle.main.url(forResource: "dictionary", withExtension: "txt") {
+        if let url = Bundle.main.url(forResource: name, withExtension: ext) {
             content = try? String(contentsOf: url, encoding: .utf8)
         } else {
             content = try? String(contentsOfFile: "/usr/share/dict/words", encoding: .utf8)
@@ -28,9 +36,10 @@ final class WordValidator {
         guard let content else { return }
         for line in content.components(separatedBy: .newlines) {
             let raw = line.trimmingCharacters(in: .whitespaces)
-            // Skip proper nouns — lines that start uppercase in the system dictionary
-            guard let first = raw.first, first.isLowercase else { continue }
-            let word = raw.uppercased()
+            // easy_words.txt is pre-uppercased; dictionary.txt / words.txt are lowercase
+            let lower = raw.lowercased()
+            guard let first = lower.first, first.isLetter else { continue }
+            let word = lower.uppercased()
             guard word.count >= 3, word.count <= 10,
                   word.allSatisfy({ $0.isLetter && $0.isASCII }) else { continue }
             insert(word)

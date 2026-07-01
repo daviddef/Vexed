@@ -11,9 +11,9 @@ enum Difficulty: String, CaseIterable, Identifiable {
 
     var config: DifficultyConfig {
         switch self {
-        case .easy:   return DifficultyConfig(rows: 5, cols: 5, adjacency: .orthogonal, minWordLength: 3)
-        case .medium: return DifficultyConfig(rows: 7, cols: 7, adjacency: .orthogonal, minWordLength: 3)
-        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 3)
+        case .easy:   return DifficultyConfig(rows: 5,  cols: 5,  adjacency: .orthogonal, minWordLength: 3, wordListName: "easy_words")
+        case .medium: return DifficultyConfig(rows: 7,  cols: 7,  adjacency: .orthogonal, minWordLength: 3, wordListName: "words")
+        case .hard:   return DifficultyConfig(rows: 10, cols: 10, adjacency: .orthogonal, minWordLength: 4, wordListName: "dictionary")
         }
     }
 
@@ -39,6 +39,7 @@ struct DifficultyConfig {
     let cols: Int
     let adjacency: AdjacencyMode
     let minWordLength: Int
+    let wordListName: String
 
     var adjacentDirections: [Direction] { Direction.cardinal }
 

@@ -11,7 +11,7 @@ struct MissedWordsView: View {
     let config: DifficultyConfig
 
     private var foundWords: [MissedWordEntry] {
-        let validator = WordValidator.shared
+        let validator = WordValidator.forResource(config.wordListName)
         var seen: Set<String> = []
         var results: [MissedWordEntry] = []
 
