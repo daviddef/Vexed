@@ -83,8 +83,8 @@ struct GameView: View {
                         miniStat(label: "SCORE",  value: "\(displayScore)", color: kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2) : .white, isScore: true)
                         miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: Color(white: 0.7))
                         if kidMode {
-                            // Kid mode: show STARS (word count as emoji) instead of FORGED/LOST
-                            miniStat(label: "STARS", value: String(repeating: "⭐", count: min(engine.wordCount, 5)), color: Color(red: 1.0, green: 0.85, blue: 0.2))
+                            // Inline combo badge (replaces STARS; no floating overlay in kid mode)
+                            kidComboStat
                             // Age badge
                             Text(currentKidAge.emoji)
                                 .font(.system(size: 22))
@@ -150,8 +150,8 @@ struct GameView: View {
             // ── Particle bursts ───────────────────────────────────────
             particleBurstLayer
 
-            // ── Combo badge ───────────────────────────────────────────
-            if engine.combo >= 2 {
+            // ── Combo badge (non-kid mode only; kid mode shows it inline in the header) ──
+            if engine.combo >= 2 && !kidMode {
                 comboBadge
             }
 
@@ -642,6 +642,35 @@ struct GameView: View {
     }
 
     // MARK: - New UX overlays
+
+    /// Inline combo display for kid mode header — sits where STARS used to be.
+    @ViewBuilder private var kidComboStat: some View {
+        let active = engine.combo >= 2
+        let color = comboColor()
+        VStack(spacing: 1) {
+            Text(active ? "\(engine.combo)×" : "—")
+                .font(.system(size: 17, weight: .black, design: .rounded))
+                .foregroundColor(active ? color : Color(white: 0.25))
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.3, dampingFraction: 0.55), value: engine.combo)
+            Text("COMBO")
+                .font(.system(size: 8, weight: .heavy, design: .rounded))
+                .foregroundColor(Color(white: active ? 0.45 : 0.20))
+                .tracking(1)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(active ? color.opacity(0.18) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(active ? color.opacity(0.45) : Color.clear, lineWidth: 1)
+        )
+        .shadow(color: active ? color.opacity(0.4) : .clear, radius: 6, x: 0, y: 0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: active)
+    }
 
     @ViewBuilder private var comboBadge: some View {
         VStack {
