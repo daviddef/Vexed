@@ -200,6 +200,10 @@ struct GameView: View {
                     engine.reset(difficulty: selectedDifficulty)
                 },
                 onResetAll: { resetEverything() },
+                onGoHome: {
+                    showNoWordsLeft = false
+                    onResetAll?()
+                },
                 onShowInstructions: { showInstructions = true },
                 onShowMissedWords: { showMissedWords = true }
             )

@@ -6,6 +6,7 @@ struct BurgerMenuView: View {
     @Environment(\.dismiss) private var dismiss
     var onReset: () -> Void
     var onResetAll: () -> Void
+    var onGoHome: () -> Void
     var onShowInstructions: () -> Void
     var onShowMissedWords: () -> Void
 
@@ -13,7 +14,6 @@ struct BurgerMenuView: View {
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
     @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
-    @State private var showTips = false
 
     private var currentKidAge: KidAge {
         get { KidAge(rawValue: kidAgeRaw) ?? .explorer }
@@ -27,21 +27,28 @@ struct BurgerMenuView: View {
             ZStack {
                 Color(red: 0.06, green: 0.06, blue: 0.09).ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Header
+                ScrollView {
                     VStack(spacing: 16) {
-                        VStack(spacing: 4) {
-                            Text("VEXED")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
-                                .tracking(10)
-                            Text("SLIDE · FORM · SURVIVE")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundColor(Color(white: 0.3))
-                                .tracking(3)
-                        }
 
-                        // Score card
+                        // ── Top quick-action row ─────────────────────────
+                        HStack(spacing: 12) {
+                            quickAction(icon: "house.fill", label: "HOME",
+                                        color: Color(white: 0.75)) {
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                    onGoHome()
+                                }
+                            }
+                            quickAction(icon: "arrow.counterclockwise", label: "RESET",
+                                        color: Color(red: 1.0, green: 0.75, blue: 0.3)) {
+                                onReset()
+                                dismiss()
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+
+                        // ── Score card ───────────────────────────────────
                         HStack(spacing: 0) {
                             scoreCell(label: "THIS GAME", value: currentScore, color: .white)
                             Rectangle()
@@ -59,107 +66,75 @@ struct BurgerMenuView: View {
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 0.07)))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.11), lineWidth: 1))
                         .padding(.horizontal, 20)
-                    }
-                    .padding(.top, 32)
-                    .padding(.bottom, 24)
 
-                    // Menu rows
-                    VStack(spacing: 0) {
-                        // Kid Mode + Game section
-                        VStack(alignment: .leading, spacing: 0) {
-                            menuSectionHeader("KID MODE")
-
-                            // Kid mode toggle
-                            HStack(spacing: 14) {
-                                Image(systemName: "star.circle.fill")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(kidMode ? Color(red: 1.0, green: 0.75, blue: 0.1) : .white)
-                                    .frame(width: 24)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Kid Mode")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                    Text("Shorter words · hints · bigger forge bonus")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(Color(white: 0.4))
-                                }
-                                Spacer()
-                                Toggle("", isOn: $kidMode)
-                                    .labelsHidden()
-                                    .tint(Color(red: 1.0, green: 0.75, blue: 0.1))
-                                    .onChange(of: kidMode) { _, _ in
+                        // ── Mode cards ───────────────────────────────────
+                        sectionCard {
+                            sectionLabel("MODE")
+                            HStack(spacing: 10) {
+                                modeCard(
+                                    icon: "star.circle.fill",
+                                    title: "Kid Mode",
+                                    subtitle: "Hints · shorter words\nbigger forge bonus",
+                                    isSelected: kidMode,
+                                    accentColor: Color(red: 1.0, green: 0.75, blue: 0.1)
+                                ) {
+                                    if !kidMode {
+                                        kidMode = true
+                                        if difficulty == .hard { difficulty = .easy }
                                         onReset()
                                     }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(Color(white: 0.08))
-
-                            if kidMode {
-                                Divider().background(Color(white: 0.1))
-                                // Age tier picker
-                                VStack(spacing: 8) {
-                                    HStack(spacing: 4) {
-                                        ForEach(KidAge.allCases) { age in
-                                            ageTierButton(age)
-                                        }
+                                }
+                                modeCard(
+                                    icon: "bolt.circle.fill",
+                                    title: "Adult Mode",
+                                    subtitle: "Full vocabulary\ncompetitive play",
+                                    isSelected: !kidMode,
+                                    accentColor: Color(red: 0.4, green: 0.7, blue: 1.0)
+                                ) {
+                                    if kidMode {
+                                        kidMode = false
+                                        onReset()
                                     }
                                 }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                                .background(Color(white: 0.08))
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 14)
 
-                            Divider().background(Color(white: 0.1))
-
-                            menuSectionHeader("GAME")
-
-                            VStack(spacing: 10) {
-                                difficultyPill
-                                Text(kidMode ? kidBoardDescription : difficulty.description)
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                                    .foregroundColor(Color(white: 0.4))
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(Color(white: 0.08))
-
-                            Divider().background(Color(white: 0.1))
-
-                            menuRow(icon: "arrow.counterclockwise", label: "Reset Board", color: .white) {
-                                onReset()
-                                dismiss()
+                            if kidMode {
+                                Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
+                                HStack(spacing: 4) {
+                                    ForEach(KidAge.allCases) { age in
+                                        ageTierButton(age)
+                                    }
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
                             }
                         }
+                        .padding(.horizontal, 20)
 
-                        Spacer().frame(height: 20)
+                        // ── Board size ───────────────────────────────────
+                        sectionCard {
+                            sectionLabel("BOARD SIZE")
+                            difficultyPill
+                            Text(kidMode ? kidBoardDescription : difficulty.description)
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .foregroundColor(Color(white: 0.4))
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.bottom, 14)
+                        }
+                        .padding(.horizontal, 20)
 
-                        VStack(alignment: .leading, spacing: 0) {
-                            menuSectionHeader("HELP")
-
+                        // ── Help ─────────────────────────────────────────
+                        sectionCard {
+                            sectionLabel("HELP")
                             NavigationLink {
                                 HowToPlayView()
                             } label: {
-                                HStack(spacing: 14) {
-                                    Image(systemName: "questionmark.circle")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .frame(width: 24)
-                                    Text("How to Play")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(Color(white: 0.3))
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 14)
-                                .background(Color(white: 0.08))
+                                menuLinkRow(icon: "questionmark.circle", label: "How to Play")
                             }
-
-                            Divider().background(Color(white: 0.1))
-
+                            Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
                             NavigationLink {
                                 TipsView()
                                     .navigationTitle("Tips")
@@ -167,113 +142,75 @@ struct BurgerMenuView: View {
                                     .toolbarBackground(Color(red: 0.06, green: 0.06, blue: 0.09), for: .navigationBar)
                                     .toolbarBackground(.visible, for: .navigationBar)
                             } label: {
-                                HStack(spacing: 14) {
-                                    Image(systemName: "lightbulb")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .frame(width: 24)
-                                    Text("Tips")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
+                                menuLinkRow(icon: "lightbulb", label: "Tips & Tricks")
+                            }
+                            Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
+                            Button {
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onShowMissedWords() }
+                            } label: {
+                                menuLinkRow(icon: "magnifyingglass", label: "Show Missed Words")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 20)
+
+                        // ── Settings ─────────────────────────────────────
+                        sectionCard {
+                            sectionLabel("SETTINGS")
+                            toggleRow(
+                                icon: "character.book.closed",
+                                title: "Rare & archaic words",
+                                subtitle: "Technical, abbreviations, non-English",
+                                isOn: $includeRareWords,
+                                tint: Color(white: 0.8)
+                            ) { onReset(); dismiss() }
+                            Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
+                            toggleRow(
+                                icon: "gamecontroller",
+                                title: "Arcade Mode",
+                                subtitle: "Vivid background, bold tiles",
+                                isOn: $arcadeMode,
+                                tint: Color(red: 0.7, green: 0.4, blue: 1.0)
+                            ) {}
+                        }
+                        .padding(.horizontal, 20)
+
+                        // ── Danger zone ───────────────────────────────────
+                        sectionCard {
+                            sectionLabel("DANGER ZONE")
+                            Button {
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onResetAll() }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 15, weight: .medium))
+                                    Text("Reset Everything")
+                                        .font(.system(size: 15, weight: .medium))
                                     Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(Color(white: 0.3))
                                 }
-                                .padding(.horizontal, 20)
+                                .foregroundColor(Color(red: 1, green: 0.35, blue: 0.35))
+                                .padding(.horizontal, 16)
                                 .padding(.vertical, 14)
-                                .background(Color(white: 0.08))
                             }
-
-                            Divider().background(Color(white: 0.1))
-
-                            Divider().background(Color(white: 0.1))
-
-                            // Rare words toggle
-                            HStack(spacing: 14) {
-                                Image(systemName: "character.book.closed")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .frame(width: 24)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Rare & archaic words")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                    Text("Includes technical, abbreviations, non-English")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(Color(white: 0.4))
-                                }
-                                Spacer()
-                                Toggle("", isOn: $includeRareWords)
-                                    .labelsHidden()
-                                    .onChange(of: includeRareWords) { _, _ in
-                                        onReset()
-                                        dismiss()
-                                    }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(Color(white: 0.08))
-
-                            Divider().background(Color(white: 0.1))
-
-                            // Arcade mode toggle
-                            HStack(spacing: 14) {
-                                Image(systemName: "gamecontroller")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(arcadeMode ? Color(red: 0.7, green: 0.4, blue: 1.0) : .white)
-                                    .frame(width: 24)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Arcade Mode")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                    Text("Vivid background, textured tiles, bold scoreboard")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(Color(white: 0.4))
-                                }
-                                Spacer()
-                                Toggle("", isOn: $arcadeMode)
-                                    .labelsHidden()
-                                    .tint(Color(red: 0.7, green: 0.4, blue: 1.0))
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(Color(white: 0.08))
-
-                            Divider().background(Color(white: 0.1))
-
-                            menuRow(icon: "magnifyingglass", label: "Show Missed Words", color: .white) {
-                                dismiss()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                    onShowMissedWords()
-                                }
-                            }
+                            .buttonStyle(.plain)
                         }
-
-                        Spacer().frame(height: 20)
-
-                        // Danger zone
-                        VStack(alignment: .leading, spacing: 0) {
-                            menuSectionHeader("DANGER ZONE")
-
-                            menuRow(icon: "trash", label: "Reset Everything", color: Color(red: 1, green: 0.3, blue: 0.3)) {
-                                dismiss()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                    onResetAll()
-                                }
-                            }
-                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 32)
                     }
-
-                    Spacer()
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("VEXED")
+                        .font(.system(size: 18, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .tracking(6)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
+                    Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 20))
                             .foregroundColor(Color(white: 0.35))
@@ -286,17 +223,144 @@ struct BurgerMenuView: View {
         .preferredColorScheme(.dark)
     }
 
+    // MARK: - Mode card
+
+    private func modeCard(icon: String, title: String, subtitle: String,
+                          isSelected: Bool, accentColor: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundColor(isSelected ? accentColor : Color(white: 0.3))
+                    Spacer()
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(accentColor)
+                    }
+                }
+                Text(title)
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundColor(isSelected ? .white : Color(white: 0.4))
+                Text(subtitle)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(isSelected ? Color(white: 0.55) : Color(white: 0.28))
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? accentColor.opacity(0.12) : Color(white: 0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? accentColor.opacity(0.5) : Color(white: 0.09), lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
+    }
+
+    // MARK: - Quick action button
+
+    private func quickAction(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .medium))
+                Text(label)
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .tracking(1)
+            }
+            .foregroundColor(color)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(white: 0.09)))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.25), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Section card container
+
+    @ViewBuilder
+    private func sectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color(white: 0.075)))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(white: 0.11), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func sectionLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 9, weight: .black))
+            .foregroundColor(Color(white: 0.3))
+            .tracking(3)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func menuLinkRow(icon: String, label: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 22)
+            Text(label)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.white)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(Color(white: 0.3))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
+    private func toggleRow(icon: String, title: String, subtitle: String,
+                           isOn: Binding<Bool>, tint: Color, onChange: @escaping () -> Void) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(isOn.wrappedValue ? tint : Color(white: 0.55))
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.white)
+                Text(subtitle)
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(white: 0.4))
+            }
+            Spacer()
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .tint(tint == Color(white: 0.8) ? .accentColor : tint)
+                .onChange(of: isOn.wrappedValue) { _, _ in onChange() }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - Difficulty picker
+
     private var difficultyPill: some View {
         Group {
             if kidMode {
-                // Kid mode: Small / Medium / Full (3 options, no Hard)
                 HStack(spacing: 0) {
                     kidBoardButton(.easy,   label: "Small")
                     kidBoardButton(.medium, label: "Medium")
                     kidBoardButton(.fill,   label: "Full")
                 }
             } else {
-                // Normal: 2×2 grid
                 VStack(spacing: 4) {
                     HStack(spacing: 0) {
                         difficultyButton(.easy)
@@ -310,8 +374,10 @@ struct BurgerMenuView: View {
             }
         }
         .padding(4)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 0.06)))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.12), lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(white: 0.05)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(white: 0.10), lineWidth: 1))
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
     }
 
     private func difficultyButton(_ d: Difficulty) -> some View {
@@ -326,10 +392,7 @@ struct BurgerMenuView: View {
                 .foregroundColor(d == difficulty ? .black : Color(white: 0.5))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(d == difficulty ? pillColor(d) : Color.clear)
-                )
+                .background(RoundedRectangle(cornerRadius: 9).fill(d == difficulty ? pillColor(d) : Color.clear))
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: difficulty)
@@ -347,10 +410,8 @@ struct BurgerMenuView: View {
                 .foregroundColor(d == difficulty ? .black : Color(white: 0.5))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(d == difficulty ? Color(red: 1.0, green: 0.75, blue: 0.1) : Color.clear)
-                )
+                .background(RoundedRectangle(cornerRadius: 9)
+                    .fill(d == difficulty ? Color(red: 1.0, green: 0.75, blue: 0.1) : Color.clear))
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: difficulty)
@@ -364,8 +425,7 @@ struct BurgerMenuView: View {
             onReset()
         } label: {
             VStack(spacing: 3) {
-                Text(age.emoji)
-                    .font(.system(size: 20))
+                Text(age.emoji).font(.system(size: 20))
                 Text(age.displayName)
                     .font(.system(size: 11, weight: .black, design: .rounded))
                     .tracking(0.5)
@@ -375,14 +435,14 @@ struct BurgerMenuView: View {
             .foregroundColor(isSelected ? .black : Color(white: 0.5))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? Color(red: 1.0, green: 0.75, blue: 0.1) : Color.clear)
-            )
+            .background(RoundedRectangle(cornerRadius: 10)
+                .fill(isSelected ? Color(red: 1.0, green: 0.75, blue: 0.1) : Color.clear))
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: kidAgeRaw)
     }
+
+    // MARK: - Helpers
 
     private var kidBoardDescription: String {
         switch difficulty {
@@ -420,34 +480,5 @@ struct BurgerMenuView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-    }
-
-    private func menuSectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 9, weight: .black))
-            .foregroundColor(Color(white: 0.3))
-            .tracking(3)
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 6)
-    }
-
-    private func menuRow(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(color)
-                    .frame(width: 24)
-                Text(label)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(color)
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-            .background(Color(white: 0.08))
-        }
-        .buttonStyle(.plain)
     }
 }
