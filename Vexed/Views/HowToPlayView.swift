@@ -17,13 +17,13 @@ struct HowToPlayView: View {
 
                     section("The Vowel Rule", accent: Color(red: 1, green: 0.38, blue: 0.38)) {
                         bodyText("If **3 or more of the same vowel touch** — horizontally or vertically in any shape — they all vanish instantly. No warning. No score.")
-                        bodyText("The board pulses a warning colour when a cluster is growing close to 3:")
+                        bodyText("The board edge pulses with that vowel's colour when a cluster is close to 3:")
                         tagGrid([
-                            ("A", Color(red: 0.9, green: 0.25, blue: 0.25)),
-                            ("E", Color(red: 0.25, green: 0.55, blue: 0.95)),
-                            ("I", Color(red: 0.25, green: 0.82, blue: 0.45)),
-                            ("O", Color(red: 0.95, green: 0.55, blue: 0.15)),
-                            ("U", Color(red: 0.65, green: 0.35, blue: 0.95)),
+                            ("A", Color(red: 0.95, green: 0.22, blue: 0.22)),
+                            ("E", Color(red: 0.18, green: 0.82, blue: 0.35)),
+                            ("I", Color(red: 0.15, green: 0.48, blue: 1.0)),
+                            ("O", Color(red: 1.0, green: 0.55, blue: 0.05)),
+                            ("U", Color(red: 0.72, green: 0.22, blue: 0.95)),
                         ])
                         bodyText("Slide one of those vowels away before the cluster reaches 3.")
                     }
@@ -57,10 +57,10 @@ struct HowToPlayView: View {
                     }
 
                     section("Tile Forge") {
-                        bodyText("Every word you collect forges new tiles into empty spaces. Longer words forge more tiles — this is how you keep the board alive.")
+                        bodyText("Every word you collect forges new tiles into empty spaces. Longer words forge more — this is how you keep the board alive.")
                         bodyText("**Forge tiles = word length − difficulty threshold** (no cap, keeps increasing)")
                         table(
-                            headers: ["Word length", "Easy (−1)", "Medium (−2)", "Hard (−3)"],
+                            headers: ["Word length", "Easy (−1)", "Medium/Fill (−2)", "Hard (−3)"],
                             rows: [
                                 ["3 letters", "+2", "+1", "—"],
                                 ["4 letters", "+3", "+2", "+1"],
@@ -69,7 +69,7 @@ struct HowToPlayView: View {
                                 ["7 letters", "+6", "+5", "+4"],
                             ]
                         )
-                        bodyText("Forged tiles are weighted toward vowels when the board is running low.")
+                        bodyText("Forged tiles flash white when they appear. They're weighted toward vowels when the board is running low.")
                     }
 
                     section("Word Strip") {
@@ -97,34 +97,48 @@ struct HowToPlayView: View {
                             name: "Easy",
                             color: Color(red: 0.3, green: 0.9, blue: 0.5),
                             grid: "5×5",
-                            words: "12,500 everyday words",
+                            words: "20,000 everyday words",
                             minLen: "3 letters",
-                            forge: "−1 threshold (3-letter words give +2 tiles)"
+                            forge: "−1 (3-letter words give +2 tiles)"
                         )
                         difficultyCard(
                             name: "Medium",
                             color: Color(red: 1.0, green: 0.75, blue: 0.1),
                             grid: "7×7",
-                            words: "33,000 words",
+                            words: "62,000 words",
                             minLen: "3 letters",
-                            forge: "−2 threshold (3-letter words give +1 tile)"
+                            forge: "−2 (3-letter words give +1 tile)"
                         )
                         difficultyCard(
                             name: "Hard",
                             color: Color(red: 1.0, green: 0.3, blue: 0.3),
                             grid: "10×10",
-                            words: "132,000 words (full dictionary)",
+                            words: "62,000 words (toggle for 132k)",
                             minLen: "4 letters minimum",
-                            forge: "−3 threshold (need 4+ letters to forge anything)"
+                            forge: "−3 (need 4+ letters to forge anything)"
+                        )
+                        difficultyCard(
+                            name: "Fill",
+                            color: Color(red: 0.55, green: 0.35, blue: 1.0),
+                            grid: "7 cols × screen height",
+                            words: "62,000 words",
+                            minLen: "3 letters",
+                            forge: "−2 (same as Medium)"
                         )
                     }
 
                     section("Tips") {
                         tip("Think before you slide. Tiles move fast; vowels vanish faster.")
-                        tip("Check the word strip first — there may already be words to collect.")
+                        tip("Check the word strip first — there may already be words to collect without moving anything.")
                         tip("Spread vowels deliberately. Two Es side by side is fine. Three is catastrophe.")
                         tip("Longer words pay double. A 6-letter word scores roughly as much as two 3-letter words and forges far more tiles.")
                         tip("Combos matter most on Hard. A ×3 multiplier on a 7-letter word is your path to an S grade.")
+                        tip("Tap any word chip in the history strip to look up its definition.")
+                    }
+
+                    section("Settings") {
+                        bodyText("**Arcade Mode** — Vivid background, textured tiles, bold scoreboard, and serif fonts. Toggle in the ☰ menu.")
+                        bodyText("**Rare & archaic words** — Adds technical, abbreviations and non-English words to the dictionary. Off by default.")
                     }
                 }
                 .padding(.horizontal, 20)
