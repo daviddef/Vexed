@@ -42,6 +42,7 @@ final class GameEngine: ObservableObject {
     @Published var hintWordId: UUID? = nil   // kid mode: ID of word to highlight as hint
     @Published var hintBeaconActive: Bool = false  // kid mode phase-2: show tap beacon
     @Published var hintMoves: [(from: Position, direction: Direction)] = []  // kid mode: slide hint sequence (1 or 2 steps)
+    @Published var isNewHighScore: Bool = false  // true when final score beats the saved high score
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -928,8 +929,9 @@ final class GameEngine: ObservableObject {
     private func saveHighScoreIfBetter() {
         let key = "highScore_\(config.wordListName)_\(config.rows)x\(config.cols)"
         let current = UserDefaults.standard.integer(forKey: key)
-        if score > current {
+        if score > current && score > 0 {
             UserDefaults.standard.set(score, forKey: key)
+            isNewHighScore = true
         }
     }
 
@@ -955,6 +957,7 @@ final class GameEngine: ObservableObject {
         availableWords = []; highlightedPositions = nil
         hintTask?.cancel(); hintTask = nil
         interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMoves = []
+        isNewHighScore = false
         startPressureTimer()
         updateDangerStates()
         peakScore = 0

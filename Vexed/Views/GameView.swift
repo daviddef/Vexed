@@ -283,7 +283,27 @@ struct GameView: View {
             Color.black.opacity(0.75).ignoresSafeArea()
                 .transition(.opacity)
 
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
+                // NEW HIGH SCORE banner
+                if engine.isNewHighScore {
+                    HStack(spacing: 6) {
+                        Text("🏆")
+                            .font(.system(size: 20))
+                        Text("NEW HIGH SCORE!")
+                            .font(.system(size: 14, weight: .black, design: .rounded))
+                            .tracking(2)
+                            .foregroundColor(Color(red: 0.05, green: 0.05, blue: 0.05))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(red: 1.0, green: 0.85, blue: 0.2))
+                            .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.2).opacity(0.6), radius: 16, x: 0, y: 0)
+                    )
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                }
+
                 // Grade badge
                 ZStack {
                     Circle()
@@ -340,7 +360,20 @@ struct GameView: View {
                 }
 
                 // Buttons row
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
+                    // Home button
+                    Button {
+                        showNoWordsLeft = false
+                        onResetAll?()
+                    } label: {
+                        Image(systemName: "house.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Color(white: 0.7))
+                            .frame(width: 46, height: 46)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.10)))
+                    }
+                    .buttonStyle(.plain)
+
                     // Share button
                     Button {
                         shareResult()
@@ -352,7 +385,7 @@ struct GameView: View {
                                 .tracking(2)
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.12)))
                     }
@@ -369,7 +402,7 @@ struct GameView: View {
                             .font(.system(size: 14, weight: .black, design: .rounded))
                             .tracking(2)
                             .foregroundColor(.black)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 20)
                             .padding(.vertical, 14)
                             .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
                             .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 4)

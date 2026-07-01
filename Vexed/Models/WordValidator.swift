@@ -8,11 +8,16 @@ private class TrieNode {
 
 final class WordValidator {
     private static var cache: [String: WordValidator] = [:]
+    private static let cacheLock = NSLock()
 
     static func forResource(_ name: String) -> WordValidator {
-        if let cached = cache[name] { return cached }
+        cacheLock.lock()
+        if let cached = cache[name] { cacheLock.unlock(); return cached }
+        cacheLock.unlock()
         let v = WordValidator(resourceName: name)
+        cacheLock.lock()
         cache[name] = v
+        cacheLock.unlock()
         return v
     }
 
