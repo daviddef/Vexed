@@ -316,7 +316,7 @@ final class GameEngine: ObservableObject {
 
         burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2)))
 
-        let forgeCount = DifficultyConfig.forgeBonusCount(wordLength: word.word.count)
+        let forgeCount = config.forgeBonusCount(wordLength: word.word.count)
 
         // Remove from pending list immediately so it can't be double-collected
         availableWords.removeAll { $0.id == word.id }
@@ -392,7 +392,7 @@ final class GameEngine: ObservableObject {
 
         if !found.isEmpty {
             // Calculate Tile Forge bonus: extra letters beyond 3 per word
-            let forgeCount = found.reduce(0) { $0 + DifficultyConfig.forgeBonusCount(wordLength: $1.word.count) }
+            let forgeCount = found.reduce(0) { $0 + config.forgeBonusCount(wordLength: $1.word.count) }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 guard let self else { return }
