@@ -133,6 +133,21 @@ struct GameView: View {
                 }
                 .padding(.vertical, 10)
 
+                // ── Daily Puzzle indicator ────────────────────────────────
+                if engine.isDailyMode {
+                    HStack(spacing: 5) {
+                        Text("🗓️ TODAY'S PUZZLE")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .tracking(1)
+                        if engine.dailyStreak > 0 {
+                            Text("🔥\(engine.dailyStreak)")
+                                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        }
+                    }
+                    .foregroundColor(Color(red: 0.75, green: 0.55, blue: 1.0))
+                    .padding(.bottom, 4)
+                }
+
                 // ── Vowel radar ──────────────────────────────────────────
                 VowelRadarView(counts: engine.vowelCounts())
                     .padding(.horizontal, 12)
@@ -215,7 +230,11 @@ struct GameView: View {
                     onResetAll?()
                 },
                 onShowInstructions: { showInstructions = true },
-                onShowMissedWords: { showMissedWords = true }
+                onShowMissedWords: { showMissedWords = true },
+                onStartDaily: {
+                    showNoWordsLeft = false
+                    engine.startDaily()
+                }
             )
         }
         .sheet(isPresented: $showMissedWords) {
@@ -303,6 +322,26 @@ struct GameView: View {
                 .transition(.opacity)
 
             VStack(spacing: 20) {
+                // Daily Puzzle badge
+                if engine.isDailyMode {
+                    HStack(spacing: 6) {
+                        Text("🗓️ DAILY PUZZLE")
+                            .font(.system(size: 11, weight: .black, design: .rounded))
+                            .tracking(1.5)
+                        if engine.dailyStreak > 0 {
+                            Text("· 🔥 \(engine.dailyStreak)-day streak")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                        }
+                    }
+                    .foregroundColor(Color(red: 0.75, green: 0.55, blue: 1.0))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule().fill(Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.18))
+                            .overlay(Capsule().stroke(Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.4), lineWidth: 1))
+                    )
+                }
+
                 // NEW HIGH SCORE banner
                 if engine.isNewHighScore {
                     HStack(spacing: 6) {
@@ -458,10 +497,28 @@ struct GameView: View {
     }
 
     private func shareResult() {
-        let grade = engine.letterGrade
-        let bestWord = engine.bestWord.map { " Best word: \($0)." } ?? ""
-        let text = "VEXED! Score: \(engine.score) pts | \(engine.wordCount) words | Grade: \(grade).\(bestWord) Can you beat me?"
-        let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        var activityItems: [Any] = []
+        if engine.isDailyMode {
+            let df = DateFormatter()
+            df.dateFormat = "MMM d, yyyy"
+            let data = DailyShareCardData(
+                dateLabel: df.string(from: Date()),
+                score: engine.score,
+                bestWord: engine.bestWord ?? "",
+                peakCombo: engine.dailyPeakCombo,
+                wordCount: engine.wordCount,
+                streak: engine.dailyStreak
+            )
+            if let image = renderDailyShareImage(data) {
+                activityItems.append(image)
+            }
+            activityItems.append("I played today's VEXED! Daily Puzzle — score \(engine.score)! Can you beat it?")
+        } else {
+            let grade = engine.letterGrade
+            let bestWord = engine.bestWord.map { " Best word: \($0)." } ?? ""
+            activityItems.append("VEXED! Score: \(engine.score) pts | \(engine.wordCount) words | Grade: \(grade).\(bestWord) Can you beat me?")
+        }
+        let av = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
         if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let vc = scene.windows.first?.rootViewController {
             vc.present(av, animated: true)
@@ -930,6 +987,17 @@ struct GameView: View {
         }
         // Clear tutorial-seen flag so it replays
         UserDefaults.standard.removeObject(forKey: "vexed.launched")
+        // Clear Daily Puzzle streak/history
+        ud.removeObject(forKey: "dailyLastPlayedKey")
+        ud.removeObject(forKey: "dailyStreak")
+        for daysAgo in 0..<400 {
+            guard let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date()) else { continue }
+            let key = SeededRNG.todayKey(date: date)
+            ud.removeObject(forKey: "dailyScore_\(key)")
+            ud.removeObject(forKey: "dailyBestWord_\(key)")
+            ud.removeObject(forKey: "dailyPeakCombo_\(key)")
+            ud.removeObject(forKey: "dailyWordCount_\(key)")
+        }
         // Restore theme to its mode default
         themeIsUserSet = false
         applyDefaultThemeIfNeeded()

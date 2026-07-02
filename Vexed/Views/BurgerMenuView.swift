@@ -9,6 +9,7 @@ struct BurgerMenuView: View {
     var onGoHome: () -> Void
     var onShowInstructions: () -> Void
     var onShowMissedWords: () -> Void
+    var onStartDaily: () -> Void
 
     @AppStorage("includeRareWords") private var includeRareWords: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
@@ -73,6 +74,10 @@ struct BurgerMenuView: View {
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(white: 0.11), lineWidth: 1))
                         .padding(.horizontal, 20)
                         .sheet(isPresented: $showAllScores) { allScoresSheet }
+
+                        // ── Daily Puzzle ──────────────────────────────────
+                        dailyPuzzleCard
+                            .padding(.horizontal, 20)
 
                         // ── Mode cards ───────────────────────────────────
                         sectionCard {
@@ -460,6 +465,57 @@ struct BurgerMenuView: View {
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: kidAgeRaw)
+    }
+
+    // MARK: - Daily Puzzle
+
+    @ViewBuilder private var dailyPuzzleCard: some View {
+        let status = GameEngine.dailyStatus()
+        Button {
+            dismiss()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { onStartDaily() }
+        } label: {
+            HStack(spacing: 14) {
+                Text("🗓️")
+                    .font(.system(size: 28))
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text("DAILY PUZZLE")
+                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .tracking(1)
+                            .foregroundColor(.white)
+                        if status.streak > 0 {
+                            HStack(spacing: 2) {
+                                Text("🔥")
+                                Text("\(status.streak)")
+                            }
+                            .font(.system(size: 11, weight: .black, design: .rounded))
+                            .foregroundColor(Color(red: 1.0, green: 0.6, blue: 0.2))
+                        }
+                    }
+                    Text(status.playedToday
+                        ? "Played today — score \(status.todayScore). Come back tomorrow!"
+                        : "Same board for everyone today — see how you rank.")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color(white: 0.5))
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(white: 0.3))
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - All scores sheet

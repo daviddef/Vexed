@@ -44,6 +44,10 @@ final class GameEngine: ObservableObject {
     @Published var hintBeaconActive: Bool = false  // kid mode phase-2: show tap beacon
     @Published var hintMoves: [(from: Position, direction: Direction)] = []  // kid mode: slide hint sequence (1 or 2 steps)
     @Published var isNewHighScore: Bool = false  // true when final score beats the saved high score
+    @Published var isDailyMode: Bool = false
+    @Published var dailyPeakCombo: Int = 0
+    @Published var dailyStreak: Int = 0
+    @Published var dailyAlreadyPlayedToday: Bool = false
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -202,16 +206,29 @@ final class GameEngine: ObservableObject {
 
     // MARK: - Grid Setup
 
-    private static func makeGrid(rows: Int, cols: Int, validator: WordValidator) -> [[Tile?]] {
+    private static func makeGrid(rows: Int, cols: Int, validator: WordValidator, seed: UInt64? = nil) -> [[Tile?]] {
         // Regenerate until the board has no pre-existing words AND no 3+ same-vowel clusters.
         // With ~20% empty cells this typically resolves in 1-3 attempts.
         var attempts = 0
-        while true {
-            let g = generateGrid(rows: rows, cols: cols)
-            attempts += 1
-            let clean = !boardHasWords(g, rows: rows, cols: cols, validator: validator)
-                     && !boardHasVowelCluster(g, rows: rows, cols: cols)
-            if clean || attempts > 50 { return g }
+        if let seed {
+            // Deterministic path — same seed always yields the same final board (Daily Puzzle).
+            var rng = SeededRNG(seed: seed)
+            while true {
+                let g = generateGrid(rows: rows, cols: cols, rng: &rng)
+                attempts += 1
+                let clean = !boardHasWords(g, rows: rows, cols: cols, validator: validator)
+                         && !boardHasVowelCluster(g, rows: rows, cols: cols)
+                if clean || attempts > 50 { return g }
+            }
+        } else {
+            var rng = SystemRandomNumberGenerator()
+            while true {
+                let g = generateGrid(rows: rows, cols: cols, rng: &rng)
+                attempts += 1
+                let clean = !boardHasWords(g, rows: rows, cols: cols, validator: validator)
+                         && !boardHasVowelCluster(g, rows: rows, cols: cols)
+                if clean || attempts > 50 { return g }
+            }
         }
     }
 
@@ -243,7 +260,7 @@ final class GameEngine: ObservableObject {
         return false
     }
 
-    private static func generateGrid(rows: Int, cols: Int) -> [[Tile?]] {
+    private static func generateGrid<G: RandomNumberGenerator>(rows: Int, cols: Int, rng: inout G) -> [[Tile?]] {
         let consonants = "BCDFGHJKLMNPQRSTVWXYZ".map { $0 }
         let vowelChars = "AEIOU".map { $0 }
 
@@ -252,10 +269,10 @@ final class GameEngine: ObservableObject {
         let vowelCount = total * 4 / 10
         let consonantCount = total * 4 / 10
 
-        for _ in 0..<vowelCount { chars.append(vowelChars.randomElement()!) }
-        for _ in 0..<consonantCount { chars.append(consonants.randomElement()!) }
+        for _ in 0..<vowelCount { chars.append(vowelChars.randomElement(using: &rng)!) }
+        for _ in 0..<consonantCount { chars.append(consonants.randomElement(using: &rng)!) }
         while chars.count < total { chars.append(nil) }
-        chars.shuffle()
+        chars.shuffle(using: &rng)
 
         var g: [[Tile?]] = Array(repeating: Array(repeating: nil, count: cols), count: rows)
         var idx = 0
@@ -459,6 +476,7 @@ final class GameEngine: ObservableObject {
 
         combo += 1
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
+        dailyPeakCombo = max(dailyPeakCombo, combo)
 
         for pos in word.positions { grid[pos.row][pos.col]?.animState = .scoring }
         let multiplied = Int(Double(word.points) * comboMultiplier)
@@ -523,6 +541,7 @@ final class GameEngine: ObservableObject {
         } else {
             combo += 1
             comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
+            dailyPeakCombo = max(dailyPeakCombo, combo)
         }
 
         for word in found {
@@ -712,7 +731,13 @@ final class GameEngine: ObservableObject {
         let wasOver = noWordsLeft
         noWordsLeft = tilesExist && wordCount > 0 && !gameOver
             && availableWords.isEmpty && !anySlideCanScoreWord()
-        if noWordsLeft && !wasOver { saveHighScoreIfBetter() }
+        if noWordsLeft && !wasOver {
+            if isDailyMode {
+                saveDailyResultIfNeeded()
+            } else {
+                saveHighScoreIfBetter()
+            }
+        }
     }
 
     private func scanAvailableWords() -> [AvailableWord] {
@@ -1072,15 +1097,38 @@ final class GameEngine: ObservableObject {
 
     func reset(difficulty: Difficulty) {
         pressureTimer?.cancel()
+        isDailyMode = false
         currentDifficulty = difficulty
         config = difficulty.config
         Self.applyKidOverrides(to: &config)
         grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
+        resetRoundState()
+    }
+
+    /// Everyone gets the same board on the same calendar day (UTC) — a fixed Medium-sized,
+    /// standard-vocabulary board seeded from the date, independent of the player's chosen mode
+    /// or difficulty so results are directly comparable/shareable.
+    func startDaily() {
+        pressureTimer?.cancel()
+        isDailyMode = true
+        currentDifficulty = .medium
+        config = Difficulty.medium.config
+        let todayKey = SeededRNG.todayKey()
+        let seed = SeededRNG.seed(forDateKey: todayKey)
+        grid = Self.makeGrid(rows: config.rows, cols: config.cols,
+                              validator: WordValidator.forResource(config.activeWordList(includeRare: false)),
+                              seed: seed)
+        dailyAlreadyPlayedToday = UserDefaults.standard.string(forKey: "dailyLastPlayedKey") == todayKey
+        dailyStreak = UserDefaults.standard.integer(forKey: "dailyStreak")
+        resetRoundState()
+    }
+
+    private func resetRoundState() {
         selectedPosition = nil
         score = 0; wordCount = 0; lostVowels = 0
         lastWord = nil; gameOver = false; log = []; wordHistory = []
-        combo = 0; comboMultiplier = 1.0
-        dangerVowelColor = nil
+        combo = 0; comboMultiplier = 1.0; dailyPeakCombo = 0
+        dangerVowelColor = nil; criticalDangerPositions = []
         celebrationWord = nil
         tilesForged = 0; forgeMessage = nil
         availableWords = []; highlightedPositions = nil
@@ -1094,5 +1142,51 @@ final class GameEngine: ObservableObject {
         noWordsLeft = false
         recalculatePotentialScore()
         boardVersion += 1
+    }
+
+    private func saveDailyResultIfNeeded() {
+        let ud = UserDefaults.standard
+        let todayKey = SeededRNG.todayKey()
+        // Only the first completed attempt of the day counts — replays are just for fun.
+        guard ud.string(forKey: "dailyLastPlayedKey") != todayKey else { return }
+
+        var utcCal = Calendar(identifier: .gregorian)
+        utcCal.timeZone = TimeZone(identifier: "UTC")!
+        let yesterdayKey = SeededRNG.todayKey(date: utcCal.date(byAdding: .day, value: -1, to: Date()) ?? Date())
+        let previousKey = ud.string(forKey: "dailyLastPlayedKey")
+        let newStreak = (previousKey == yesterdayKey) ? ud.integer(forKey: "dailyStreak") + 1 : 1
+
+        ud.set(todayKey, forKey: "dailyLastPlayedKey")
+        ud.set(newStreak, forKey: "dailyStreak")
+        ud.set(score, forKey: "dailyScore_\(todayKey)")
+        ud.set(wordHistory.max(by: { $0.word.count < $1.word.count })?.word ?? "", forKey: "dailyBestWord_\(todayKey)")
+        ud.set(dailyPeakCombo, forKey: "dailyPeakCombo_\(todayKey)")
+        ud.set(wordCount, forKey: "dailyWordCount_\(todayKey)")
+
+        dailyStreak = newStreak
+        dailyAlreadyPlayedToday = true
+    }
+
+    struct DailyStatus {
+        let streak: Int
+        let playedToday: Bool
+        let todayScore: Int
+        let todayBestWord: String
+        let todayPeakCombo: Int
+        let todayWordCount: Int
+    }
+
+    static func dailyStatus() -> DailyStatus {
+        let ud = UserDefaults.standard
+        let todayKey = SeededRNG.todayKey()
+        let playedToday = ud.string(forKey: "dailyLastPlayedKey") == todayKey
+        return DailyStatus(
+            streak: ud.integer(forKey: "dailyStreak"),
+            playedToday: playedToday,
+            todayScore: playedToday ? ud.integer(forKey: "dailyScore_\(todayKey)") : 0,
+            todayBestWord: playedToday ? (ud.string(forKey: "dailyBestWord_\(todayKey)") ?? "") : "",
+            todayPeakCombo: playedToday ? ud.integer(forKey: "dailyPeakCombo_\(todayKey)") : 0,
+            todayWordCount: playedToday ? ud.integer(forKey: "dailyWordCount_\(todayKey)") : 0
+        )
     }
 }
