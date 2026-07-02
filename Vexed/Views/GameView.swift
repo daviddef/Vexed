@@ -109,16 +109,14 @@ struct GameView: View {
 
                 // ── Compact top bar ──────────────────────────────────────
                 HStack(spacing: 0) {
-                    // Score cluster — SCORE/WORDS/FORGED/LOST always shown, in both modes, so the
-                    // header stays the same width and alignment; kid mode adds a COMBO widget after.
+                    // Score cluster — SCORE/WORDS/FORGED/LOST/COMBO always shown, in both modes,
+                    // so the header stays the same width and alignment across modes.
                     HStack(spacing: 10) {
                         miniStat(label: "SCORE",  value: "\(displayScore)", color: currentTheme == .fun ? Color(red: 0.55, green: 0.38, blue: 0.0) : currentTheme == .arcade ? Color(red: 1.0, green: 0.0, blue: 0.85) : .white, isScore: true)
                         miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: currentTheme == .fun ? Color(red: 0.10, green: 0.30, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.85))
                         miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: currentTheme == .fun ? Color(red: 0.0, green: 0.40, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.75, green: 0.4, blue: 1.0) : Color(red: 0.3, green: 0.9, blue: 1.0))
                         miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: currentTheme == .fun ? Color(red: 0.55, green: 0.10, blue: 0.10) : Color(red: 1, green: 0.4, blue: 0.4))
-                        if kidMode {
-                            kidComboStat
-                        }
+                        comboStat
                     }
                     .padding(.leading, 16)
 
@@ -715,8 +713,8 @@ struct GameView: View {
         .animation(.easeInOut(duration: 0.3), value: isActive)
     }
 
-    /// Inline combo display for kid mode header — sits where STARS used to be.
-    @ViewBuilder private var kidComboStat: some View {
+    /// Inline combo display — shown in both modes' headers.
+    @ViewBuilder private var comboStat: some View {
         let active = engine.combo >= 2
         let color = comboColor()
         VStack(spacing: 1) {
