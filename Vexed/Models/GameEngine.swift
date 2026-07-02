@@ -64,6 +64,7 @@ final class GameEngine: ObservableObject {
     var config: DifficultyConfig
     private(set) var currentDifficulty: Difficulty = .fill
     private var hintTask: Task<Void, Never>? = nil
+    private var autoVanishTask: Task<Void, Never>? = nil
     private var validator: WordValidator {
         let includeRare = UserDefaults.standard.bool(forKey: "includeRareWords")
         return WordValidator.forResource(config.activeWordList(includeRare: includeRare))
@@ -880,6 +881,56 @@ final class GameEngine: ObservableObject {
             }
         }
         criticalDangerPositions = critical
+
+        // If a critical cluster exists and literally no slide would dissolve it (or any other
+        // cluster), the vanish is unavoidable — don't leave the player staring at a pulsing
+        // warning they can't act on. Resolve it automatically after a short grace beat.
+        autoVanishTask?.cancel()
+        autoVanishTask = nil
+        if !critical.isEmpty && !hasAnyDissolvingMove() {
+            autoVanishTask = Task { @MainActor [weak self] in
+                do { try await Task.sleep(nanoseconds: 1_600_000_000) } catch { return }
+                guard let self, !Task.isCancelled, !self.gameOver else { return }
+                self.applyVowelVanish()
+            }
+        }
+    }
+
+    /// True if at least one legal slide would leave the board with no 3+ same-vowel cluster.
+    private func hasAnyDissolvingMove() -> Bool {
+        for (src, dest) in allSlides(in: grid) {
+            let g2 = applying(grid, from: src, to: dest)
+            if !gridHasCriticalCluster(g2) { return true }
+        }
+        return false
+    }
+
+    private func gridHasCriticalCluster(_ g: [[Tile?]]) -> Bool {
+        var visited: Set<Position> = []
+        for r in 0..<config.rows {
+            for c in 0..<config.cols {
+                let pos = Position(r, c)
+                guard !visited.contains(pos), let tile = g[r][c], let v = tile.vowel else { continue }
+                var local: Set<Position> = []
+                let size = clusterSize(in: g, at: pos, vowel: v, visited: &local)
+                visited.formUnion(local)
+                if size >= 3 { return true }
+            }
+        }
+        return false
+    }
+
+    private func clusterSize(in g: [[Tile?]], at pos: Position, vowel: Vowel, visited: inout Set<Position>) -> Int {
+        guard !visited.contains(pos),
+              pos.isValid(rows: config.rows, cols: config.cols),
+              let tile = g[pos.row][pos.col],
+              tile.vowel == vowel else { return 0 }
+        visited.insert(pos)
+        return 1 +
+            clusterSize(in: g, at: pos.moved(.up), vowel: vowel, visited: &visited) +
+            clusterSize(in: g, at: pos.moved(.down), vowel: vowel, visited: &visited) +
+            clusterSize(in: g, at: pos.moved(.left), vowel: vowel, visited: &visited) +
+            clusterSize(in: g, at: pos.moved(.right), vowel: vowel, visited: &visited)
     }
 
     private func vowelClusterSize(at pos: Position, vowel: Vowel, visited: inout Set<Position>) -> Int {
@@ -1010,6 +1061,7 @@ final class GameEngine: ObservableObject {
         tilesForged = 0; forgeMessage = nil
         availableWords = []; highlightedPositions = nil
         hintTask?.cancel(); hintTask = nil
+        autoVanishTask?.cancel(); autoVanishTask = nil
         interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMoves = []
         isNewHighScore = false
         startPressureTimer()

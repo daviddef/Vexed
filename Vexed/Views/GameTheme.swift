@@ -75,7 +75,7 @@ struct GameTheme {
         switch style {
         case .arcade:  return Color(red: 0.55, green: 0.95, blue: 1.0)
         case .fun:     return Color(red: 0.10, green: 0.25, blue: 0.50)
-        case .regular: return Color(white: 0.30)
+        case .regular: return Color(white: 0.55)
         }
     }
     var statBgOpacity: Double      { isArcade ? 0.22 : isFun ? 0.22 : 0.0 }

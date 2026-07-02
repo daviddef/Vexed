@@ -30,12 +30,10 @@ struct GameView: View {
     @State private var definitionEntry: DefinitionEntry? = nil
     @State private var hintCooldown = false
     @AppStorage("kidMode") private var kidMode: Bool = false
-    @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
     @AppStorage("themeIsUserSet") private var themeIsUserSet: Bool = false
     private var currentTheme: AppTheme { AppTheme(rawValue: appThemeRaw) ?? .regular }
     private var theme: GameTheme { GameTheme(style: currentTheme) }
-    private var currentKidAge: KidAge { KidAge(rawValue: kidAgeRaw) ?? .explorer }
 
     var body: some View {
         ZStack {
@@ -111,20 +109,15 @@ struct GameView: View {
 
                 // ── Compact top bar ──────────────────────────────────────
                 HStack(spacing: 0) {
-                    // Score cluster
-                    HStack(spacing: kidMode ? 10 : 12) {
+                    // Score cluster — SCORE/WORDS/FORGED/LOST always shown, in both modes, so the
+                    // header stays the same width and alignment; kid mode adds a COMBO widget after.
+                    HStack(spacing: 10) {
                         miniStat(label: "SCORE",  value: "\(displayScore)", color: currentTheme == .fun ? Color(red: 0.55, green: 0.38, blue: 0.0) : currentTheme == .arcade ? Color(red: 1.0, green: 0.0, blue: 0.85) : .white, isScore: true)
-                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: currentTheme == .fun ? Color(red: 0.10, green: 0.30, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.7))
+                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: currentTheme == .fun ? Color(red: 0.10, green: 0.30, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.85))
                         miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: currentTheme == .fun ? Color(red: 0.0, green: 0.40, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.75, green: 0.4, blue: 1.0) : Color(red: 0.3, green: 0.9, blue: 1.0))
+                        miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: currentTheme == .fun ? Color(red: 0.55, green: 0.10, blue: 0.10) : Color(red: 1, green: 0.4, blue: 0.4))
                         if kidMode {
-                            // Inline combo badge (replaces STARS; no floating overlay in kid mode)
                             kidComboStat
-                            // Age badge
-                            Text(currentKidAge.emoji)
-                                .font(.system(size: 22))
-                                .padding(.horizontal, 4)
-                        } else {
-                            miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: Color(red: 1, green: 0.4, blue: 0.4))
                         }
                     }
                     .padding(.leading, 16)
@@ -158,14 +151,8 @@ struct GameView: View {
                     selectedTileHint
                         .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
 
-                    // Line 2: available words (red) — tap to highlight on board
-                    if !engine.availableWords.isEmpty {
-                        availableWordsStrip
-                            .frame(height: 36)
-                    }
-
-                    // Line 3: word history chips
-                    wordHistoryStrip
+                    // Line 2: one scrollable row — pending words (tap to highlight) then collected chips
+                    wordStrip
                         .frame(height: 36)
                 }
                 .padding(.bottom, 8)
@@ -578,24 +565,24 @@ struct GameView: View {
         }
     }
 
-    private var availableWordsStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(engine.availableWords) { entry in
-                    AvailableWordChip(entry: entry, engine: engine) { word in
-                        showDefinition(for: word, points: nil)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-        }
-    }
-
-    private var wordHistoryStrip: some View {
+    /// Single scrollable row: pending (scoreable-now) words first, then a divider, then the
+    /// collected word history — replaces the old two stacked strips.
+    private var wordStrip: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    if engine.wordHistory.isEmpty {
+                    ForEach(engine.availableWords) { entry in
+                        AvailableWordChip(entry: entry, engine: engine) { word in
+                            showDefinition(for: word, points: nil)
+                        }
+                    }
+                    if !engine.availableWords.isEmpty && !engine.wordHistory.isEmpty {
+                        Rectangle()
+                            .fill(Color(white: 0.2))
+                            .frame(width: 1, height: 18)
+                            .padding(.horizontal, 2)
+                    }
+                    if engine.availableWords.isEmpty && engine.wordHistory.isEmpty {
                         Text("— no words yet —")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(Color(white: 0.2))
