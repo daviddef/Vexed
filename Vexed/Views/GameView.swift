@@ -23,7 +23,6 @@ struct GameView: View {
     @State private var vanishMessage: String? = nil
     @State private var displayScore: Int = 0
     @State private var activeBursts: [GameEngine.BurstEvent] = []
-    @State private var dangerPulse: Bool = false
     @State private var celebrationScale: CGFloat = 0.1
     @State private var breathPhase: Bool = false
     @State private var wordScoreFlash: Bool = false
@@ -114,6 +113,9 @@ struct GameView: View {
 
                     // Controls
                     HStack(spacing: 8) {
+                        if !kidMode {
+                            hintIconButton
+                        }
                         iconButton("line.3.horizontal") { showBurgerMenu = true }
                     }
                     .padding(.trailing, 12)
@@ -136,13 +138,6 @@ struct GameView: View {
                     selectedTileHint
                         .animation(.easeInOut(duration: 0.2), value: engine.selectedPosition)
 
-                    // Hint button (adult only — kid mode gets automatic hints)
-                    if !kidMode {
-                        hintButton
-                            .frame(height: 32)
-                            .padding(.top, 2)
-                    }
-
                     // Line 2: available words (red) — tap to highlight on board
                     if !engine.availableWords.isEmpty {
                         availableWordsStrip
@@ -154,11 +149,6 @@ struct GameView: View {
                         .frame(height: 36)
                 }
                 .padding(.bottom, 8)
-            }
-
-            // ── Danger vignette ──────────────────────────────────────
-            if let color = engine.dangerVowelColor {
-                dangerVignette(color: color)
             }
 
             // ── Word flash ────────────────────────────────────────────
@@ -280,10 +270,6 @@ struct GameView: View {
             let existingIDs = Set(activeBursts.map(\.id))
             let newBursts = events.filter { !existingIDs.contains($0.id) }
             activeBursts.append(contentsOf: newBursts)
-        }
-        .onChange(of: engine.dangerVowelColor) { _, _ in
-            dangerPulse = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { dangerPulse = true }
         }
         .onChange(of: engine.celebrationWord) { _, word in
             if word != nil { celebrationScale = 0.1 }
@@ -667,8 +653,9 @@ struct GameView: View {
 
     // MARK: - New UX overlays
 
-    /// Lightbulb hint button for adult mode — triggers the same path + glow system as kid auto-hints.
-    @ViewBuilder private var hintButton: some View {
+    /// Lightbulb hint icon for adult mode — sits beside the burger menu, triggers the same
+    /// path + glow system as kid auto-hints.
+    @ViewBuilder private var hintIconButton: some View {
         let isActive = engine.hintWordId != nil || !engine.hintMoves.isEmpty
         Button {
             guard !hintCooldown else { return }
@@ -678,34 +665,25 @@ struct GameView: View {
                 hintCooldown = false
             }
         } label: {
-            HStack(spacing: 6) {
-                Image(systemName: isActive ? "lightbulb.fill" : "lightbulb")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(isActive
-                        ? Color(red: 1.0, green: 0.85, blue: 0.0)
-                        : hintCooldown ? Color(white: 0.22) : Color(white: 0.42))
-                Text(hintCooldown && !isActive ? "COOLING DOWN" : "HINT")
-                    .font(.system(size: 9, weight: .black, design: .rounded))
-                    .tracking(1.5)
-                    .foregroundColor(isActive
-                        ? Color(red: 1.0, green: 0.85, blue: 0.0)
-                        : hintCooldown ? Color(white: 0.20) : Color(white: 0.36))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isActive ? Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.10) : Color(white: 0.07))
-                    .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(isActive
-                            ? Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.45)
-                            : Color(white: hintCooldown ? 0.06 : 0.12), lineWidth: 1))
-            )
-            .animation(.easeInOut(duration: 0.3), value: isActive)
-            .animation(.easeInOut(duration: 0.3), value: hintCooldown)
+            Image(systemName: isActive ? "lightbulb.fill" : "lightbulb")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(isActive
+                    ? Color(red: 1.0, green: 0.85, blue: 0.0)
+                    : hintCooldown ? Color(white: 0.22) : Color(white: 0.55))
+                .frame(width: 40, height: 40)
+                .background(
+                    (isActive ? Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.14) : Color(white: 0.13))
+                        .cornerRadius(12)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isActive ? Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.5) : Color.clear, lineWidth: 1.5)
+                )
+                .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
         .disabled(hintCooldown && !isActive)
+        .animation(.easeInOut(duration: 0.3), value: isActive)
     }
 
     /// Inline combo display for kid mode header — sits where STARS used to be.
@@ -775,23 +753,6 @@ struct GameView: View {
         case 3: return Color(red: 1.0, green: 0.4, blue: 0.1)    // orange
         default: return Color(red: 0.9, green: 0.1, blue: 0.9)   // magenta for 4+
         }
-    }
-
-    @ViewBuilder private func dangerVignette(color: Color) -> some View {
-        RoundedRectangle(cornerRadius: 0)
-            .fill(
-                RadialGradient(
-                    gradient: Gradient(colors: [.clear, color.opacity(dangerPulse ? 0.35 : 0.15)]),
-                    center: .center,
-                    startRadius: UIScreen.main.bounds.width * 0.3,
-                    endRadius: UIScreen.main.bounds.width * 0.85
-                )
-            )
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: dangerPulse)
-            .onAppear { dangerPulse = true }
-            .onDisappear { dangerPulse = false }
     }
 
     @ViewBuilder private func wordCelebration(_ word: String) -> some View {

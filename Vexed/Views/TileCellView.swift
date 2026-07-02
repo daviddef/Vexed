@@ -10,6 +10,8 @@ struct TileCellView: View {
     var isDestination: Bool = false
     // Kid mode hint: tile glows gold while hint is active
     var isHintTile: Bool = false
+    // True when this tile is part of a 3+ same-vowel cluster about to vanish
+    var isCriticalDanger: Bool = false
 
     @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
@@ -21,6 +23,8 @@ struct TileCellView: View {
     @State private var forgePulse: CGFloat = 0.0
     // Hint animation: pulse (0→1) drives gold brightness & glow
     @State private var hintPulse: CGFloat = 0.0
+    // Critical danger animation: pulse (0→1) drives border/glow/scale for at-risk tiles
+    @State private var criticalPulse: CGFloat = 0.0
 
     private var isForged: Bool { tile?.animState == .forged }
 
@@ -72,8 +76,12 @@ struct TileCellView: View {
                 // 5. Border
                 RoundedRectangle(cornerRadius: cr)
                     .strokeBorder(
-                        isSelected ? Color.white : (isForged ? Color(white: 0.6) : isHintTile ? Color(red: 1.0, green: 0.65, blue: 0.0) : darkenedColor(base, factor: 0.65)),
-                        lineWidth: isSelected ? 3.5 : isHintTile ? 2.5 : theme.tileBorderWidth
+                        isSelected ? Color.white
+                            : (isForged ? Color(white: 0.6)
+                            : isCriticalDanger ? Color(red: 1.0, green: 0.15 + criticalPulse * 0.25, blue: 0.15)
+                            : isHintTile ? Color(red: 1.0, green: 0.65, blue: 0.0)
+                            : darkenedColor(base, factor: 0.65)),
+                        lineWidth: isSelected ? 3.5 : isCriticalDanger ? (2.5 + criticalPulse * 2.0) : isHintTile ? 2.5 : theme.tileBorderWidth
                     )
 
                 // 6. Outer highlight — skip when forged
@@ -114,6 +122,10 @@ struct TileCellView: View {
         .shadow(color: Color.white.opacity(forgePulse * 0.85), radius: forgePulse * 28, x: 0, y: 0)
         // Gold pulse glow — driven by hintPulse (CGFloat 0→1)
         .shadow(color: Color(red: 1.0, green: 0.75, blue: 0.0).opacity(isHintTile ? hintPulse * 0.75 : 0), radius: isHintTile ? hintPulse * 22 : 0, x: 0, y: 0)
+        // Red pulse glow for tiles about to vanish (3+ same-vowel cluster) — driven by criticalPulse (CGFloat 0→1)
+        .shadow(color: Color(red: 1.0, green: 0.1, blue: 0.1).opacity(isCriticalDanger ? 0.4 + criticalPulse * 0.5 : 0),
+                radius: isCriticalDanger ? 10 + criticalPulse * 16 : 0, x: 0, y: 0)
+        .scaleEffect(isCriticalDanger ? 1.0 + criticalPulse * 0.06 : 1.0)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
                 radius: isTouching ? 18 : (isDanger ? 14 : 0))
@@ -138,6 +150,22 @@ struct TileCellView: View {
             if isHintTile {
                 withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
                     hintPulse = 1.0
+                }
+            }
+            if isCriticalDanger {
+                withAnimation(.easeInOut(duration: 0.45).repeatForever(autoreverses: true)) {
+                    criticalPulse = 1.0
+                }
+            }
+        }
+        .onChange(of: isCriticalDanger) { _, active in
+            if active {
+                withAnimation(.easeInOut(duration: 0.45).repeatForever(autoreverses: true)) {
+                    criticalPulse = 1.0
+                }
+            } else {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    criticalPulse = 0.0
                 }
             }
         }

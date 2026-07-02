@@ -33,6 +33,7 @@ final class GameEngine: ObservableObject {
     @Published var comboMultiplier: Double = 1.0  // 1.0, 1.5, 2.0, 3.0
     @Published var boardVersion: Int = 0   // increments on each reset to trigger animation
     @Published var dangerVowelColor: Color? = nil   // non-nil when a cluster of 3+ same vowel exists
+    @Published var criticalDangerPositions: Set<Position> = []  // exact tiles in a 3+ same-vowel cluster
     @Published var celebrationWord: String? = nil   // set to the word when 5+ letters scored
     @Published var tilesForged: Int = 0             // cumulative bonus tiles spawned by Tile Forge
     @Published var forgeMessage: String? = nil      // brief "+N tiles" banner
@@ -861,19 +862,24 @@ final class GameEngine: ObservableObject {
             }
         }
 
-        // Check for dangerous clusters (3+ same adjacent vowels)
+        // Check for dangerous clusters (3+ same adjacent vowels) — collect every tile involved
         dangerVowelColor = nil
-        outer: for r in 0..<config.rows {
+        var critical: Set<Position> = []
+        var visitedGlobal: Set<Position> = []
+        for r in 0..<config.rows {
             for c in 0..<config.cols {
-                guard let tile = grid[r][c], let v = tile.vowel else { continue }
+                let pos = Position(r, c)
+                guard !visitedGlobal.contains(pos), let tile = grid[r][c], let v = tile.vowel else { continue }
                 var visited: Set<Position> = []
-                let clusterSize = vowelClusterSize(at: Position(r, c), vowel: v, visited: &visited)
+                let clusterSize = vowelClusterSize(at: pos, vowel: v, visited: &visited)
+                visitedGlobal.formUnion(visited)
                 if clusterSize >= 3 {
-                    dangerVowelColor = vowelColor(v)
-                    break outer
+                    critical.formUnion(visited)
+                    if dangerVowelColor == nil { dangerVowelColor = vowelColor(v) }
                 }
             }
         }
+        criticalDangerPositions = critical
     }
 
     private func vowelClusterSize(at pos: Position, vowel: Vowel, visited: inout Set<Position>) -> Int {

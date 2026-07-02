@@ -64,6 +64,7 @@ struct GridView: View {
                                 let isPath = pathSet.contains(pos)
                                 let isDest = destSet.contains(pos)
                                 let isHintTile = tile != nil && (hintPositions.contains(pos) || hintMovePositions.contains(pos))
+                                let isCritical = tile != nil && engine.criticalDangerPositions.contains(pos)
                                 let isDimmed: Bool = {
                                     guard let hl = engine.highlightedPositions else { return false }
                                     // Never dim a tile that the hint is pointing to
@@ -78,7 +79,8 @@ struct GridView: View {
                                             isSelected: isSelected,
                                             size: tileSize,
                                             isTouching: isTouching,
-                                            isHintTile: isHintTile
+                                            isHintTile: isHintTile,
+                                            isCriticalDanger: isCritical
                                         )
                                         .matchedGeometryEffect(id: tile.id, in: tileNamespace)
                                     } else {
