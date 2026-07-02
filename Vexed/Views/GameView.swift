@@ -94,9 +94,9 @@ struct GameView: View {
                 HStack(spacing: 0) {
                     // Score cluster
                     HStack(spacing: kidMode ? 10 : 12) {
-                        miniStat(label: "SCORE",  value: "\(displayScore)", color: kidMode ? Color(red: 1.0, green: 0.85, blue: 0.2) : .white, isScore: true)
-                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: Color(white: 0.7))
-                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: Color(red: 0.3, green: 0.9, blue: 1.0))
+                        miniStat(label: "SCORE",  value: "\(displayScore)", color: kidMode ? Color(red: 0.55, green: 0.38, blue: 0.0) : .white, isScore: true)
+                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: kidMode ? Color(red: 0.10, green: 0.30, blue: 0.55) : Color(white: 0.7))
+                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: kidMode ? Color(red: 0.0, green: 0.40, blue: 0.55) : Color(red: 0.3, green: 0.9, blue: 1.0))
                         if kidMode {
                             // Inline combo badge (replaces STARS; no floating overlay in kid mode)
                             kidComboStat
@@ -715,12 +715,14 @@ struct GameView: View {
         VStack(spacing: 1) {
             Text(active ? "\(engine.combo)×" : "—")
                 .font(.system(size: 17, weight: .black, design: .rounded))
-                .foregroundColor(active ? color : Color(white: 0.25))
+                .foregroundColor(active ? color : (kidMode ? Color(red: 0.10, green: 0.25, blue: 0.50) : Color(white: 0.25)))
                 .contentTransition(.numericText())
                 .animation(.spring(response: 0.3, dampingFraction: 0.55), value: engine.combo)
             Text("COMBO")
                 .font(.system(size: 8, weight: .heavy, design: .rounded))
-                .foregroundColor(Color(white: active ? 0.45 : 0.20))
+                .foregroundColor(kidMode
+                    ? Color(red: 0.10, green: 0.25, blue: 0.50).opacity(active ? 0.85 : 0.55)
+                    : Color(white: active ? 0.45 : 0.20))
                 .tracking(1)
         }
         .padding(.vertical, 6)
