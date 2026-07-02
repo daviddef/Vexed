@@ -656,14 +656,19 @@ final class GameEngine: ObservableObject {
             var j = i
             while j < positions.count, grid[positions[j].row][positions[j].col] != nil { j += 1 }
             let run = Array(positions[i..<j])
-            // Try longest substrings first
+            // Try longest substrings first, in both reading directions
             for start in 0..<run.count {
                 for end in stride(from: run.count, through: start + config.minWordLength, by: -1) {
                     let slice = Array(run[start..<end])
-                    let word = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
-                    if word.count == end - start, validator.isValid(word) {
-                        words.append(ScoredWord(word: word, positions: slice))
-                        // Don't overlap — skip consumed tiles
+                    let forward = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
+                    guard forward.count == end - start else { continue }
+                    if validator.isValid(forward) {
+                        words.append(ScoredWord(word: forward, positions: slice))
+                        break
+                    }
+                    let reversed = String(forward.reversed())
+                    if validator.isValid(reversed) {
+                        words.append(ScoredWord(word: reversed, positions: slice))
                         break
                     }
                 }
@@ -712,10 +717,16 @@ final class GameEngine: ObservableObject {
                 for start in 0..<run.count {
                     for end in stride(from: run.count, through: start + config.minWordLength, by: -1) {
                         let slice = Array(run[start..<end])
-                        let word = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
-                        if word.count == end - start, validator.isValid(word), !seen.contains(word) {
-                            seen.insert(word)
-                            results.append(AvailableWord(word: word, positions: slice))
+                        let forward = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
+                        guard forward.count == end - start else { continue }
+                        if validator.isValid(forward), !seen.contains(forward) {
+                            seen.insert(forward)
+                            results.append(AvailableWord(word: forward, positions: slice))
+                        }
+                        let reversed = String(forward.reversed())
+                        if validator.isValid(reversed), !seen.contains(reversed) {
+                            seen.insert(reversed)
+                            results.append(AvailableWord(word: reversed, positions: slice))
                         }
                     }
                 }
@@ -818,7 +829,8 @@ final class GameEngine: ObservableObject {
             let maxLen = min(10, letters.count - start)
             guard maxLen >= config.minWordLength else { break }
             for len in config.minWordLength...maxLen {
-                if validator.isValid(String(letters[start..<(start + len)])) { return true }
+                let slice = String(letters[start..<(start + len)])
+                if validator.isValid(slice) || validator.isValid(String(slice.reversed())) { return true }
             }
         }
         return false
@@ -833,7 +845,7 @@ final class GameEngine: ObservableObject {
             var found = false
             for len in stride(from: min(letters.count - i, 10), through: config.minWordLength, by: -1) {
                 let word = String(letters[i..<(i + len)])
-                if validator.isValid(word) {
+                if validator.isValid(word) || validator.isValid(String(word.reversed())) {
                     total += word.count * 10 + (word.count > 4 ? 20 : 0)
                     i += len
                     found = true
