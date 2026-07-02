@@ -59,6 +59,7 @@ final class GameEngine: ObservableObject {
     struct BurstEvent: Identifiable, Equatable {
         let id = UUID()
         let color: Color
+        var intensity: Int = 1   // combo tier — scales particle count/speed in the view
     }
 
     var config: DifficultyConfig
@@ -467,7 +468,7 @@ final class GameEngine: ObservableObject {
         wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier))
         addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
 
-        Haptics.wordScore()
+        Haptics.comboScore(combo: combo)
         flashWord = word.word
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in self?.flashWord = nil }
 
@@ -476,7 +477,7 @@ final class GameEngine: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.celebrationWord = nil }
         }
 
-        burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2)))
+        burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2), intensity: combo))
 
         let forgeCount = config.forgeBonusCount(wordLength: word.word.count)
 
@@ -535,7 +536,7 @@ final class GameEngine: ObservableObject {
         }
 
         if !found.isEmpty {
-            Haptics.wordScore()
+            Haptics.comboScore(combo: combo)
 
             // Flash the word prominently before tiles vanish
             if let first = found.first {
@@ -554,7 +555,7 @@ final class GameEngine: ObservableObject {
             }
 
             let burstColor = Color(red: 1.0, green: 0.85, blue: 0.2) // gold for word score
-            burstEvents.append(BurstEvent(color: burstColor))
+            burstEvents.append(BurstEvent(color: burstColor, intensity: combo))
         }
 
         if !found.isEmpty {
@@ -598,13 +599,21 @@ final class GameEngine: ObservableObject {
         emptyCells.shuffle()
         let targets = Array(emptyCells.prefix(canSpawn))
 
-        for pos in targets {
-            var t = Tile(letter: randomForgeLetter())
-            t.animState = .forged
-            grid[pos.row][pos.col] = t
+        // Cascade the reveal — each tile pops in slightly after the last, so a big forge count
+        // reads as a small event instead of an instant dump.
+        let stagger = 0.09
+        for (i, pos) in targets.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * stagger) { [weak self] in
+                guard let self else { return }
+                var t = Tile(letter: self.randomForgeLetter())
+                t.animState = .forged
+                self.grid[pos.row][pos.col] = t
+            }
         }
+        let cascadeEnd = Double(max(0, targets.count - 1)) * stagger
+
         // Settle forged tiles to idle after the entry animation completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + cascadeEnd + 2.0) { [weak self] in
             guard let self else { return }
             for pos in targets where self.grid[pos.row][pos.col]?.animState == .forged {
                 self.grid[pos.row][pos.col]?.animState = .idle
@@ -612,13 +621,16 @@ final class GameEngine: ObservableObject {
         }
 
         tilesForged += canSpawn
+        Haptics.forge(count: canSpawn)
         let msg = "+\(canSpawn) tile\(canSpawn == 1 ? "" : "s") forged!"
         forgeMessage = msg
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + cascadeEnd + 1.6) { [weak self] in
             self?.forgeMessage = nil
         }
-        recalculatePotentialScore()
-        updateDangerStates()
+        DispatchQueue.main.asyncAfter(deadline: .now() + cascadeEnd) { [weak self] in
+            self?.recalculatePotentialScore()
+            self?.updateDangerStates()
+        }
     }
 
     private func randomForgeLetter() -> Character {

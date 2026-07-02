@@ -14,6 +14,9 @@ struct Particle: Identifiable {
 struct ParticleBurstView: View {
     let origin: CGPoint
     let color: Color
+    /// Combo tier (1 = single word, higher = streak) — scales particle count, speed, and size
+    /// so a 4-combo burst genuinely reads as a bigger event than a single word.
+    var intensity: Int = 1
     let onFinish: () -> Void
 
     @State private var particles: [Particle] = []
@@ -33,16 +36,18 @@ struct ParticleBurstView: View {
     }
 
     private func spawn() {
-        let count = 14
+        let tier = max(1, min(intensity, 4))
+        let count = 14 + (tier - 1) * 8
+        let speedBoost = 1.0 + Double(tier - 1) * 0.18
         particles = (0..<count).map { i in
             let angle = Double(i) / Double(count) * .pi * 2
-            let speed = CGFloat.random(in: 60...140)
+            let speed = CGFloat.random(in: 60...140) * CGFloat(speedBoost)
             return Particle(
                 x: origin.x, y: origin.y,
                 vx: cos(angle) * speed,
                 vy: sin(angle) * speed,
                 color: color,
-                size: CGFloat.random(in: 5...10)
+                size: CGFloat.random(in: 5...10) * CGFloat(1.0 + Double(tier - 1) * 0.12)
             )
         }
         // Animate over 0.6s using display link cadence via steps

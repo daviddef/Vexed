@@ -511,7 +511,7 @@ struct GameView: View {
         let cx = UIScreen.main.bounds.width / 2
         let cy = UIScreen.main.bounds.height / 2
         ForEach(activeBursts) { burst in
-            ParticleBurstView(origin: CGPoint(x: cx, y: cy), color: burst.color) {
+            ParticleBurstView(origin: CGPoint(x: cx, y: cy), color: burst.color, intensity: burst.intensity) {
                 activeBursts.removeAll { $0.id == burst.id }
             }
         }
@@ -784,6 +784,7 @@ struct GameView: View {
 
     @ViewBuilder private func wordCelebration(_ word: String) -> some View {
         let is6Plus = word.count >= 6
+        let combo = engine.combo
         VStack {
             Spacer()
             Spacer()
@@ -793,6 +794,18 @@ struct GameView: View {
                     .foregroundColor(is6Plus ? Color(red: 1.0, green: 0.85, blue: 0.0) : .white)
                     .shadow(color: (is6Plus ? Color.yellow : Color.white).opacity(0.5),
                             radius: 12, x: 0, y: 0)
+                if combo >= 2 {
+                    Text("🔥 \(combo)× COMBO")
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .foregroundColor(comboColor())
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule().fill(comboColor().opacity(0.18))
+                                .overlay(Capsule().stroke(comboColor().opacity(0.6), lineWidth: 1))
+                        )
+                        .shadow(color: comboColor().opacity(0.6), radius: 8, x: 0, y: 0)
+                }
                 Text(word)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
