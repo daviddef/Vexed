@@ -13,9 +13,8 @@ struct TileCellView: View {
     // True when this tile is part of a 3+ same-vowel cluster about to vanish
     var isCriticalDanger: Bool = false
 
-    @AppStorage("arcadeMode") private var arcadeMode: Bool = false
-    @AppStorage("kidMode") private var kidMode: Bool = false
-    private var theme: GameTheme { GameTheme(isArcade: arcadeMode, isKid: kidMode) }
+    @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
+    private var theme: GameTheme { GameTheme(style: AppTheme(rawValue: appThemeRaw) ?? .regular) }
 
     @State private var vanishRotation: Double = 0
     // Forge animation: scale pops in from 0; pulse (0→1) drives color brightness & glow
@@ -80,7 +79,7 @@ struct TileCellView: View {
                             : (isForged ? Color(white: 0.6)
                             : isCriticalDanger ? Color(red: 1.0, green: 0.15 + criticalPulse * 0.25, blue: 0.15)
                             : isHintTile ? Color(red: 1.0, green: 0.65, blue: 0.0)
-                            : darkenedColor(base, factor: 0.65)),
+                            : theme.neonTileBorder ?? darkenedColor(base, factor: 0.65)),
                         lineWidth: isSelected ? 3.5 : isCriticalDanger ? (2.5 + criticalPulse * 2.0) : isHintTile ? 2.5 : theme.tileBorderWidth
                     )
 
@@ -88,6 +87,13 @@ struct TileCellView: View {
                 if !isSelected && !isForged {
                     RoundedRectangle(cornerRadius: cr)
                         .stroke(Color.white.opacity(theme.showGlossStripe ? 0.35 : 0.25), lineWidth: 0.75)
+                }
+
+                // 7. Arcade neon glow ring — extra outer stroke to sell the CRT/neon look
+                if theme.neonTileBorder != nil && !isSelected && !isForged && !isCriticalDanger && !isHintTile {
+                    RoundedRectangle(cornerRadius: cr)
+                        .stroke(theme.neonTileBorder!.opacity(0.5), lineWidth: 1)
+                        .blur(radius: 1.5)
                 }
 
                 // Letter — dark on forged/hint tiles, white otherwise
@@ -126,6 +132,8 @@ struct TileCellView: View {
         .shadow(color: Color(red: 1.0, green: 0.1, blue: 0.1).opacity(isCriticalDanger ? 0.4 + criticalPulse * 0.5 : 0),
                 radius: isCriticalDanger ? 10 + criticalPulse * 16 : 0, x: 0, y: 0)
         .scaleEffect(isCriticalDanger ? 1.0 + criticalPulse * 0.06 : 1.0)
+        // Ambient neon glow — arcade theme only
+        .shadow(color: (theme.neonTileBorder ?? .clear).opacity(!isSelected && !isCriticalDanger && !isHintTile ? 0.45 : 0), radius: 6, x: 0, y: 0)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)
         .shadow(color: isTouching ? touchGlowColor : dangerGlowColor,
                 radius: isTouching ? 18 : (isDanger ? 14 : 0))

@@ -29,17 +29,19 @@ struct GameView: View {
     @State private var tutorialStep: Int = 0
     @State private var definitionEntry: DefinitionEntry? = nil
     @State private var hintCooldown = false
-    @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
     @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
-    private var theme: GameTheme { GameTheme(isArcade: arcadeMode, isKid: kidMode) }
+    @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
+    @AppStorage("themeIsUserSet") private var themeIsUserSet: Bool = false
+    private var currentTheme: AppTheme { AppTheme(rawValue: appThemeRaw) ?? .regular }
+    private var theme: GameTheme { GameTheme(style: currentTheme) }
     private var currentKidAge: KidAge { KidAge(rawValue: kidAgeRaw) ?? .explorer }
 
     var body: some View {
         ZStack {
             theme.bgBase.ignoresSafeArea()
-            // Kid mode: pastel rainbow diagonal tint over the sky-blue base
-            if kidMode {
+            // Fun theme: pastel rainbow diagonal tint over the sky-blue base
+            if currentTheme == .fun {
                 LinearGradient(
                     colors: [
                         Color(red: 1.0, green: 0.88, blue: 0.95).opacity(0.45),
@@ -51,7 +53,25 @@ struct GameView: View {
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
             }
-            // Corner glows (arcade + kid mode)
+            // Arcade theme: faint CRT scanlines for retro cabinet flavor
+            if theme.showScanlines {
+                GeometryReader { geo in
+                    let lineSpacing: CGFloat = 4
+                    let lineCount = Int(geo.size.height / lineSpacing)
+                    VStack(spacing: lineSpacing - 1) {
+                        ForEach(0..<lineCount, id: \.self) { _ in
+                            Rectangle()
+                                .fill(Color.black.opacity(0.12))
+                                .frame(height: 1)
+                        }
+                    }
+                    .frame(width: geo.size.width, height: geo.size.height)
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .blendMode(.multiply)
+            }
+            // Corner glows (arcade + fun theme)
             if theme.showCornerGlows {
                 GeometryReader { geo in
                     RadialGradient(
@@ -93,9 +113,9 @@ struct GameView: View {
                 HStack(spacing: 0) {
                     // Score cluster
                     HStack(spacing: kidMode ? 10 : 12) {
-                        miniStat(label: "SCORE",  value: "\(displayScore)", color: kidMode ? Color(red: 0.55, green: 0.38, blue: 0.0) : .white, isScore: true)
-                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: kidMode ? Color(red: 0.10, green: 0.30, blue: 0.55) : Color(white: 0.7))
-                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: kidMode ? Color(red: 0.0, green: 0.40, blue: 0.55) : Color(red: 0.3, green: 0.9, blue: 1.0))
+                        miniStat(label: "SCORE",  value: "\(displayScore)", color: currentTheme == .fun ? Color(red: 0.55, green: 0.38, blue: 0.0) : currentTheme == .arcade ? Color(red: 1.0, green: 0.0, blue: 0.85) : .white, isScore: true)
+                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: currentTheme == .fun ? Color(red: 0.10, green: 0.30, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.7))
+                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: currentTheme == .fun ? Color(red: 0.0, green: 0.40, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.75, green: 0.4, blue: 1.0) : Color(red: 0.3, green: 0.9, blue: 1.0))
                         if kidMode {
                             // Inline combo badge (replaces STARS; no floating overlay in kid mode)
                             kidComboStat
@@ -278,7 +298,16 @@ struct GameView: View {
             if isFirstLaunch {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { tutorialStep = 1 }
             }
+            applyDefaultThemeIfNeeded()
         }
+        .onChange(of: kidMode) { _, _ in applyDefaultThemeIfNeeded() }
+    }
+
+    /// Kid mode defaults to Fun, Adult mode defaults to Regular — but once the player explicitly
+    /// picks a theme in the burger menu, it sticks regardless of mode.
+    private func applyDefaultThemeIfNeeded() {
+        guard !themeIsUserSet else { return }
+        appThemeRaw = (kidMode ? AppTheme.fun : AppTheme.regular).rawValue
     }
 
     // MARK: - Subviews
@@ -512,7 +541,7 @@ struct GameView: View {
                 .padding(.horizontal, theme.toastPaddingH)
                 .padding(.vertical, theme.toastPaddingV)
                 .background(RoundedRectangle(cornerRadius: theme.toastCornerRadius).fill(theme.toastFill))
-                .shadow(color: Color.yellow.opacity(0.65), radius: theme.isArcade ? 18 : 12, x: 0, y: 4)
+                .shadow(color: Color.yellow.opacity(0.65), radius: (currentTheme == .arcade) ? 18 : 12, x: 0, y: 4)
                 .rotationEffect(.degrees(toastRotation))
                 .padding(.bottom, 100)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -525,10 +554,10 @@ struct GameView: View {
             Text(msg)
                 .font(theme.forgeBannerFont)
                 .foregroundColor(.black)
-                .padding(.horizontal, theme.isArcade ? 22 : 18)
-                .padding(.vertical, theme.isArcade ? 11 : 9)
+                .padding(.horizontal, (currentTheme == .arcade) ? 22 : 18)
+                .padding(.vertical, (currentTheme == .arcade) ? 11 : 9)
                 .background(RoundedRectangle(cornerRadius: theme.forgeBannerRadius).fill(theme.forgeBannerFill))
-                .shadow(color: Color.cyan.opacity(0.55), radius: theme.isArcade ? 16 : 10, x: 0, y: 3)
+                .shadow(color: Color.cyan.opacity(0.55), radius: (currentTheme == .arcade) ? 16 : 10, x: 0, y: 3)
                 .padding(.bottom, 80)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
@@ -539,10 +568,10 @@ struct GameView: View {
             Text(msg)
                 .font(theme.vanishBannerFont)
                 .foregroundColor(.white)
-                .padding(.horizontal, theme.isArcade ? 24 : 20)
-                .padding(.vertical, theme.isArcade ? 12 : 10)
+                .padding(.horizontal, (currentTheme == .arcade) ? 24 : 20)
+                .padding(.vertical, (currentTheme == .arcade) ? 12 : 10)
                 .background(RoundedRectangle(cornerRadius: theme.vanishBannerRadius).fill(theme.vanishBannerFill))
-                .shadow(color: Color.red.opacity(0.55), radius: theme.isArcade ? 16 : 10, x: 0, y: 3)
+                .shadow(color: Color.red.opacity(0.55), radius: (currentTheme == .arcade) ? 16 : 10, x: 0, y: 3)
                 .padding(.top, 12)
                 .transition(.move(edge: .top).combined(with: .opacity))
             Spacer()
@@ -592,8 +621,12 @@ struct GameView: View {
                             .background(
                                 RoundedRectangle(cornerRadius: theme.chipCornerRadius)
                                     .fill(theme.chipBg(forWordLength: entry.word.count))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: theme.chipCornerRadius)
+                                            .stroke(theme.chipBorder(forWordLength: entry.word.count) ?? .clear, lineWidth: 1.25)
+                                    )
                             )
-                            .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
+                            .shadow(color: (theme.chipBorder(forWordLength: entry.word.count) ?? .black).opacity(theme.chipBorder(forWordLength: entry.word.count) != nil ? 0.5 : 0.3), radius: 3, x: 0, y: 2)
                             .id(idx)
                             .onTapGesture { showDefinition(for: entry.word, points: entry.points) }
                         }
@@ -618,11 +651,13 @@ struct GameView: View {
                     Text(value)
                         .font(theme.scoreFont)
                         .foregroundColor(color)
+                        .tracking(theme.scoreTracking)
                         .contentTransition(.numericText())
                 } else {
                     Text(value)
                         .font(theme.scoreFont)
                         .foregroundColor(color)
+                        .tracking(theme.scoreTracking)
                 }
             }
             Text(label)
@@ -630,8 +665,8 @@ struct GameView: View {
                 .foregroundColor(theme.statLabelColor)
                 .tracking(theme.statLabelTracking)
         }
-        .padding(.vertical, theme.isArcade ? 7 : 6)
-        .padding(.horizontal, theme.isArcade ? 8 : 4)
+        .padding(.vertical, (currentTheme == .arcade) ? 7 : 6)
+        .padding(.horizontal, (currentTheme == .arcade) ? 8 : 4)
         .background(
             RoundedRectangle(cornerRadius: theme.statCornerRadius)
                 .fill(theme.statBgColor(for: label).opacity(theme.statBgOpacity))
@@ -639,14 +674,21 @@ struct GameView: View {
         .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
     }
 
+    @ViewBuilder
     private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
+        let isFun = currentTheme == .fun
+        let isArcade = currentTheme == .arcade
         Button(action: action) {
             Image(systemName: name)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(kidMode ? Color(red: 0.10, green: 0.25, blue: 0.65) : Color(white: 0.55))
+                .foregroundColor(isFun ? Color(red: 0.10, green: 0.25, blue: 0.65) : isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95) : Color(white: 0.55))
                 .frame(width: 40, height: 40)
-                .background((kidMode ? Color(white: 0.95) : Color(white: 0.13)).cornerRadius(12))
-                .shadow(color: (kidMode ? Color(red: 0.0, green: 0.3, blue: 0.7) : Color.black).opacity(0.25), radius: 6, x: 0, y: 3)
+                .background((isFun ? Color(white: 0.95) : Color(white: 0.13)).cornerRadius(12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95).opacity(0.5) : Color.clear, lineWidth: 1.5)
+                )
+                .shadow(color: (isFun ? Color(red: 0.0, green: 0.3, blue: 0.7) : isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95) : Color.black).opacity(0.25), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
     }
@@ -693,12 +735,12 @@ struct GameView: View {
         VStack(spacing: 1) {
             Text(active ? "\(engine.combo)×" : "—")
                 .font(.system(size: 17, weight: .black, design: .rounded))
-                .foregroundColor(active ? color : (kidMode ? Color(red: 0.10, green: 0.25, blue: 0.50) : Color(white: 0.25)))
+                .foregroundColor(active ? color : (currentTheme == .fun ? Color(red: 0.10, green: 0.25, blue: 0.50) : Color(white: 0.25)))
                 .contentTransition(.numericText())
                 .animation(.spring(response: 0.3, dampingFraction: 0.55), value: engine.combo)
             Text("COMBO")
                 .font(.system(size: 8, weight: .heavy, design: .rounded))
-                .foregroundColor(kidMode
+                .foregroundColor(currentTheme == .fun
                     ? Color(red: 0.10, green: 0.25, blue: 0.50).opacity(active ? 0.85 : 0.55)
                     : Color(white: active ? 0.45 : 0.20))
                 .tracking(1)
@@ -890,6 +932,9 @@ struct GameView: View {
         }
         // Clear tutorial-seen flag so it replays
         UserDefaults.standard.removeObject(forKey: "vexed.launched")
+        // Restore theme to its mode default
+        themeIsUserSet = false
+        applyDefaultThemeIfNeeded()
         // Reset game
         showNoWordsLeft = false
         engine.reset(difficulty: selectedDifficulty)

@@ -11,9 +11,11 @@ struct BurgerMenuView: View {
     var onShowMissedWords: () -> Void
 
     @AppStorage("includeRareWords") private var includeRareWords: Bool = false
-    @AppStorage("arcadeMode") private var arcadeMode: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
     @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
+    @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
+    @AppStorage("themeIsUserSet") private var themeIsUserSet: Bool = false
+    private var currentTheme: AppTheme { AppTheme(rawValue: appThemeRaw) ?? .regular }
 
     private var currentKidAge: KidAge {
         get { KidAge(rawValue: kidAgeRaw) ?? .explorer }
@@ -134,24 +136,29 @@ struct BurgerMenuView: View {
                         // ── Theme ────────────────────────────────────────
                         sectionCard {
                             sectionLabel("THEME")
-                            HStack(spacing: 10) {
-                                modeCard(
-                                    icon: "moon.stars.fill",
-                                    title: "Regular",
-                                    subtitle: "Clean dark look\nfocused gameplay",
-                                    isSelected: !arcadeMode,
-                                    accentColor: Color(red: 0.5, green: 0.8, blue: 1.0)
-                                ) { arcadeMode = false }
-                                modeCard(
-                                    icon: "gamecontroller.fill",
-                                    title: "Arcade",
-                                    subtitle: "Vivid colours\nbold tiles & glows",
-                                    isSelected: arcadeMode,
-                                    accentColor: Color(red: 0.7, green: 0.4, blue: 1.0)
-                                ) { arcadeMode = true }
+                            HStack(spacing: 8) {
+                                ForEach(AppTheme.allCases) { t in
+                                    modeCard(
+                                        icon: t.icon,
+                                        title: t.displayName,
+                                        subtitle: t.subtitle,
+                                        isSelected: currentTheme == t,
+                                        accentColor: t.accentColor
+                                    ) {
+                                        appThemeRaw = t.rawValue
+                                        themeIsUserSet = true
+                                    }
+                                }
                             }
                             .padding(.horizontal, 14)
-                            .padding(.bottom, 14)
+                            .padding(.bottom, 10)
+                            Text("\(kidMode ? "Kid" : "Adult") mode defaults to \(kidMode ? "Fun" : "Regular") — pick any theme and it'll stick.")
+                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .foregroundColor(Color(white: 0.35))
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, 14)
+                                .padding(.bottom, 14)
                         }
                         .padding(.horizontal, 20)
 
