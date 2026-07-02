@@ -875,6 +875,24 @@ final class GameEngine: ObservableObject {
                 if gridHasWordAt(g2, dest: dest2) { return true }
             }
         }
+        // Three-slide lookahead — reached whenever depth 1-2 both find nothing, which happens on
+        // ordinary turns too (not just genuine game-over), so this is budget-capped to bound
+        // worst-case cost per call. Without it, boards needing a 3-move setup were being declared
+        // "no moves left" while a scoring word was still reachable.
+        var explored = 0
+        let budget = 20_000
+        for (src1, dest1) in slides {
+            let g1 = applying(grid, from: src1, to: dest1)
+            for (src2, dest2) in allSlides(in: g1) {
+                let g2 = applying(g1, from: src2, to: dest2)
+                for (src3, dest3) in allSlides(in: g2) {
+                    explored += 1
+                    if explored > budget { return false }
+                    let g3 = applying(g2, from: src3, to: dest3)
+                    if gridHasWordAt(g3, dest: dest3) { return true }
+                }
+            }
+        }
         return false
     }
 
