@@ -28,8 +28,10 @@
 		B3A765E2552955D9E5A4584E /* MissedWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDC70987CA16B6B7F67F776 /* MissedWordsView.swift */; };
 		BFA99D7E002D44E78FB671D5 /* ParticleBurstView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D060CF8F9C75D0B6E61153C0 /* ParticleBurstView.swift */; };
 		C05646D5A22789482E4B8401 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E379D33E0B517CC2BB3E4D8 /* Haptics.swift */; };
+		597F7185CB504EE5A048C5B7 /* KidVoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8C76F3E73F4EE1A2900650 /* KidVoice.swift */; };
 		B7D1E4F2A3C58091E6D4B729 /* KidAge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F2C891D4E5B6074F8A9C30 /* KidAge.swift */; };
 		89C4A80C3E664F4A840F6345 /* SeededRNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E85191BD244AF69034E731 /* SeededRNG.swift */; };
+		1CE58F5D32054B229AD042CB /* WordSticker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0B5A7BC73B40FEBAE0CDCF /* WordSticker.swift */; };
 		9CD1721747AC4FB8A693210E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 558C70BE3993463D875C7A12 /* AppTheme.swift */; };
 		C0749D677FB0E877095FF31E /* DifficultyConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */; };
 		D9B3C7E4F2A18506D3F7C841 /* BeaconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E8A2F1B3D64709C8E1A053 /* BeaconView.swift */; };
@@ -37,6 +39,7 @@
 		C7DC3191486A857C4A1E2631 /* Tile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4456B2579A8873E94240D2 /* Tile.swift */; };
 		D62873766BDFA0DD4E9F303B /* VowelRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821B3C52BF6D510BC2277796 /* VowelRadarView.swift */; };
 		DAFC3806F0774F9F81C229C6 /* DailyShareCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E1E705F57FC47CF860BC654 /* DailyShareCard.swift */; };
+		EBCAA22267DB4499B3A681CE /* StickerGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1024E9C90C7B41ADA699C9FE /* StickerGalleryView.swift */; };
 		DA0561F3EDFD2C2C70C0C2F6 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F960993D28D90F8FA73D8796 /* GameView.swift */; };
 		E0EAC1BEFADB65A8D1030763 /* HUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88BBA04D81502D71C8038A3C /* HUDView.swift */; };
 		E5E9C7A32E33B1D82D1A0E06 /* AvailableWordChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C9DCAF78FD1EADEF2DA098 /* AvailableWordChip.swift */; };
@@ -58,11 +61,14 @@
 		6304962939BAB59E4179777F /* GameEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEngine.swift; sourceTree = "<group>"; };
 		6317CB0814BBBB7866C13144 /* VexedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VexedApp.swift; sourceTree = "<group>"; };
 		6E379D33E0B517CC2BB3E4D8 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		9C8C76F3E73F4EE1A2900650 /* KidVoice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KidVoice.swift; sourceTree = "<group>"; };
 		7E1C41036AC2AAA5C4CD95C4 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		821B3C52BF6D510BC2277796 /* VowelRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VowelRadarView.swift; sourceTree = "<group>"; };
 		9E1E705F57FC47CF860BC654 /* DailyShareCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyShareCard.swift; sourceTree = "<group>"; };
+		1024E9C90C7B41ADA699C9FE /* StickerGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerGalleryView.swift; sourceTree = "<group>"; };
 		A3F2C891D4E5B6074F8A9C30 /* KidAge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KidAge.swift; sourceTree = "<group>"; };
 		93E85191BD244AF69034E731 /* SeededRNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededRNG.swift; sourceTree = "<group>"; };
+		2B0B5A7BC73B40FEBAE0CDCF /* WordSticker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordSticker.swift; sourceTree = "<group>"; };
 		558C70BE3993463D875C7A12 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DifficultyConfig.swift; sourceTree = "<group>"; };
 		C5E8A2F1B3D64709C8E1A053 /* BeaconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeaconView.swift; sourceTree = "<group>"; };
@@ -104,6 +110,7 @@
 				6304962939BAB59E4179777F /* GameEngine.swift */,
 				A3F2C891D4E5B6074F8A9C30 /* KidAge.swift */,
 				93E85191BD244AF69034E731 /* SeededRNG.swift */,
+				2B0B5A7BC73B40FEBAE0CDCF /* WordSticker.swift */,
 				558C70BE3993463D875C7A12 /* AppTheme.swift */,
 				373DC80F055AE84737CE034F /* Position.swift */,
 				8D4456B2579A8873E94240D2 /* Tile.swift */,
@@ -116,6 +123,7 @@
 			isa = PBXGroup;
 			children = (
 				6E379D33E0B517CC2BB3E4D8 /* Haptics.swift */,
+				9C8C76F3E73F4EE1A2900650 /* KidVoice.swift */,
 				D7D668298180128D46F9F26A /* WordDefinition.swift */,
 			);
 			path = Utilities;
@@ -184,6 +192,7 @@
 				B8330BE04DB11CCAC18DF5EC /* TipsView.swift */,
 				821B3C52BF6D510BC2277796 /* VowelRadarView.swift */,
 				9E1E705F57FC47CF860BC654 /* DailyShareCard.swift */,
+				1024E9C90C7B41ADA699C9FE /* StickerGalleryView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -276,12 +285,14 @@
 				390F72CAE1FCBFA057E1E06C /* GameEngine.swift in Sources */,
 				B7D1E4F2A3C58091E6D4B729 /* KidAge.swift in Sources */,
 				89C4A80C3E664F4A840F6345 /* SeededRNG.swift in Sources */,
+				1CE58F5D32054B229AD042CB /* WordSticker.swift in Sources */,
 				9CD1721747AC4FB8A693210E /* AppTheme.swift in Sources */,
 				3EE9306923F400EA2DB822DF /* GameTheme.swift in Sources */,
 				DA0561F3EDFD2C2C70C0C2F6 /* GameView.swift in Sources */,
 				1F8B8C9F301E36C12BA60E1C /* GridView.swift in Sources */,
 				E0EAC1BEFADB65A8D1030763 /* HUDView.swift in Sources */,
 				C05646D5A22789482E4B8401 /* Haptics.swift in Sources */,
+				597F7185CB504EE5A048C5B7 /* KidVoice.swift in Sources */,
 				6C5FB0E5711F3CF5618AE758 /* HowToPlayView.swift in Sources */,
 				39C44BF25D20D8CB0289483E /* InstructionsView.swift in Sources */,
 				B3A765E2552955D9E5A4584E /* MissedWordsView.swift in Sources */,
@@ -294,6 +305,7 @@
 				87CD95C576B7B0565CF31C5E /* VexedApp.swift in Sources */,
 				D62873766BDFA0DD4E9F303B /* VowelRadarView.swift in Sources */,
 				DAFC3806F0774F9F81C229C6 /* DailyShareCard.swift in Sources */,
+				EBCAA22267DB4499B3A681CE /* StickerGalleryView.swift in Sources */,
 				7479FF7E21BDB368AE7F5645 /* WordDefinition.swift in Sources */,
 				F56058127215604D24C21615 /* WordValidator.swift in Sources */,
 			);

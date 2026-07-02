@@ -48,6 +48,8 @@ final class GameEngine: ObservableObject {
     @Published var dailyPeakCombo: Int = 0
     @Published var dailyStreak: Int = 0
     @Published var dailyAlreadyPlayedToday: Bool = false
+    @Published var newStickerWord: String? = nil     // Kid Mode: word that just earned a new sticker
+    @Published var newStickerEmoji: String = ""
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -101,6 +103,19 @@ final class GameEngine: ObservableObject {
         case .little:      return 2
         case .explorer:    return 3
         case .challenger:  return 4
+        }
+    }
+
+    /// Kid Mode only: the first time a word is spelled (ever), award a sticker and surface it
+    /// briefly for the mascot reaction to show.
+    private func awardStickerIfNeeded(for word: String) {
+        guard UserDefaults.standard.bool(forKey: "kidMode") else { return }
+        guard WordSticker.record(word) else { return }
+        newStickerWord = word
+        newStickerEmoji = WordSticker.emoji(for: word)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) { [weak self] in
+            guard let self, self.newStickerWord == word else { return }
+            self.newStickerWord = nil
         }
     }
 
@@ -495,6 +510,8 @@ final class GameEngine: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.celebrationWord = nil }
         }
 
+        awardStickerIfNeeded(for: word.word)
+
         burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2), intensity: combo))
 
         let forgeCount = config.forgeBonusCount(wordLength: word.word.count)
@@ -552,6 +569,7 @@ final class GameEngine: ObservableObject {
             lastWord = word.word
             wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier))
             addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
+            awardStickerIfNeeded(for: word.word)
         }
 
         if !found.isEmpty {
@@ -1136,6 +1154,7 @@ final class GameEngine: ObservableObject {
         autoVanishTask?.cancel(); autoVanishTask = nil
         interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMoves = []
         isNewHighScore = false
+        newStickerWord = nil; newStickerEmoji = ""
         startPressureTimer()
         updateDangerStates()
         peakScore = 0

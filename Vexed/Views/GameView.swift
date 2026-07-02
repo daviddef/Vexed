@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct GameView: View {
     var initialDifficulty: Difficulty = .easy
@@ -191,6 +192,9 @@ struct GameView: View {
             // ── Tile Forge banner ─────────────────────────────────────
             if let msg = engine.forgeMessage { forgeBanner(msg) }
 
+            // ── New sticker earned (Kid Mode) ─────────────────────────
+            if let word = engine.newStickerWord { newStickerBanner(word) }
+
             // ── No-words-left overlay ─────────────────────────────────
             if showNoWordsLeft && !engine.gameOver {
                 endScreenOverlay(isGameOver: false).zIndex(8)
@@ -296,7 +300,10 @@ struct GameView: View {
             activeBursts.append(contentsOf: newBursts)
         }
         .onChange(of: engine.celebrationWord) { _, word in
-            if word != nil { celebrationScale = 0.1 }
+            if let word {
+                celebrationScale = 0.1
+                if kidMode { KidVoice.say(word) }
+            }
         }
         .onAppear {
             if isFirstLaunch {
@@ -605,6 +612,38 @@ struct GameView: View {
         }
     }
 
+    @ViewBuilder private func newStickerBanner(_ word: String) -> some View {
+        VStack {
+            HStack(spacing: 10) {
+                Text(engine.newStickerEmoji)
+                    .font(.system(size: 30))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("NEW STICKER!")
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .tracking(1.5)
+                        .foregroundColor(.black.opacity(0.7))
+                    Text(word.capitalized)
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .foregroundColor(.black)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                Capsule().fill(
+                    LinearGradient(colors: [Color(red: 1.0, green: 0.9, blue: 0.3), Color(red: 1.0, green: 0.65, blue: 0.15)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+            )
+            .shadow(color: Color(red: 1.0, green: 0.75, blue: 0.2).opacity(0.6), radius: 12, x: 0, y: 4)
+            .padding(.top, 60)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            Spacer()
+        }
+        .allowsHitTesting(false)
+        .animation(.spring(response: 0.4, dampingFraction: 0.65), value: engine.newStickerWord)
+    }
+
     @ViewBuilder private func vanishBanner(_ msg: String) -> some View {
         VStack {
             Text(msg)
@@ -839,6 +878,10 @@ struct GameView: View {
         }
     }
 
+    /// Friendly mascot who "reads" the word back in Kid Mode — reinforces the spelling mechanic
+    /// itself rather than layering a generic reward on top of it.
+    private let mascotEmoji = "🦉"
+
     @ViewBuilder private func wordCelebration(_ word: String) -> some View {
         let is6Plus = word.count >= 6
         let combo = engine.combo
@@ -846,6 +889,11 @@ struct GameView: View {
             Spacer()
             Spacer()
             VStack(spacing: 8) {
+                if kidMode {
+                    Text(mascotEmoji)
+                        .font(.system(size: 44))
+                        .rotationEffect(.degrees(celebrationScale > 0.9 ? 0 : -8))
+                }
                 Text(is6Plus ? "AMAZING!" : "GREAT!")
                     .font(.system(size: is6Plus ? 36 : 28, weight: .black, design: .rounded))
                     .foregroundColor(is6Plus ? Color(red: 1.0, green: 0.85, blue: 0.0) : .white)
@@ -863,9 +911,18 @@ struct GameView: View {
                         )
                         .shadow(color: comboColor().opacity(0.6), radius: 8, x: 0, y: 0)
                 }
-                Text(word)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.85))
+                if kidMode {
+                    Text("\"\(word)\"")
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(Color.white.opacity(0.15)))
+                } else {
+                    Text(word)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.85))
+                }
                 Text("\(word.count) letters")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
@@ -987,6 +1044,8 @@ struct GameView: View {
         }
         // Clear tutorial-seen flag so it replays
         UserDefaults.standard.removeObject(forKey: "vexed.launched")
+        // Clear Kid Mode sticker collection
+        WordSticker.clearAll()
         // Clear Daily Puzzle streak/history
         ud.removeObject(forKey: "dailyLastPlayedKey")
         ud.removeObject(forKey: "dailyStreak")

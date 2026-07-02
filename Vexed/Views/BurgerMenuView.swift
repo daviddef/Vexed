@@ -121,6 +121,13 @@ struct BurgerMenuView: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
+
+                                Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
+                                NavigationLink {
+                                    StickerGalleryView()
+                                } label: {
+                                    menuLinkRow(icon: "star.square.on.square.fill", label: "My Stickers (\(WordSticker.count()))")
+                                }
                             }
                         }
                         .padding(.horizontal, 20)
