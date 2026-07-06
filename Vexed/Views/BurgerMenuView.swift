@@ -10,6 +10,7 @@ struct BurgerMenuView: View {
     var onShowInstructions: () -> Void
     var onShowMissedWords: () -> Void
     var onStartDaily: () -> Void
+    var onStartPuzzle: (Int) -> Void
 
     @AppStorage("includeRareWords") private var includeRareWords: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
@@ -77,6 +78,10 @@ struct BurgerMenuView: View {
 
                         // ── Daily Puzzle ──────────────────────────────────
                         dailyPuzzleCard
+                            .padding(.horizontal, 20)
+
+                        // ── Puzzle Mode ────────────────────────────────────
+                        puzzleModeCard
                             .padding(.horizontal, 20)
 
                         // ── Mode cards ───────────────────────────────────
@@ -523,6 +528,70 @@ struct BurgerMenuView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Puzzle Mode
+
+    private static let puzzleMoveLimits: [(label: String, moves: Int)] = [
+        ("QUICK", 12), ("STANDARD", 20), ("LONG", 30)
+    ]
+
+    @ViewBuilder private var puzzleModeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 14) {
+                Text("🧩")
+                    .font(.system(size: 26))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PUZZLE MODE")
+                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .tracking(1)
+                        .foregroundColor(.white)
+                    Text("Solve a fresh board in a capped number of slides.")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color(white: 0.5))
+                        .lineLimit(2)
+                }
+                Spacer()
+            }
+            HStack(spacing: 8) {
+                ForEach(Self.puzzleMoveLimits, id: \.moves) { option in
+                    let best = GameEngine.puzzleBest(moveLimit: option.moves)
+                    Button {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { onStartPuzzle(option.moves) }
+                    } label: {
+                        VStack(spacing: 2) {
+                            Text(option.label)
+                                .font(.system(size: 10, weight: .black, design: .rounded))
+                                .tracking(0.5)
+                            Text("\(option.moves) moves")
+                                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(white: 0.5))
+                            if best > 0 {
+                                Text("best \(best)")
+                                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.4, green: 0.8, blue: 1.0))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.10)))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(white: 0.16), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.3, green: 0.75, blue: 1.0).opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color(red: 0.3, green: 0.75, blue: 1.0).opacity(0.35), lineWidth: 1)
+        )
     }
 
     // MARK: - All scores sheet

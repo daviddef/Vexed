@@ -40,117 +40,81 @@ struct GameView: View {
     private var isLightBg: Bool { currentTheme == .fun || currentTheme == .light }
 
     var body: some View {
-        ZStack {
-            theme.bgBase.ignoresSafeArea()
-            // Fun theme: pastel rainbow diagonal tint over the sky-blue base
-            if currentTheme == .fun {
-                LinearGradient(
-                    colors: [
-                        Color(red: 1.0, green: 0.88, blue: 0.95).opacity(0.45),
-                        Color(red: 0.68, green: 0.88, blue: 1.0).opacity(0.0),
-                        Color(red: 0.85, green: 1.0, blue: 0.88).opacity(0.35)
-                    ],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+        mainStack
+            .onChange(of: selectedDifficulty) { _, d in savedDifficultyRaw = d.rawValue }
+            // React when splash screen (or any external writer) changes the stored difficulty
+            .onChange(of: savedDifficultyRaw) { _, raw in
+                guard let d = Difficulty(rawValue: raw), d != selectedDifficulty else { return }
+                selectedDifficulty = d
+                showNoWordsLeft = false
+                engine.reset(difficulty: d)
             }
-            // Arcade theme: faint CRT scanlines for retro cabinet flavor
-            if theme.showScanlines {
-                GeometryReader { geo in
-                    let lineSpacing: CGFloat = 4
-                    let lineCount = Int(geo.size.height / lineSpacing)
-                    VStack(spacing: lineSpacing - 1) {
-                        ForEach(0..<lineCount, id: \.self) { _ in
-                            Rectangle()
-                                .fill(Color.black.opacity(0.12))
-                                .frame(height: 1)
-                        }
+            .onChange(of: engine.lastWord) { _, word in
+                guard let word else { return }
+                showToast("✨ \(word)")
+                withAnimation(.easeOut(duration: 0.15)) { wordScoreFlash = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    withAnimation(.easeIn(duration: 0.6)) { wordScoreFlash = false }
+                }
+            }
+            .onChange(of: engine.lostVowels) { old, new in
+                let just = new - old
+                guard just > 0 else { return }
+                let plural = just == 1 ? "" : "s"
+                let msg = "💥 \(just) vowel\(plural) vanished!"
+                withAnimation(.easeOut(duration: 0.3)) { vanishMessage = msg }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                    withAnimation(.easeIn(duration: 0.25)) { vanishMessage = nil }
+                }
+            }
+            .onChange(of: engine.noWordsLeft) { _, isLeft in
+                showNoWordsLeft = isLeft
+            }
+            .onChange(of: engine.movesExhausted) { _, exhausted in
+                if exhausted { showNoWordsLeft = true }
+            }
+            .onChange(of: engine.score) { _, newScore in
+                let start = displayScore
+                let diff = newScore - start
+                guard diff > 0 else { displayScore = newScore; return }
+                let steps = min(diff, 30) // cap animation frames
+                let interval = 0.35 / Double(steps)
+                for i in 1...steps {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(i)) {
+                        displayScore = start + (diff * i / steps)
                     }
-                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-                .blendMode(.multiply)
             }
-            // Corner glows (arcade + fun theme)
-            if theme.showCornerGlows {
-                GeometryReader { geo in
-                    RadialGradient(
-                        colors: [theme.cornerGlowColors.topRight.opacity(theme.cornerGlowOpacity.topRight), .clear],
-                        center: .topTrailing, startRadius: 0, endRadius: geo.size.width * 0.7
-                    )
-                    .ignoresSafeArea()
-                    RadialGradient(
-                        colors: [theme.cornerGlowColors.bottomLeft.opacity(theme.cornerGlowOpacity.bottomLeft), .clear],
-                        center: .bottomLeading, startRadius: 0, endRadius: geo.size.width * 0.6
-                    )
-                    .ignoresSafeArea()
+            .onChange(of: engine.burstEvents) { _, events in
+                let existingIDs = Set(activeBursts.map(\.id))
+                let newBursts = events.filter { !existingIDs.contains($0.id) }
+                activeBursts.append(contentsOf: newBursts)
+            }
+            .onChange(of: engine.celebrationWord) { _, word in
+                if let word {
+                    celebrationScale = 0.1
+                    if kidMode { KidVoice.say(word) }
                 }
-                .allowsHitTesting(false)
             }
-            // Breathing overlay
-            RadialGradient(
-                gradient: Gradient(colors: [
-                    theme.bgBreathColor.opacity(breathPhase ? theme.bgBreathOpacityHigh : theme.bgBreathOpacityLow),
-                    Color.clear
-                ]),
-                center: .center,
-                startRadius: 0,
-                endRadius: UIScreen.main.bounds.width * 0.8
-            )
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .animation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true), value: breathPhase)
-            .onAppear { breathPhase = true }
-            // Word score flash overlay
-            Color(red: 0.3, green: 0.2, blue: 0.0)
-                .opacity(wordScoreFlash ? 0.12 : 0)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+            .onAppear {
+                if isFirstLaunch {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { tutorialStep = 1 }
+                }
+                applyDefaultThemeIfNeeded()
+            }
+            .onChange(of: kidMode) { _, _ in applyDefaultThemeIfNeeded() }
+    }
+
+    @ViewBuilder private var mainStack: some View {
+        ZStack {
+            backgroundLayers
 
             VStack(spacing: 0) {
 
-                // ── Compact top bar ──────────────────────────────────────
-                HStack(spacing: 0) {
-                    // Score cluster — SCORE/WORDS/FORGED/LOST/COMBO always shown, in both modes,
-                    // so the header stays the same width and alignment across modes.
-                    HStack(spacing: 10) {
-                        miniStat(label: "SCORE",  value: "\(displayScore)", color: isLightBg ? Color(red: 0.55, green: 0.38, blue: 0.0) : currentTheme == .arcade ? Color(red: 1.0, green: 0.0, blue: 0.85) : .white, isScore: true)
-                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: isLightBg ? Color(red: 0.10, green: 0.30, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.85))
-                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: isLightBg ? Color(red: 0.0, green: 0.40, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.75, green: 0.4, blue: 1.0) : Color(red: 0.3, green: 0.9, blue: 1.0))
-                        miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: isLightBg ? Color(red: 0.55, green: 0.10, blue: 0.10) : Color(red: 1, green: 0.4, blue: 0.4))
-                        comboStat
-                    }
-                    .padding(.leading, 16)
+                topBar
 
-                    Spacer()
-
-                    // Controls
-                    HStack(spacing: 8) {
-                        if !kidMode {
-                            hintIconButton
-                        }
-                        iconButton("line.3.horizontal") { showBurgerMenu = true }
-                    }
-                    .padding(.trailing, 12)
-                }
-                .padding(.vertical, 10)
-
-                // ── Daily Puzzle indicator ────────────────────────────────
-                if engine.isDailyMode {
-                    HStack(spacing: 5) {
-                        Text("🗓️ TODAY'S PUZZLE")
-                            .font(.system(size: 10, weight: .black, design: .rounded))
-                            .tracking(1)
-                        if engine.dailyStreak > 0 {
-                            Text("🔥\(engine.dailyStreak)")
-                                .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        }
-                    }
-                    .foregroundColor(Color(red: 0.75, green: 0.55, blue: 1.0))
-                    .padding(.bottom, 4)
-                }
+                dailyPuzzleIndicator
+                puzzleModeIndicator
 
                 // ── Vowel radar ──────────────────────────────────────────
                 VowelRadarView(counts: engine.vowelCounts())
@@ -175,31 +139,7 @@ struct GameView: View {
                 .padding(.bottom, 8)
             }
 
-            // ── Word flash ────────────────────────────────────────────
-            if let word = engine.flashWord { wordFlashOverlay(word) }
-
-            // ── Particle bursts ───────────────────────────────────────
-            particleBurstLayer
-
-            // Combo badge removed — combo shown inline in kid header; multiplier visible on word chips
-
-            // ── Word length celebration ───────────────────────────────
-            if let word = engine.celebrationWord { wordCelebration(word) }
-
-            // ── Toast for word scored ─────────────────────────────────
-            if let msg = toastMessage { wordToast(msg) }
-
-            // ── Vowel vanish banner ───────────────────────────────────
-            if let msg = vanishMessage { vanishBanner(msg) }
-
-            // ── Tile Forge banner ─────────────────────────────────────
-            if let msg = engine.forgeMessage { forgeBanner(msg) }
-
-            // ── New sticker earned (Kid Mode) ─────────────────────────
-            if let word = engine.newStickerWord { newStickerBanner(word) }
-
-            // ── Daily streak bonus (pre-placed forge tiles) ───────────
-            if let msg = engine.streakBonusMessage { streakBonusBanner(msg) }
+            bannersLayer
 
             // ── No-words-left overlay ─────────────────────────────────
             if showNoWordsLeft && !engine.gameOver {
@@ -244,6 +184,10 @@ struct GameView: View {
                 onStartDaily: {
                     showNoWordsLeft = false
                     engine.startDaily()
+                },
+                onStartPuzzle: { moveLimit in
+                    showNoWordsLeft = false
+                    engine.startPuzzle(moveLimit: moveLimit)
                 }
             )
         }
@@ -259,65 +203,6 @@ struct GameView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
-        .onChange(of: selectedDifficulty) { _, d in savedDifficultyRaw = d.rawValue }
-        // React when splash screen (or any external writer) changes the stored difficulty
-        .onChange(of: savedDifficultyRaw) { _, raw in
-            guard let d = Difficulty(rawValue: raw), d != selectedDifficulty else { return }
-            selectedDifficulty = d
-            showNoWordsLeft = false
-            engine.reset(difficulty: d)
-        }
-        .onChange(of: engine.lastWord) { _, word in
-            guard let word else { return }
-            showToast("✨ \(word)")
-            withAnimation(.easeOut(duration: 0.15)) { wordScoreFlash = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                withAnimation(.easeIn(duration: 0.6)) { wordScoreFlash = false }
-            }
-        }
-        .onChange(of: engine.lostVowels) { old, new in
-            let just = new - old
-            guard just > 0 else { return }
-            let plural = just == 1 ? "" : "s"
-            let msg = "💥 \(just) vowel\(plural) vanished!"
-            withAnimation(.easeOut(duration: 0.3)) { vanishMessage = msg }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                withAnimation(.easeIn(duration: 0.25)) { vanishMessage = nil }
-            }
-        }
-        .onChange(of: engine.noWordsLeft) { _, isLeft in
-            showNoWordsLeft = isLeft
-        }
-        .onChange(of: engine.score) { _, newScore in
-            let start = displayScore
-            let diff = newScore - start
-            guard diff > 0 else { displayScore = newScore; return }
-            let steps = min(diff, 30) // cap animation frames
-            let interval = 0.35 / Double(steps)
-            for i in 1...steps {
-                DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(i)) {
-                    displayScore = start + (diff * i / steps)
-                }
-            }
-        }
-        .onChange(of: engine.burstEvents) { _, events in
-            let existingIDs = Set(activeBursts.map(\.id))
-            let newBursts = events.filter { !existingIDs.contains($0.id) }
-            activeBursts.append(contentsOf: newBursts)
-        }
-        .onChange(of: engine.celebrationWord) { _, word in
-            if let word {
-                celebrationScale = 0.1
-                if kidMode { KidVoice.say(word) }
-            }
-        }
-        .onAppear {
-            if isFirstLaunch {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { tutorialStep = 1 }
-            }
-            applyDefaultThemeIfNeeded()
-        }
-        .onChange(of: kidMode) { _, _ in applyDefaultThemeIfNeeded() }
     }
 
     /// Kid mode defaults to Fun, Adult mode defaults to Regular — but once the player explicitly
@@ -387,10 +272,17 @@ struct GameView: View {
                 }
 
                 // Title
-                Text(isGameOver ? "GAME OVER" : "NO MOVES LEFT")
+                Text(engine.movesExhausted ? "MOVES USED UP" : (isGameOver ? "GAME OVER" : "NO MOVES LEFT"))
                     .font(.system(size: 22, weight: .black, design: .rounded))
                     .tracking(3)
                     .foregroundColor(.white.opacity(0.5))
+
+                if engine.isPuzzleMode {
+                    let best = GameEngine.puzzleBest(moveLimit: engine.puzzleMoveLimit)
+                    Text("Puzzle best (\(engine.puzzleMoveLimit) moves): \(best)")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color(red: 0.4, green: 0.75, blue: 1.0))
+                }
 
                 // Score
                 VStack(spacing: 4) {
@@ -648,6 +540,161 @@ struct GameView: View {
         }
         .allowsHitTesting(false)
         .animation(.spring(response: 0.4, dampingFraction: 0.65), value: engine.newStickerWord)
+    }
+
+    /// Groups the transient banner/overlay cluster into one ZStack child — keeping the main
+    /// body's direct child count down so the type-checker doesn't time out.
+    @ViewBuilder private var bannersLayer: some View {
+        Group {
+            if let word = engine.flashWord { wordFlashOverlay(word) }
+            particleBurstLayer
+            if let word = engine.celebrationWord { wordCelebration(word) }
+            if let msg = toastMessage { wordToast(msg) }
+            if let msg = vanishMessage { vanishBanner(msg) }
+        }
+        Group {
+            if let msg = engine.forgeMessage { forgeBanner(msg) }
+            if let word = engine.newStickerWord { newStickerBanner(word) }
+            if let msg = engine.streakBonusMessage { streakBonusBanner(msg) }
+        }
+    }
+
+    @ViewBuilder private var backgroundLayers: some View {
+        theme.bgBase.ignoresSafeArea()
+        // Fun theme: pastel rainbow diagonal tint over the sky-blue base
+        if currentTheme == .fun {
+            LinearGradient(
+                colors: [
+                    Color(red: 1.0, green: 0.88, blue: 0.95).opacity(0.45),
+                    Color(red: 0.68, green: 0.88, blue: 1.0).opacity(0.0),
+                    Color(red: 0.85, green: 1.0, blue: 0.88).opacity(0.35)
+                ],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+        }
+        // Arcade theme: faint CRT scanlines for retro cabinet flavor
+        if theme.showScanlines {
+            GeometryReader { geo in
+                let lineSpacing: CGFloat = 4
+                let lineCount = Int(geo.size.height / lineSpacing)
+                VStack(spacing: lineSpacing - 1) {
+                    ForEach(0..<lineCount, id: \.self) { _ in
+                        Rectangle()
+                            .fill(Color.black.opacity(0.12))
+                            .frame(height: 1)
+                    }
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .blendMode(.multiply)
+        }
+        // Corner glows (arcade + fun theme)
+        if theme.showCornerGlows {
+            GeometryReader { geo in
+                RadialGradient(
+                    colors: [theme.cornerGlowColors.topRight.opacity(theme.cornerGlowOpacity.topRight), .clear],
+                    center: .topTrailing, startRadius: 0, endRadius: geo.size.width * 0.7
+                )
+                .ignoresSafeArea()
+                RadialGradient(
+                    colors: [theme.cornerGlowColors.bottomLeft.opacity(theme.cornerGlowOpacity.bottomLeft), .clear],
+                    center: .bottomLeading, startRadius: 0, endRadius: geo.size.width * 0.6
+                )
+                .ignoresSafeArea()
+            }
+            .allowsHitTesting(false)
+        }
+        // Breathing overlay
+        RadialGradient(
+            gradient: Gradient(colors: [
+                theme.bgBreathColor.opacity(breathPhase ? theme.bgBreathOpacityHigh : theme.bgBreathOpacityLow),
+                Color.clear
+            ]),
+            center: .center,
+            startRadius: 0,
+            endRadius: UIScreen.main.bounds.width * 0.8
+        )
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .animation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true), value: breathPhase)
+        .onAppear { breathPhase = true }
+        // Word score flash overlay
+        Color(red: 0.3, green: 0.2, blue: 0.0)
+            .opacity(wordScoreFlash ? 0.12 : 0)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+    }
+
+    // ── Compact top bar ──────────────────────────────────────
+    @ViewBuilder private var topBar: some View {
+        // Score cluster — SCORE/WORDS/FORGED/LOST/COMBO always shown, in both modes,
+        // so the header stays the same width and alignment across modes.
+        let isArcadeTheme = currentTheme == .arcade
+        let scoreColor: Color = isLightBg ? Color(red: 0.55, green: 0.38, blue: 0.0) : isArcadeTheme ? Color(red: 1.0, green: 0.0, blue: 0.85) : .white
+        let wordsColor: Color = isLightBg ? Color(red: 0.10, green: 0.30, blue: 0.55) : isArcadeTheme ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.85)
+        let forgedColor: Color = isLightBg ? Color(red: 0.0, green: 0.40, blue: 0.55) : isArcadeTheme ? Color(red: 0.75, green: 0.4, blue: 1.0) : Color(red: 0.3, green: 0.9, blue: 1.0)
+        let lostColor: Color = isLightBg ? Color(red: 0.55, green: 0.10, blue: 0.10) : Color(red: 1, green: 0.4, blue: 0.4)
+        HStack(spacing: 0) {
+            HStack(spacing: 10) {
+                miniStat(label: "SCORE",  value: "\(displayScore)", color: scoreColor, isScore: true)
+                miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: wordsColor)
+                miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: forgedColor)
+                miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: lostColor)
+                comboStat
+            }
+            .padding(.leading, 16)
+
+            Spacer()
+
+            // Controls
+            HStack(spacing: 8) {
+                if !kidMode {
+                    hintIconButton
+                }
+                iconButton("line.3.horizontal") { showBurgerMenu = true }
+            }
+            .padding(.trailing, 12)
+        }
+        .padding(.vertical, 10)
+    }
+
+    @ViewBuilder private var dailyPuzzleIndicator: some View {
+        if engine.isDailyMode {
+            HStack(spacing: 5) {
+                Text("🗓️ TODAY'S PUZZLE")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .tracking(1)
+                if engine.dailyStreak > 0 {
+                    Text("🔥\(engine.dailyStreak)")
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                }
+            }
+            .foregroundColor(Color(red: 0.75, green: 0.55, blue: 1.0))
+            .padding(.bottom, 4)
+        }
+    }
+
+    @ViewBuilder private var puzzleModeIndicator: some View {
+        if engine.isPuzzleMode, let remaining = engine.movesRemaining {
+            let movesLabel: String = remaining == 1 ? "· 1 move left" : "· \(remaining) moves left"
+            let indicatorColor: Color = remaining <= 3
+                ? Color(red: 1.0, green: 0.4, blue: 0.3)
+                : Color(red: 0.3, green: 0.75, blue: 1.0)
+            HStack(spacing: 5) {
+                Text("🧩 PUZZLE")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .tracking(1)
+                Text(movesLabel)
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+            }
+            .foregroundColor(indicatorColor)
+            .padding(.bottom, 4)
+            .animation(.easeInOut(duration: 0.2), value: remaining)
+        }
     }
 
     @ViewBuilder private func streakBonusBanner(_ msg: String) -> some View {
@@ -1085,6 +1132,10 @@ struct GameView: View {
             ud.removeObject(forKey: "dailyBestWord_\(key)")
             ud.removeObject(forKey: "dailyPeakCombo_\(key)")
             ud.removeObject(forKey: "dailyWordCount_\(key)")
+        }
+        // Clear Puzzle Mode best scores
+        for (_, moves) in [("QUICK", 12), ("STANDARD", 20), ("LONG", 30)] {
+            ud.removeObject(forKey: GameEngine.puzzleBestKey(moveLimit: moves))
         }
         // Restore theme to its mode default
         themeIsUserSet = false

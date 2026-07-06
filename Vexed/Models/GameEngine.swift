@@ -51,6 +51,11 @@ final class GameEngine: ObservableObject {
     @Published var newStickerWord: String? = nil     // Kid Mode: word that just earned a new sticker
     @Published var newStickerEmoji: String = ""
     @Published var streakBonusMessage: String? = nil  // "🔥 Streak Bonus! +N tiles" banner on Daily start
+    @Published var isPuzzleMode: Bool = false
+    @Published var movesRemaining: Int? = nil     // nil = unlimited (normal/Daily play)
+    @Published var movesUsed: Int = 0
+    @Published var movesExhausted: Bool = false   // Puzzle Mode ended by running out of moves
+    var puzzleMoveLimit: Int = 20
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -383,6 +388,11 @@ final class GameEngine: ObservableObject {
             Haptics.rigid()
             addLog("Can't slide that way", .info)
             return SlideResult(moved: false, vanishedPositions: [], scoredWords: [])
+        }
+
+        if isPuzzleMode, let remaining = movesRemaining {
+            movesRemaining = max(0, remaining - 1)
+            movesUsed += 1
         }
 
         withAnimation(.spring(response: 0.22, dampingFraction: 0.75)) {
@@ -776,6 +786,11 @@ final class GameEngine: ObservableObject {
                 saveHighScoreIfBetter()
             }
         }
+
+        if isPuzzleMode, let remaining = movesRemaining, remaining <= 0, !movesExhausted {
+            movesExhausted = true
+            savePuzzleBestIfBetter()
+        }
     }
 
     private func scanAvailableWords() -> [AvailableWord] {
@@ -1120,6 +1135,21 @@ final class GameEngine: ObservableObject {
         }
     }
 
+    private func savePuzzleBestIfBetter() {
+        let key = Self.puzzleBestKey(moveLimit: puzzleMoveLimit)
+        let current = UserDefaults.standard.integer(forKey: key)
+        if score > current && score > 0 {
+            UserDefaults.standard.set(score, forKey: key)
+            isNewHighScore = true
+        }
+    }
+
+    static func puzzleBestKey(moveLimit: Int) -> String { "puzzleBest_\(moveLimit)" }
+
+    static func puzzleBest(moveLimit: Int) -> Int {
+        UserDefaults.standard.integer(forKey: puzzleBestKey(moveLimit: moveLimit))
+    }
+
     static func highScore(for difficulty: Difficulty) -> Int {
         UserDefaults.standard.integer(forKey: highScoreKey(difficulty: difficulty))
     }
@@ -1154,11 +1184,30 @@ final class GameEngine: ObservableObject {
     func reset(difficulty: Difficulty) {
         pressureTimer?.cancel()
         isDailyMode = false
+        isPuzzleMode = false
         currentDifficulty = difficulty
         config = difficulty.config
         Self.applyKidOverrides(to: &config)
         grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
         resetRoundState()
+    }
+
+    /// Puzzle Mode: a fixed board must be solved for score within a capped number of slides —
+    /// the "move-limited level" structure that top casual puzzlers use as their core difficulty
+    /// driver, reframing VEXED's existing sliding mechanic as a discrete solvable challenge
+    /// distinct from both free play and the Daily Puzzle.
+    func startPuzzle(moveLimit: Int, difficulty: Difficulty = .medium) {
+        pressureTimer?.cancel()
+        isDailyMode = false
+        isPuzzleMode = true
+        puzzleMoveLimit = moveLimit
+        currentDifficulty = difficulty
+        config = difficulty.config
+        Self.applyKidOverrides(to: &config)
+        grid = Self.makeGrid(rows: config.rows, cols: config.cols, validator: WordValidator.forResource(config.activeWordList(includeRare: UserDefaults.standard.bool(forKey: "includeRareWords"))))
+        resetRoundState()
+        movesRemaining = moveLimit
+        movesUsed = 0
     }
 
     /// Everyone gets the same board on the same calendar day (UTC) — a fixed Medium-sized,
@@ -1167,6 +1216,7 @@ final class GameEngine: ObservableObject {
     func startDaily() {
         pressureTimer?.cancel()
         isDailyMode = true
+        isPuzzleMode = false
         currentDifficulty = .medium
         config = Difficulty.medium.config
         let todayKey = SeededRNG.todayKey()
@@ -1213,6 +1263,7 @@ final class GameEngine: ObservableObject {
         isNewHighScore = false
         newStickerWord = nil; newStickerEmoji = ""
         streakBonusMessage = nil
+        movesRemaining = nil; movesUsed = 0; movesExhausted = false
         startPressureTimer()
         updateDangerStates()
         peakScore = 0
