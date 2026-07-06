@@ -435,27 +435,33 @@ final class GameEngine: ObservableObject {
 
         let positions = Array(toVanish)
         if !positions.isEmpty {
-            // Mark vanishing animation state
-            for pos in positions {
-                grid[pos.row][pos.col]?.animState = .vanishing
-            }
             lostVowels += positions.count
-            Haptics.warning()
-            if let first = positions.first, let vowel = grid[first.row][first.col]?.vowel {
-                let c: Color
-                switch vowel {
-                case .A: c = Color(red: 0.95, green: 0.22, blue: 0.22)
-                case .E: c = Color(red: 0.18, green: 0.82, blue: 0.35)
-                case .I: c = Color(red: 0.15, green: 0.48, blue: 1.0)
-                case .O: c = Color(red: 1.0,  green: 0.55, blue: 0.05)
-                case .U: c = Color(red: 0.72, green: 0.22, blue: 0.95)
-                }
-                burstEvents.append(BurstEvent(color: c))
-            }
             addLog("💥 \(positions.count) vowels vanished!", .bad)
 
+            // Hitstop: brief freeze before the vanish motion/haptic/burst fire together, so the
+            // impact reads as a punchy hit rather than an instant cut.
+            let hold = 0.05
+            DispatchQueue.main.asyncAfter(deadline: .now() + hold) { [weak self] in
+                guard let self else { return }
+                for pos in positions {
+                    self.grid[pos.row][pos.col]?.animState = .vanishing
+                }
+                Haptics.warning()
+                if let first = positions.first, let vowel = self.grid[first.row][first.col]?.vowel {
+                    let c: Color
+                    switch vowel {
+                    case .A: c = Color(red: 0.95, green: 0.22, blue: 0.22)
+                    case .E: c = Color(red: 0.18, green: 0.82, blue: 0.35)
+                    case .I: c = Color(red: 0.15, green: 0.48, blue: 1.0)
+                    case .O: c = Color(red: 1.0,  green: 0.55, blue: 0.05)
+                    case .U: c = Color(red: 0.72, green: 0.22, blue: 0.95)
+                    }
+                    self.burstEvents.append(BurstEvent(color: c))
+                }
+            }
+
             // Remove after animation delay handled by view
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + hold + 0.4) { [weak self] in
                 guard let self else { return }
                 for pos in positions { self.grid[pos.row][pos.col] = nil }
                 self.updateDangerStates()
@@ -493,7 +499,6 @@ final class GameEngine: ObservableObject {
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
         dailyPeakCombo = max(dailyPeakCombo, combo)
 
-        for pos in word.positions { grid[pos.row][pos.col]?.animState = .scoring }
         let multiplied = Int(Double(word.points) * comboMultiplier)
         score += multiplied
         wordCount += 1
@@ -501,7 +506,6 @@ final class GameEngine: ObservableObject {
         wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier))
         addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
 
-        Haptics.comboScore(combo: combo)
         flashWord = word.word
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in self?.flashWord = nil }
 
@@ -512,15 +516,23 @@ final class GameEngine: ObservableObject {
 
         awardStickerIfNeeded(for: word.word)
 
-        burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2), intensity: combo))
-
         let forgeCount = config.forgeBonusCount(wordLength: word.word.count)
 
         // Remove from pending list immediately so it can't be double-collected
         availableWords.removeAll { $0.id == word.id }
         highlightedPositions = nil
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        // Hitstop: brief freeze before the scoring pop/haptic/burst fire together, so the impact
+        // reads as punchy rather than instant.
+        let hold = 0.05
+        DispatchQueue.main.asyncAfter(deadline: .now() + hold) { [weak self] in
+            guard let self else { return }
+            for pos in word.positions { self.grid[pos.row][pos.col]?.animState = .scoring }
+            Haptics.comboScore(combo: self.combo)
+            self.burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2), intensity: self.combo))
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + hold + 0.5) { [weak self] in
             guard let self else { return }
             for pos in word.positions { self.grid[pos.row][pos.col] = nil }
             self.updateDangerStates()
@@ -562,7 +574,6 @@ final class GameEngine: ObservableObject {
         }
 
         for word in found {
-            for pos in word.positions { grid[pos.row][pos.col]?.animState = .scoring }
             let multiplied = Int(Double(word.points) * comboMultiplier)
             score += multiplied
             wordCount += 1
@@ -573,8 +584,6 @@ final class GameEngine: ObservableObject {
         }
 
         if !found.isEmpty {
-            Haptics.comboScore(combo: combo)
-
             // Flash the word prominently before tiles vanish
             if let first = found.first {
                 flashWord = first.word
@@ -590,16 +599,26 @@ final class GameEngine: ObservableObject {
                     self?.celebrationWord = nil
                 }
             }
-
-            let burstColor = Color(red: 1.0, green: 0.85, blue: 0.2) // gold for word score
-            burstEvents.append(BurstEvent(color: burstColor, intensity: combo))
         }
 
         if !found.isEmpty {
             // Calculate Tile Forge bonus: extra letters beyond 3 per word
             let forgeCount = found.reduce(0) { $0 + config.forgeBonusCount(wordLength: $1.word.count) }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            // Hitstop: brief freeze before the scoring pop/haptic/burst fire together, so the
+            // impact reads as punchy rather than instant.
+            let hold = 0.05
+            DispatchQueue.main.asyncAfter(deadline: .now() + hold) { [weak self] in
+                guard let self else { return }
+                for word in found {
+                    for pos in word.positions { self.grid[pos.row][pos.col]?.animState = .scoring }
+                }
+                Haptics.comboScore(combo: self.combo)
+                let burstColor = Color(red: 1.0, green: 0.85, blue: 0.2) // gold for word score
+                self.burstEvents.append(BurstEvent(color: burstColor, intensity: self.combo))
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + hold + 0.5) { [weak self] in
                 guard let self else { return }
                 for word in found {
                     for pos in word.positions { self.grid[pos.row][pos.col] = nil }

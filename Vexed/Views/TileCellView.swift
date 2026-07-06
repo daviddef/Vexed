@@ -153,7 +153,9 @@ struct TileCellView: View {
         .animation(.spring(response: 0.18, dampingFraction: 0.55), value: isSelected)
         .animation(.spring(response: 0.12, dampingFraction: 0.55), value: isTouching)
         .animation(.easeInOut(duration: 0.25), value: pathColor != nil)
-        .animation(.easeInOut(duration: 0.35), value: tile?.animState)
+        // Springy pop instead of flat ease — impact moments (score/vanish) read punchier with a
+        // touch of overshoot than a linear-feeling ease curve.
+        .animation(.spring(response: 0.3, dampingFraction: 0.45), value: tile?.animState)
         .onAppear {
             if isHintTile {
                 withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
