@@ -148,7 +148,7 @@ struct BurgerMenuView: View {
                         // ── Theme ────────────────────────────────────────
                         sectionCard {
                             sectionLabel("THEME")
-                            HStack(spacing: 8) {
+                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                                 ForEach(AppTheme.allCases) { t in
                                     modeCard(
                                         icon: t.icon,

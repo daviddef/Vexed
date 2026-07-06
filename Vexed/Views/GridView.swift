@@ -9,6 +9,10 @@ struct GridView: View {
     @State private var lastBoardVersion: Int = -1
     @State private var wordPulse: Bool = false
     @State private var hintPulse: Bool = false
+    @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
+    private var isLightTheme: Bool { AppTheme(rawValue: appThemeRaw) == .light }
+    private var boardFill: Color { isLightTheme ? Color.white : Color(red: 0.07, green: 0.07, blue: 0.11) }
+    private var boardStroke: Color { isLightTheme ? Color(white: 0.85) : Color(white: 0.35) }
 
     var body: some View {
         GeometryReader { geo in
@@ -45,11 +49,12 @@ struct GridView: View {
             ZStack {
                 // ── Game board background ──────────────────────────────
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 0.07, green: 0.07, blue: 0.11))
+                    .fill(boardFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color(white: 0.35), lineWidth: 1)
+                            .stroke(boardStroke, lineWidth: 1)
                     )
+                    .shadow(color: .black.opacity(isLightTheme ? 0.10 : 0), radius: isLightTheme ? 14 : 0, x: 0, y: 6)
 
                 // ── Tile grid ─────────────────────────────────────────
                 VStack(spacing: gap) {

@@ -35,6 +35,9 @@ struct GameView: View {
     @AppStorage("themeIsUserSet") private var themeIsUserSet: Bool = false
     private var currentTheme: AppTheme { AppTheme(rawValue: appThemeRaw) ?? .regular }
     private var theme: GameTheme { GameTheme(style: currentTheme) }
+    /// Fun and Light both have bright/white backgrounds — text needs the same dark-on-light
+    /// contrast treatment in header stats/icons regardless of which of the two is active.
+    private var isLightBg: Bool { currentTheme == .fun || currentTheme == .light }
 
     var body: some View {
         ZStack {
@@ -113,10 +116,10 @@ struct GameView: View {
                     // Score cluster — SCORE/WORDS/FORGED/LOST/COMBO always shown, in both modes,
                     // so the header stays the same width and alignment across modes.
                     HStack(spacing: 10) {
-                        miniStat(label: "SCORE",  value: "\(displayScore)", color: currentTheme == .fun ? Color(red: 0.55, green: 0.38, blue: 0.0) : currentTheme == .arcade ? Color(red: 1.0, green: 0.0, blue: 0.85) : .white, isScore: true)
-                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: currentTheme == .fun ? Color(red: 0.10, green: 0.30, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.85))
-                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: currentTheme == .fun ? Color(red: 0.0, green: 0.40, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.75, green: 0.4, blue: 1.0) : Color(red: 0.3, green: 0.9, blue: 1.0))
-                        miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: currentTheme == .fun ? Color(red: 0.55, green: 0.10, blue: 0.10) : Color(red: 1, green: 0.4, blue: 0.4))
+                        miniStat(label: "SCORE",  value: "\(displayScore)", color: isLightBg ? Color(red: 0.55, green: 0.38, blue: 0.0) : currentTheme == .arcade ? Color(red: 1.0, green: 0.0, blue: 0.85) : .white, isScore: true)
+                        miniStat(label: "WORDS",  value: "\(engine.wordCount)", color: isLightBg ? Color(red: 0.10, green: 0.30, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.0, green: 1.0, blue: 1.0) : Color(white: 0.85))
+                        miniStat(label: "FORGED", value: "\(engine.tilesForged)", color: isLightBg ? Color(red: 0.0, green: 0.40, blue: 0.55) : currentTheme == .arcade ? Color(red: 0.75, green: 0.4, blue: 1.0) : Color(red: 0.3, green: 0.9, blue: 1.0))
+                        miniStat(label: "LOST",   value: "\(engine.lostVowels)", color: isLightBg ? Color(red: 0.55, green: 0.10, blue: 0.10) : Color(red: 1, green: 0.4, blue: 0.4))
                         comboStat
                     }
                     .padding(.leading, 16)
@@ -757,19 +760,19 @@ struct GameView: View {
 
     @ViewBuilder
     private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
-        let isFun = currentTheme == .fun
+        let isLight = isLightBg
         let isArcade = currentTheme == .arcade
         Button(action: action) {
             Image(systemName: name)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(isFun ? Color(red: 0.10, green: 0.25, blue: 0.65) : isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95) : Color(white: 0.55))
+                .foregroundColor(isLight ? Color(red: 0.10, green: 0.25, blue: 0.65) : isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95) : Color(white: 0.55))
                 .frame(width: 40, height: 40)
-                .background((isFun ? Color(white: 0.95) : Color(white: 0.13)).cornerRadius(12))
+                .background((isLight ? Color(white: 0.95) : Color(white: 0.13)).cornerRadius(12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95).opacity(0.5) : Color.clear, lineWidth: 1.5)
                 )
-                .shadow(color: (isFun ? Color(red: 0.0, green: 0.3, blue: 0.7) : isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95) : Color.black).opacity(0.25), radius: 6, x: 0, y: 3)
+                .shadow(color: (isLight ? Color(red: 0.0, green: 0.3, blue: 0.7) : isArcade ? Color(red: 0.0, green: 1.0, blue: 0.95) : Color.black).opacity(0.25), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
     }
@@ -816,12 +819,12 @@ struct GameView: View {
         VStack(spacing: 1) {
             Text(active ? "\(engine.combo)×" : "—")
                 .font(.system(size: 17, weight: .black, design: .rounded))
-                .foregroundColor(active ? color : (currentTheme == .fun ? Color(red: 0.10, green: 0.25, blue: 0.50) : Color(white: 0.25)))
+                .foregroundColor(active ? color : (isLightBg ? Color(red: 0.10, green: 0.25, blue: 0.50) : Color(white: 0.25)))
                 .contentTransition(.numericText())
                 .animation(.spring(response: 0.3, dampingFraction: 0.55), value: engine.combo)
             Text("COMBO")
                 .font(.system(size: 8, weight: .heavy, design: .rounded))
-                .foregroundColor(currentTheme == .fun
+                .foregroundColor(isLightBg
                     ? Color(red: 0.10, green: 0.25, blue: 0.50).opacity(active ? 0.85 : 0.55)
                     : Color(white: active ? 0.45 : 0.20))
                 .tracking(1)

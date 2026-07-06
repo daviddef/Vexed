@@ -5,6 +5,7 @@ import SwiftUI
 /// the player explicitly picks a theme it sticks regardless of mode (see `themeIsUserSet` in GameView).
 enum AppTheme: String, CaseIterable, Identifiable {
     case regular
+    case light
     case fun
     case arcade
 
@@ -13,6 +14,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .regular: return "Regular"
+        case .light:   return "Light"
         case .fun:     return "Fun"
         case .arcade:  return "Arcade"
         }
@@ -21,6 +23,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .regular: return "Clean dark look\nfocused gameplay"
+        case .light:   return "Crisp white board\nbold candy colours"
         case .fun:     return "Bright & bouncy\nrainbow colours"
         case .arcade:  return "Neon lights\nretro cabinet vibes"
         }
@@ -29,6 +32,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .regular: return "moon.stars.fill"
+        case .light:   return "cloud.sun.fill"
         case .fun:     return "sun.max.fill"
         case .arcade:  return "gamecontroller.fill"
         }
@@ -37,6 +41,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var accentColor: Color {
         switch self {
         case .regular: return Color(red: 0.5, green: 0.8, blue: 1.0)
+        case .light:   return Color(red: 0.95, green: 0.55, blue: 0.15)
         case .fun:     return Color(red: 1.0, green: 0.55, blue: 0.75)
         case .arcade:  return Color(red: 0.0, green: 1.0, blue: 0.9)
         }
