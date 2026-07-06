@@ -198,6 +198,9 @@ struct GameView: View {
             // ── New sticker earned (Kid Mode) ─────────────────────────
             if let word = engine.newStickerWord { newStickerBanner(word) }
 
+            // ── Daily streak bonus (pre-placed forge tiles) ───────────
+            if let msg = engine.streakBonusMessage { streakBonusBanner(msg) }
+
             // ── No-words-left overlay ─────────────────────────────────
             if showNoWordsLeft && !engine.gameOver {
                 endScreenOverlay(isGameOver: false).zIndex(8)
@@ -647,6 +650,28 @@ struct GameView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.65), value: engine.newStickerWord)
     }
 
+    @ViewBuilder private func streakBonusBanner(_ msg: String) -> some View {
+        VStack {
+            Text(msg)
+                .font(.system(size: 14, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 11)
+                .background(
+                    Capsule().fill(
+                        LinearGradient(colors: [Color(red: 0.55, green: 0.35, blue: 1.0), Color(red: 0.85, green: 0.25, blue: 0.75)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                )
+                .shadow(color: Color(red: 0.55, green: 0.35, blue: 1.0).opacity(0.6), radius: 14, x: 0, y: 4)
+                .padding(.top, 60)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            Spacer()
+        }
+        .allowsHitTesting(false)
+        .animation(.spring(response: 0.4, dampingFraction: 0.65), value: engine.streakBonusMessage)
+    }
+
     @ViewBuilder private func vanishBanner(_ msg: String) -> some View {
         VStack {
             Text(msg)
@@ -1052,6 +1077,7 @@ struct GameView: View {
         // Clear Daily Puzzle streak/history
         ud.removeObject(forKey: "dailyLastPlayedKey")
         ud.removeObject(forKey: "dailyStreak")
+        ud.removeObject(forKey: "dailyStreakBonusTiles")
         for daysAgo in 0..<400 {
             guard let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date()) else { continue }
             let key = SeededRNG.todayKey(date: date)

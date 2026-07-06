@@ -50,6 +50,7 @@ final class GameEngine: ObservableObject {
     @Published var dailyAlreadyPlayedToday: Bool = false
     @Published var newStickerWord: String? = nil     // Kid Mode: word that just earned a new sticker
     @Published var newStickerEmoji: String = ""
+    @Published var streakBonusMessage: String? = nil  // "🔥 Streak Bonus! +N tiles" banner on Daily start
 
     struct AvailableWord: Identifiable {
         let id = UUID()
@@ -1176,6 +1177,25 @@ final class GameEngine: ObservableObject {
         dailyAlreadyPlayedToday = UserDefaults.standard.string(forKey: "dailyLastPlayedKey") == todayKey
         dailyStreak = UserDefaults.standard.integer(forKey: "dailyStreak")
         resetRoundState()
+        applyPendingStreakBonusIfAny()
+    }
+
+    /// Consecutive Daily Puzzle wins (3+) earn a pre-placed bonus tile on the next attempt —
+    /// the same "win streak → pre-placed power-up" shape used by Royal Match's Butler's Gift,
+    /// rewarding the streak itself rather than requiring the player to earn it again mid-game.
+    private func applyPendingStreakBonusIfAny() {
+        let ud = UserDefaults.standard
+        let bonusTiles = ud.integer(forKey: "dailyStreakBonusTiles")
+        guard bonusTiles > 0 else { return }
+        ud.removeObject(forKey: "dailyStreakBonusTiles")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self else { return }
+            self.spawnForgeTiles(count: bonusTiles)
+            self.streakBonusMessage = "🔥 \(self.dailyStreak)-day streak bonus! +\(bonusTiles) tile\(bonusTiles == 1 ? "" : "s")"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                self?.streakBonusMessage = nil
+            }
+        }
     }
 
     private func resetRoundState() {
@@ -1192,6 +1212,7 @@ final class GameEngine: ObservableObject {
         interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMoves = []
         isNewHighScore = false
         newStickerWord = nil; newStickerEmoji = ""
+        streakBonusMessage = nil
         startPressureTimer()
         updateDangerStates()
         peakScore = 0
@@ -1218,6 +1239,11 @@ final class GameEngine: ObservableObject {
         ud.set(wordHistory.max(by: { $0.word.count < $1.word.count })?.word ?? "", forKey: "dailyBestWord_\(todayKey)")
         ud.set(dailyPeakCombo, forKey: "dailyPeakCombo_\(todayKey)")
         ud.set(wordCount, forKey: "dailyWordCount_\(todayKey)")
+
+        // 3+ in a row banks a pre-placed bonus for tomorrow's puzzle, capped at 3 tiles.
+        if newStreak >= 3 {
+            ud.set(min(newStreak - 2, 3), forKey: "dailyStreakBonusTiles")
+        }
 
         dailyStreak = newStreak
         dailyAlreadyPlayedToday = true
