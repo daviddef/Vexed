@@ -35,6 +35,11 @@ struct GridView: View {
                 engine.availableWords.flatMap { w in w.positions.map { ($0, w) } },
                 uniquingKeysWith: { first, _ in first }
             )
+            // Points badge on the first tile of each available word (top-left corner)
+            let pointsAtFirstPosition: [Position: Int] = Dictionary(
+                engine.availableWords.compactMap { w in w.positions.first.map { ($0, w.points) } },
+                uniquingKeysWith: { first, _ in first }
+            )
             let hintWord = engine.hintWordId.flatMap { id in engine.availableWords.first { $0.id == id } }
             let hintPositions: Set<Position> = Set(hintWord?.positions ?? [])
             let hintMovePositions: Set<Position> = Set(engine.hintMoves.map { $0.from })
@@ -70,6 +75,7 @@ struct GridView: View {
                                 let isDest = destSet.contains(pos)
                                 let isHintTile = tile != nil && (hintPositions.contains(pos) || hintMovePositions.contains(pos))
                                 let isCritical = tile != nil && engine.criticalDangerPositions.contains(pos)
+                                let isWordHighlighted = tile != nil && (engine.highlightedPositions?.contains(pos) ?? false)
                                 let isDimmed: Bool = {
                                     guard let hl = engine.highlightedPositions else { return false }
                                     // Never dim a tile that the hint is pointing to
@@ -85,7 +91,9 @@ struct GridView: View {
                                             size: tileSize,
                                             isTouching: isTouching,
                                             isHintTile: isHintTile,
-                                            isCriticalDanger: isCritical
+                                            isCriticalDanger: isCritical,
+                                            isWordHighlighted: isWordHighlighted,
+                                            pointsBadge: pointsAtFirstPosition[pos]
                                         )
                                         .matchedGeometryEffect(id: tile.id, in: tileNamespace)
                                     } else {
@@ -128,7 +136,16 @@ struct GridView: View {
                                 .gesture(tileDragGesture(at: pos))
                                 .onTapGesture {
                                     if let word = wordAtPosition[pos] {
-                                        engine.collectWord(word)
+                                        if engine.highlightedPositions == Set(word.positions) {
+                                            // Second tap on the already-highlighted word — collect it.
+                                            engine.collectWord(word)
+                                        } else {
+                                            // First tap — preview: highlight bright yellow, show the
+                                            // discreet points/definition overlay, don't score yet.
+                                            withAnimation(.easeInOut(duration: 0.18)) {
+                                                engine.highlightedPositions = Set(word.positions)
+                                            }
+                                        }
                                     } else {
                                         engine.select(position: pos)
                                     }

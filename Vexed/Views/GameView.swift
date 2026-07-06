@@ -557,6 +557,50 @@ struct GameView: View {
             if let word = engine.newStickerWord { newStickerBanner(word) }
             if let msg = engine.streakBonusMessage { streakBonusBanner(msg) }
         }
+        wordPreviewOverlay
+    }
+
+    /// Discreet points/definition preview for the currently tap-highlighted word — first tap on a
+    /// word (tile or chip) shows this; tapping the same word again collects it instead of opening
+    /// this preview again.
+    @ViewBuilder private var wordPreviewOverlay: some View {
+        if let hl = engine.highlightedPositions,
+           let word = engine.availableWords.first(where: { Set($0.positions) == hl }) {
+            VStack {
+                HStack(spacing: 10) {
+                    Text(word.word.uppercased())
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .tracking(1.5)
+                        .foregroundColor(.white)
+                    Text("+\(word.points) pts")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.2))
+                    Divider().frame(height: 14).overlay(Color.white.opacity(0.2))
+                    Button {
+                        showDefinition(for: word.word, points: word.points)
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "text.book.closed")
+                            Text("Definition")
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color(white: 0.65))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(
+                    Capsule().fill(Color.black.opacity(0.75))
+                        .overlay(Capsule().stroke(Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.5), lineWidth: 1))
+                )
+                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 3)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                Spacer()
+            }
+            .zIndex(6)
+        }
     }
 
     @ViewBuilder private var backgroundLayers: some View {
@@ -741,9 +785,7 @@ struct GameView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(engine.availableWords) { entry in
-                        AvailableWordChip(entry: entry, engine: engine) { word in
-                            showDefinition(for: word, points: nil)
-                        }
+                        AvailableWordChip(entry: entry, engine: engine)
                     }
                     if !engine.availableWords.isEmpty && !engine.wordHistory.isEmpty {
                         Rectangle()

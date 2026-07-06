@@ -12,6 +12,10 @@ struct TileCellView: View {
     var isHintTile: Bool = false
     // True when this tile is part of a 3+ same-vowel cluster about to vanish
     var isCriticalDanger: Bool = false
+    // True when this tile is part of the word currently previewed (tap-to-highlight, tap again to collect)
+    var isWordHighlighted: Bool = false
+    // Non-nil on the first tile of an available word — shows its point value in the top-left corner
+    var pointsBadge: Int? = nil
 
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
     private var theme: GameTheme { GameTheme(style: AppTheme(rawValue: appThemeRaw) ?? .regular) }
@@ -24,6 +28,8 @@ struct TileCellView: View {
     @State private var hintPulse: CGFloat = 0.0
     // Critical danger animation: pulse (0→1) drives border/glow/scale for at-risk tiles
     @State private var criticalPulse: CGFloat = 0.0
+    // Word-highlight animation: pulse (0→1) drives glow for the previewed word
+    @State private var wordHighlightPulse: CGFloat = 0.0
 
     private var isForged: Bool { tile?.animState == .forged }
 
@@ -76,11 +82,12 @@ struct TileCellView: View {
                 RoundedRectangle(cornerRadius: cr)
                     .strokeBorder(
                         isSelected ? Color.white
+                            : isWordHighlighted ? Color(red: 1.0, green: 0.85, blue: 0.0)
                             : (isForged ? Color(white: 0.6)
                             : isCriticalDanger ? Color(red: 1.0, green: 0.15 + criticalPulse * 0.25, blue: 0.15)
                             : isHintTile ? Color(red: 1.0, green: 0.65, blue: 0.0)
                             : theme.neonTileBorder ?? darkenedColor(base, factor: 0.65)),
-                        lineWidth: isSelected ? 3.5 : isCriticalDanger ? (2.5 + criticalPulse * 2.0) : isHintTile ? 2.5 : theme.tileBorderWidth
+                        lineWidth: isSelected ? 3.5 : isWordHighlighted ? 3.0 : isCriticalDanger ? (2.5 + criticalPulse * 2.0) : isHintTile ? 2.5 : theme.tileBorderWidth
                     )
 
                 // 6. Outer highlight — skip when forged
@@ -132,6 +139,21 @@ struct TileCellView: View {
         .shadow(color: Color(red: 1.0, green: 0.1, blue: 0.1).opacity(isCriticalDanger ? 0.4 + criticalPulse * 0.5 : 0),
                 radius: isCriticalDanger ? 10 + criticalPulse * 16 : 0, x: 0, y: 0)
         .scaleEffect(isCriticalDanger ? 1.0 + criticalPulse * 0.06 : 1.0)
+        // Bright yellow glow for the previewed word — driven by wordHighlightPulse (CGFloat 0→1)
+        .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.0).opacity(isWordHighlighted ? 0.55 + wordHighlightPulse * 0.3 : 0),
+                radius: isWordHighlighted ? 12 + wordHighlightPulse * 8 : 0, x: 0, y: 0)
+        .overlay(alignment: .topLeading) {
+            if let pts = pointsBadge, tile != nil {
+                Text("+\(pts)")
+                    .font(.system(size: max(8, size * 0.15), weight: .black, design: .rounded))
+                    .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.0))
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 1)
+                    .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(3)
+                    .allowsHitTesting(false)
+            }
+        }
         // Ambient neon glow — arcade theme only
         .shadow(color: (theme.neonTileBorder ?? .clear).opacity(!isSelected && !isCriticalDanger && !isHintTile ? 0.45 : 0), radius: 6, x: 0, y: 0)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)
@@ -167,6 +189,11 @@ struct TileCellView: View {
                     criticalPulse = 1.0
                 }
             }
+            if isWordHighlighted {
+                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                    wordHighlightPulse = 1.0
+                }
+            }
         }
         .onChange(of: isCriticalDanger) { _, active in
             if active {
@@ -176,6 +203,17 @@ struct TileCellView: View {
             } else {
                 withAnimation(.easeOut(duration: 0.25)) {
                     criticalPulse = 0.0
+                }
+            }
+        }
+        .onChange(of: isWordHighlighted) { _, active in
+            if active {
+                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                    wordHighlightPulse = 1.0
+                }
+            } else {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    wordHighlightPulse = 0.0
                 }
             }
         }

@@ -3,7 +3,6 @@ import SwiftUI
 struct AvailableWordChip: View {
     let entry: GameEngine.AvailableWord
     @ObservedObject var engine: GameEngine
-    var onShowDefinition: (String) -> Void
 
     private var isHighlighted: Bool {
         engine.highlightedPositions == Set(entry.positions)
@@ -14,10 +13,15 @@ struct AvailableWordChip: View {
 
     var body: some View {
         Button {
-            // Single tap: show definition + highlight the word on board
-            onShowDefinition(entry.word)
-            withAnimation(.easeInOut(duration: 0.18)) {
-                engine.highlightedPositions = isHighlighted ? nil : Set(entry.positions)
+            if isHighlighted {
+                // Second tap on the already-highlighted word — collect it.
+                engine.collectWord(entry)
+            } else {
+                // First tap — preview: highlight bright yellow, show the discreet
+                // points/definition overlay, don't score yet.
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    engine.highlightedPositions = Set(entry.positions)
+                }
             }
         } label: {
             Text(entry.word)
