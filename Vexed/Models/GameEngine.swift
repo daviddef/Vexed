@@ -99,6 +99,23 @@ final class GameEngine: ObservableObject {
         positions.contains { grid[$0.row][$0.col]?.isMultiplierTile == true } ? 2.0 : 1.0
     }
 
+    /// Locked tiles: forged tiles that must be slid past/adjacent to a few times before they can
+    /// join a scored word — a spatial-planning constraint layered on top of the ordinary slide.
+    private func hasLockedTile(_ positions: [Position]) -> Bool {
+        positions.contains { grid[$0.row][$0.col]?.lockCount ?? 0 > 0 }
+    }
+
+    /// Chips away lockCount on any locked tile adjacent to a tile that just slid to `dest` —
+    /// the "slide past/adjacent to it" unlock condition.
+    private func unlockAdjacentTiles(to dest: Position) {
+        for dir in config.adjacentDirections {
+            let pos = dest.moved(dir)
+            guard pos.isValid(rows: config.rows, cols: config.cols),
+                  let lockCount = grid[pos.row][pos.col]?.lockCount, lockCount > 0 else { continue }
+            grid[pos.row][pos.col]?.lockCount -= 1
+        }
+    }
+
     private func isScoreable(_ word: String) -> Bool {
         guard validator.isValid(word) else { return false }
         guard UserDefaults.standard.bool(forKey: "noRepeatMode") else { return true }
@@ -433,6 +450,7 @@ final class GameEngine: ObservableObject {
         Haptics.medium()
         highlightedPositions = nil
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
+        unlockAdjacentTiles(to: dest)
 
         slidePaths = [:]
         slideWouldScore = []
@@ -726,6 +744,11 @@ final class GameEngine: ObservableObject {
                 // native to the slide mechanic (unlike a purchased booster), so it rewards
                 // routing words through specific board positions rather than reacting in place.
                 t.isMultiplierTile = Double.random(in: 0...1) < 0.12
+                // Locked tile: mutually exclusive with multiplier so a single tile never stacks
+                // both bonuses/penalties. Starts requiring 2 more slides adjacent to it.
+                if !t.isMultiplierTile, Double.random(in: 0...1) < 0.12 {
+                    t.lockCount = 2
+                }
                 self.grid[pos.row][pos.col] = t
             }
         }
@@ -792,7 +815,7 @@ final class GameEngine: ObservableObject {
                 for end in stride(from: run.count, through: start + config.minWordLength, by: -1) {
                     let slice = Array(run[start..<end])
                     let forward = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
-                    guard forward.count == end - start else { continue }
+                    guard forward.count == end - start, !hasLockedTile(slice) else { continue }
                     if isScoreable(forward) {
                         words.append(ScoredWord(word: forward, positions: slice))
                         break
@@ -860,7 +883,7 @@ final class GameEngine: ObservableObject {
                     for end in stride(from: run.count, through: start + config.minWordLength, by: -1) {
                         let slice = Array(run[start..<end])
                         let forward = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
-                        guard forward.count == end - start else { continue }
+                        guard forward.count == end - start, !hasLockedTile(slice) else { continue }
                         if isScoreable(forward), !seen.contains(forward) {
                             seen.insert(forward)
                             results.append(AvailableWord(word: forward, positions: slice))

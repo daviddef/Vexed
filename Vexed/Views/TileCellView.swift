@@ -174,8 +174,23 @@ struct TileCellView: View {
                     .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.7), radius: 4, x: 0, y: 0)
                     .padding(3)
                     .allowsHitTesting(false)
+            } else if let locks = tile?.lockCount, locks > 0 {
+                HStack(spacing: 1) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: size * 0.18, weight: .bold))
+                    Text("\(locks)")
+                        .font(.system(size: size * 0.18, weight: .black, design: .rounded))
+                }
+                .foregroundColor(Color(white: 0.92))
+                .padding(.horizontal, 3)
+                .padding(.vertical, 1)
+                .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
+                .padding(3)
+                .allowsHitTesting(false)
             }
         }
+        // Locked tiles read visually dimmer/greyed to signal "not yet part of a word"
+        .saturation((tile?.lockCount ?? 0) > 0 ? 0.35 : 1.0)
         // Ambient neon glow — arcade theme only
         .shadow(color: (theme.neonTileBorder ?? .clear).opacity(!isSelected && !isCriticalDanger && !isHintTile ? 0.45 : 0), radius: 6, x: 0, y: 0)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)

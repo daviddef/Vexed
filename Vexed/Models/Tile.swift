@@ -20,6 +20,8 @@ struct Tile: Identifiable, Equatable {
     var animState: TileAnimState = .idle
     // Multiplier tile: doubles the score of any word collected through this position.
     var isMultiplierTile: Bool = false
+    // Locked tile: can't join a scored word until slid past/adjacent to this many more times.
+    var lockCount: Int = 0
 
     init(letter: Character) {
         self.id = UUID()
