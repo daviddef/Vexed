@@ -7,6 +7,7 @@ Last updated: 2026-07-08
 Grouped thematically (see `git log` for full chronological detail).
 
 **Core loop & scoring**
+- Double Play bonus: one slide completing 2+ words at once earns a 1.25x/1.5x multiplier and a distinct banner/haptic
 - Word validation with reverse-direction reading (a word can be spelled either direction along its row/column)
 - Combo multiplier (×1.5 / ×2 / ×3) for consecutive scoring moves, with escalating haptics/particle-burst intensity and a "hitstop" freeze on impact for a punchier feel
 - Tile Forge bonus-tile system, with cascading (staggered) tile reveal
@@ -54,7 +55,8 @@ The game already computes 2–3 move lookahead internally (`anySlideCanScoreWord
 Tetris' combo system rewards *consecutive* clears (counter resets to −1 on any non-clearing placement, score scales as `base × combo × level`), and its most famous advanced technique — the "4-wide well" — is literally about **deliberately not scoring now** to set up a bigger payoff later (source: tetris.wiki/Combo, gamedeveloper.com — high confidence, stable community knowledge since ~2014).
 
 - *Grounded in:* the above.
-- *Speculative extension, building directly on the two-step collect system just shipped:* let multiple words stay highlighted/previewed simultaneously (currently a new preview replaces the old one). If a player collects 2+ previewed words within a short window, award a "Chain Bonus" multiplier on top of the normal combo — rewarding players who scout the whole board before committing, which is exactly the Tetris funnel/setup principle translated to VEXED's own preview mechanic.
+- **Shipped 2026-07-08 — Double Play bonus**: the narrowest, lowest-risk slice of this idea. When one slide completes 2+ words simultaneously (a row word and a column word sharing the moved tile), award a 1.25x bonus (1.5x for 3+) plus a distinct banner/haptic. Purely additive, no new interaction model, so it didn't need playtesting/steering to build.
+- *Still speculative, not yet built:* let multiple words stay highlighted/previewed simultaneously (currently a new preview replaces the old one), and reward collecting 2+ *previewed* words within a short window with a "Chain Bonus." This is the bigger, riskier version of the same idea — it changes the preview interaction model (today: one word previewed at a time) and needs your call on whether that's worth the added complexity before building it.
 
 ### C. Procedural difficulty via constraint density, not just bigger numbers
 
