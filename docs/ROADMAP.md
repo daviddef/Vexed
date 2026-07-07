@@ -7,11 +7,12 @@ Last updated: 2026-07-08
 Grouped thematically (see `git log` for full chronological detail).
 
 **Core loop & scoring**
+- Ghost Preview (opt-in Settings toggle, off by default): sparkle icons on destination cells where sliding the selected tile would immediately score — surfaces the engine's own lookahead as a player-facing skill aid
 - Double Play bonus: one slide completing 2+ words at once earns a 1.25x/1.5x multiplier and a distinct banner/haptic
 - Word validation with reverse-direction reading (a word can be spelled either direction along its row/column)
 - Combo multiplier (×1.5 / ×2 / ×3) for consecutive scoring moves, with escalating haptics/particle-burst intensity and a "hitstop" freeze on impact for a punchier feel
 - Tile Forge bonus-tile system, with cascading (staggered) tile reveal
-- Two-step word collection: tap a word to preview (bright yellow highlight + a discreet points/definition overlay), tap again to collect — replaces old instant-collect-on-tap
+- Two-step word collection: tap a word to preview (bright yellow highlight + a discreet points/definition overlay), tap again to collect, or tap elsewhere to deselect
 - Points badge on the first tile of every available word
 - Fixed a false "no moves left" bug: the engine now searches 3 slides ahead (budget-capped) before declaring the board dead, not just 1–2
 
@@ -48,7 +49,7 @@ Researched 2026-07-08, specifically scoped to *mastery depth* (what makes a puzz
 The game already computes 2–3 move lookahead internally (`anySlideCanScoreWord`, `findHintMoves`) — it's just hidden behind the hint button. Research on 2048/Threes shows the entire skill ceiling in slide-based games *is* positional planning: 2048's "corner method" (anchor + monotonic gradient) and Threes' "keep tiles against a wall, avoid staggering" are both about reading the board several moves ahead, not reacting to what's in front of you right now (sources: the2048league.com, trysolitaire.com, nbickford.wordpress.com — high confidence, corroborated 3+ ways).
 
 - *Grounded in:* the above. VEXED's failure mode is closer to Threes than 2048 (tiles glide to a stop rather than freely place), so the design lesson is "avoid stranding a needed letter where it can't reach a forming word," not "anchor a max-value tile in a corner."
-- *Speculative extension:* a "ghost preview" toggle (Adult Mode, off by default) that shows where every tile would land for each of the 4 slide directions before committing — turns the hidden lookahead into a discoverable technique advanced players lean on, rather than a hint they have to explicitly request.
+- **Shipped 2026-07-09 — Ghost Preview toggle**: opt-in, off by default (Settings). When a tile is selected, a sparkle badge appears on any destination cell where that slide would immediately complete a word — `GameEngine.slideWouldScore`, computed in `updateSlidePaths()` by reusing the same `applying`/`gridHasWordAt` helpers the hint system already relies on. Turns the previously-hidden lookahead into a discoverable technique instead of something only reachable via the hint button. Un-tuned; whether the 4-directions-at-once reveal is too generous (removes too much of the "read the board" skill) versus just right needs actual playtesting.
 
 ### B. Reward setups, not just reactions — a real combo/chain layer
 
