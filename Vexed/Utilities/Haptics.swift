@@ -30,6 +30,17 @@ enum Haptics {
         }
     }
 
+    /// Double/Triple Play flourish — a bright double-notification layered after the normal
+    /// combo haptic, signaling "that was a special hit" distinct from an ordinary word score.
+    static func doublePlay() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.34) {
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred(intensity: 1.0)
+        }
+    }
+
     /// Tile Forge reveal — a light tap for one tile, escalating to a success chime for a big drop.
     static func forge(count: Int) {
         if count >= 3 {

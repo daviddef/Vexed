@@ -51,6 +51,7 @@ final class GameEngine: ObservableObject {
     @Published var newStickerWord: String? = nil     // Kid Mode: word that just earned a new sticker
     @Published var newStickerEmoji: String = ""
     @Published var streakBonusMessage: String? = nil  // "🔥 Streak Bonus! +N tiles" banner on Daily start
+    @Published var doublePlayMessage: String? = nil   // "⚡ DOUBLE PLAY!" banner when one slide scores 2+ words
     @Published var isPuzzleMode: Bool = false
     @Published var movesRemaining: Int? = nil     // nil = unlimited (normal/Daily play)
     @Published var movesUsed: Int = 0
@@ -584,8 +585,21 @@ final class GameEngine: ObservableObject {
             dailyPeakCombo = max(dailyPeakCombo, combo)
         }
 
+        // Double Play: one slide completing 2+ words at once (a row word and a column word
+        // sharing the moved tile, most commonly) rewards engineering intersections rather than
+        // treating it as incidental — a modest bonus on top of the ordinary combo multiplier.
+        let doublePlayMultiplier: Double = found.count >= 3 ? 1.5 : found.count == 2 ? 1.25 : 1.0
+        if found.count >= 2 {
+            let label = found.count >= 3 ? "TRIPLE PLAY" : "DOUBLE PLAY"
+            doublePlayMessage = "⚡ \(label)! \(found.count) words at once"
+            Haptics.doublePlay()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak self] in
+                self?.doublePlayMessage = nil
+            }
+        }
+
         for word in found {
-            let multiplied = Int(Double(word.points) * comboMultiplier)
+            let multiplied = Int(Double(word.points) * comboMultiplier * doublePlayMultiplier)
             score += multiplied
             wordCount += 1
             lastWord = word.word
@@ -1263,6 +1277,7 @@ final class GameEngine: ObservableObject {
         isNewHighScore = false
         newStickerWord = nil; newStickerEmoji = ""
         streakBonusMessage = nil
+        doublePlayMessage = nil
         movesRemaining = nil; movesUsed = 0; movesExhausted = false
         startPressureTimer()
         updateDangerStates()

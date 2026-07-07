@@ -556,6 +556,7 @@ struct GameView: View {
             if let msg = engine.forgeMessage { forgeBanner(msg) }
             if let word = engine.newStickerWord { newStickerBanner(word) }
             if let msg = engine.streakBonusMessage { streakBonusBanner(msg) }
+            if let msg = engine.doublePlayMessage { doublePlayBanner(msg) }
         }
         wordPreviewOverlay
     }
@@ -761,6 +762,30 @@ struct GameView: View {
         }
         .allowsHitTesting(false)
         .animation(.spring(response: 0.4, dampingFraction: 0.65), value: engine.streakBonusMessage)
+    }
+
+    /// Fires when one slide completes 2+ words at once — rewards engineering intersections
+    /// (a row word and column word sharing the moved tile) rather than treating it as incidental.
+    @ViewBuilder private func doublePlayBanner(_ msg: String) -> some View {
+        VStack {
+            Spacer()
+            Text(msg)
+                .font(.system(size: 16, weight: .black, design: .rounded))
+                .foregroundColor(.black)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule().fill(
+                        LinearGradient(colors: [Color(red: 1.0, green: 0.85, blue: 0.0), Color(red: 1.0, green: 0.55, blue: 0.0)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                )
+                .shadow(color: Color(red: 1.0, green: 0.7, blue: 0.0).opacity(0.7), radius: 16, x: 0, y: 4)
+                .padding(.bottom, 140)
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+        }
+        .allowsHitTesting(false)
+        .animation(.spring(response: 0.35, dampingFraction: 0.55), value: engine.doublePlayMessage)
     }
 
     @ViewBuilder private func vanishBanner(_ msg: String) -> some View {
