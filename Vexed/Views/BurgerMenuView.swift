@@ -14,6 +14,7 @@ struct BurgerMenuView: View {
 
     @AppStorage("includeRareWords") private var includeRareWords: Bool = false
     @AppStorage("slidePreviewEnabled") private var slidePreviewEnabled: Bool = false
+    @AppStorage("noRepeatMode") private var noRepeatMode: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
     @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
@@ -227,6 +228,14 @@ struct BurgerMenuView: View {
                                 isOn: $slidePreviewEnabled,
                                 tint: Color(red: 1.0, green: 0.85, blue: 0.0)
                             ) {}
+                            Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
+                            toggleRow(
+                                icon: "arrow.uturn.left.circle",
+                                title: "No-Repeat Mode",
+                                subtitle: "Each word can only be scored once per game",
+                                isOn: $noRepeatMode,
+                                tint: Color(red: 0.4, green: 0.75, blue: 1.0)
+                            ) { onReset(); dismiss() }
                         }
                         .padding(.horizontal, 20)
 

@@ -7,6 +7,7 @@ Last updated: 2026-07-08
 Grouped thematically (see `git log` for full chronological detail).
 
 **Core loop & scoring**
+- No-Repeat Mode (opt-in Settings toggle, off by default): once a word is scored (manually or via auto-score-on-slide), it can't be scored again for the rest of that game/puzzle. Enforced through a single `isScoreable(_:)` gate in `GameEngine` that every word-recognition path (scoring, the tappable word list, hints, potential-score calc) shares, so all of them agree on what still counts as a word — board-generation validity is deliberately exempt since regenerating a board should ignore player history.
 - Ghost Preview (opt-in Settings toggle, off by default): sparkle icons on destination cells where sliding the selected tile would immediately score — surfaces the engine's own lookahead as a player-facing skill aid
 - Double Play bonus: one slide completing 2+ words at once earns a 1.25x/1.5x multiplier and a distinct banner/haptic
 - Word validation with reverse-direction reading (a word can be spelled either direction along its row/column)
@@ -70,7 +71,7 @@ The confirmed design principle (gamedeveloper.com, gamedesignskills.com — medi
 
 These are original ideas inspired by the research but not found in any cited source, since nothing combines this genre pairing. Listed roughly by implementation cost:
 
-- **No-Repeat Mode**: a session-scoped constraint — can't score the same word twice (track a `Set<String>` of used words this session; reject or heavily discount repeats). Cheap to build, forces vocabulary breadth, is a genuine constraint-based mode rather than a reskinned booster.
+- **Shipped 2026-07-08 — No-Repeat Mode**: a session-scoped constraint — can't score the same word twice (tracked via a `Set<String>` of used words this session; repeats are simply no longer recognized as valid). Cheap to build, forces vocabulary breadth, is a genuine constraint-based mode rather than a reskinned booster.
 - **Double Play bonus**: when a single slide completes 2+ words simultaneously (a row word and a column word sharing the moved tile — already mechanically possible today, just not specially rewarded), grant an explicit multiplier and a distinct celebration. Rewards players who engineer intersections rather than treating it as incidental.
 - **Locked tiles**: a tile that can't be collected as part of a word until it's been slid past/adjacent to N times — adds a spatial-planning constraint layer without touching the core slide mechanic.
 - **Multiplier tiles**: a rare tile type that multiplies the score of any word passing through it — native to the slide mechanic (unlike a purchased booster), rewards routing words *through* specific board positions.

@@ -88,6 +88,18 @@ final class GameEngine: ObservableObject {
         return WordValidator.forResource(config.activeWordList(includeRare: includeRare))
     }
     private var pressureTimer: AnyCancellable?
+    /// No-Repeat Mode: words already scored this session (uppercased). Populated whenever a word
+    /// is actually collected; cleared on every reset/new game.
+    private var usedWordsThisSession: Set<String> = []
+
+    /// True if `word` is a valid game word — and, when No-Repeat Mode is on, hasn't already been
+    /// scored this session. Centralizes the check so scoring, hints, potential-score, and the
+    /// "no words left" detector all agree on what counts as a word.
+    private func isScoreable(_ word: String) -> Bool {
+        guard validator.isValid(word) else { return false }
+        guard UserDefaults.standard.bool(forKey: "noRepeatMode") else { return true }
+        return !usedWordsThisSession.contains(word.uppercased())
+    }
 
     struct LogEntry: Identifiable {
         let id = UUID()
@@ -520,6 +532,8 @@ final class GameEngine: ObservableObject {
         interactionTick += 1
         rescheduleHint()
 
+        usedWordsThisSession.insert(word.word.uppercased())
+
         combo += 1
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
         dailyPeakCombo = max(dailyPeakCombo, combo)
@@ -612,6 +626,7 @@ final class GameEngine: ObservableObject {
         }
 
         for word in found {
+            usedWordsThisSession.insert(word.word.uppercased())
             let multiplied = Int(Double(word.points) * comboMultiplier * doublePlayMultiplier)
             score += multiplied
             wordCount += 1
@@ -768,12 +783,12 @@ final class GameEngine: ObservableObject {
                     let slice = Array(run[start..<end])
                     let forward = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
                     guard forward.count == end - start else { continue }
-                    if validator.isValid(forward) {
+                    if isScoreable(forward) {
                         words.append(ScoredWord(word: forward, positions: slice))
                         break
                     }
                     let reversed = String(forward.reversed())
-                    if validator.isValid(reversed) {
+                    if isScoreable(reversed) {
                         words.append(ScoredWord(word: reversed, positions: slice))
                         break
                     }
@@ -836,12 +851,12 @@ final class GameEngine: ObservableObject {
                         let slice = Array(run[start..<end])
                         let forward = slice.compactMap { grid[$0.row][$0.col]?.letter }.map { String($0) }.joined()
                         guard forward.count == end - start else { continue }
-                        if validator.isValid(forward), !seen.contains(forward) {
+                        if isScoreable(forward), !seen.contains(forward) {
                             seen.insert(forward)
                             results.append(AvailableWord(word: forward, positions: slice))
                         }
                         let reversed = String(forward.reversed())
-                        if validator.isValid(reversed), !seen.contains(reversed) {
+                        if isScoreable(reversed), !seen.contains(reversed) {
                             seen.insert(reversed)
                             results.append(AvailableWord(word: reversed, positions: slice))
                         }
@@ -965,7 +980,7 @@ final class GameEngine: ObservableObject {
             guard maxLen >= config.minWordLength else { break }
             for len in config.minWordLength...maxLen {
                 let slice = String(letters[start..<(start + len)])
-                if validator.isValid(slice) || validator.isValid(String(slice.reversed())) { return true }
+                if isScoreable(slice) || isScoreable(String(slice.reversed())) { return true }
             }
         }
         return false
@@ -980,7 +995,7 @@ final class GameEngine: ObservableObject {
             var found = false
             for len in stride(from: min(letters.count - i, 10), through: config.minWordLength, by: -1) {
                 let word = String(letters[i..<(i + len)])
-                if validator.isValid(word) || validator.isValid(String(word.reversed())) {
+                if isScoreable(word) || isScoreable(String(word.reversed())) {
                     total += word.count * 10 + (word.count > 4 ? 20 : 0)
                     i += len
                     found = true
@@ -1277,6 +1292,7 @@ final class GameEngine: ObservableObject {
 
     private func resetRoundState() {
         selectedPosition = nil
+        usedWordsThisSession = []
         score = 0; wordCount = 0; lostVowels = 0
         lastWord = nil; gameOver = false; log = []; wordHistory = []
         combo = 0; comboMultiplier = 1.0; dailyPeakCombo = 0
