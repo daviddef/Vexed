@@ -8,6 +8,9 @@ struct TileCellView: View {
     // Path glow: non-nil when this empty cell is in the slide path of the selected tile
     var pathColor: Color? = nil
     var isDestination: Bool = false
+    // Ghost preview (opt-in, Adult Mode): true when sliding the selected tile here would
+    // immediately complete a word — surfaces the engine's own lookahead as a visible skill aid.
+    var isScoringDestination: Bool = false
     // Kid mode hint: tile glows gold while hint is active
     var isHintTile: Bool = false
     // True when this tile is part of a 3+ same-vowel cluster about to vanish
@@ -124,6 +127,15 @@ struct TileCellView: View {
                     Circle()
                         .fill(col.opacity(0.7))
                         .frame(width: size * 0.18, height: size * 0.18)
+                }
+
+                // Ghost preview: this direction would score if slid — a small sparkle badge
+                // so the reward is visible before committing to the move.
+                if isScoringDestination {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: size * 0.28, weight: .bold))
+                        .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.0))
+                        .shadow(color: Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.8), radius: 6, x: 0, y: 0)
                 }
             }
         }

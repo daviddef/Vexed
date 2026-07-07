@@ -67,6 +67,10 @@ final class GameEngine: ObservableObject {
 
     /// Cells each cardinal-direction slide would pass through. Key = direction, value = ordered path including destination.
     @Published var slidePaths: [Direction: [Position]] = [:]
+    /// Directions where sliding the selected tile would immediately complete a word — the
+    /// "ghost preview" mastery aid (opt-in, see GridView/BurgerMenuView slidePreviewEnabled).
+    /// Always computed (cheap: at most 4 checks) so the UI toggle is purely a display decision.
+    @Published var slideWouldScore: Set<Direction> = []
     @Published var burstEvents: [BurstEvent] = []
 
     struct BurstEvent: Identifiable, Equatable {
@@ -337,7 +341,7 @@ final class GameEngine: ObservableObject {
     // MARK: - Selection
 
     func select(position: Position) {
-        if grid[position.row][position.col] == nil { selectedPosition = nil; slidePaths = [:]; return }
+        if grid[position.row][position.col] == nil { selectedPosition = nil; slidePaths = [:]; slideWouldScore = []; return }
         selectedPosition = (selectedPosition == position) ? nil : position
         interactionTick += 1
         rescheduleHint()
@@ -347,9 +351,11 @@ final class GameEngine: ObservableObject {
     func updateSlidePaths() {
         guard let src = selectedPosition, grid[src.row][src.col] != nil else {
             slidePaths = [:]
+            slideWouldScore = []
             return
         }
         var paths: [Direction: [Position]] = [:]
+        var wouldScore: Set<Direction> = []
         for dir in Direction.cardinal {
             var path: [Position] = []
             var pos = src
@@ -360,9 +366,15 @@ final class GameEngine: ObservableObject {
                 path.append(next)
                 pos = next
             }
-            if !path.isEmpty { paths[dir] = path }
+            if !path.isEmpty {
+                paths[dir] = path
+                if let dest = path.last, gridHasWordAt(applying(grid, from: src, to: dest), dest: dest) {
+                    wouldScore.insert(dir)
+                }
+            }
         }
         slidePaths = paths
+        slideWouldScore = wouldScore
     }
 
     // MARK: - Slide
@@ -407,6 +419,7 @@ final class GameEngine: ObservableObject {
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
 
         slidePaths = [:]
+        slideWouldScore = []
         // Vowel vanish only — word scoring is now triggered manually by the player
         let vanished = applyVowelVanish()
         let vanishDelay = vanished.isEmpty ? 0.0 : 0.55

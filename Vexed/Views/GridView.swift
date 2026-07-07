@@ -10,6 +10,7 @@ struct GridView: View {
     @State private var wordPulse: Bool = false
     @State private var hintPulse: Bool = false
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
+    @AppStorage("slidePreviewEnabled") private var slidePreviewEnabled: Bool = false
     private var isLightTheme: Bool { AppTheme(rawValue: appThemeRaw) == .light }
     private var boardFill: Color { isLightTheme ? Color.white : Color(red: 0.07, green: 0.07, blue: 0.11) }
     private var boardStroke: Color { isLightTheme ? Color(white: 0.85) : Color(white: 0.35) }
@@ -29,6 +30,10 @@ struct GridView: View {
             // Flatten slide paths into quick-lookup sets
             let pathSet: Set<Position> = Set(engine.slidePaths.values.flatMap { $0 })
             let destSet: Set<Position> = Set(engine.slidePaths.values.compactMap { $0.last })
+            // Ghost preview (opt-in): destinations where sliding would immediately score a word
+            let scoringDestSet: Set<Position> = slidePreviewEnabled
+                ? Set(engine.slideWouldScore.compactMap { engine.slidePaths[$0]?.last })
+                : []
             let pathColor: Color = selectedTileColor()
             // Map each position to the longest available word it belongs to (already sorted longest-first)
             let wordAtPosition: [Position: GameEngine.AvailableWord] = Dictionary(
@@ -60,6 +65,15 @@ struct GridView: View {
                             .stroke(boardStroke, lineWidth: 1)
                     )
                     .shadow(color: .black.opacity(isLightTheme ? 0.10 : 0), radius: isLightTheme ? 14 : 0, x: 0, y: 6)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Tapping the board frame outside any tile also dismisses the preview.
+                        if engine.highlightedPositions != nil {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                engine.highlightedPositions = nil
+                            }
+                        }
+                    }
 
                 // ── Tile grid ─────────────────────────────────────────
                 VStack(spacing: gap) {
@@ -103,7 +117,8 @@ struct GridView: View {
                                             size: tileSize,
                                             isTouching: false,
                                             pathColor: isPath ? pathColor : nil,
-                                            isDestination: isDest
+                                            isDestination: isDest,
+                                            isScoringDestination: scoringDestSet.contains(pos)
                                         )
                                     }
                                     // Dimming overlay: separate from matchedGeometryEffect to avoid SwiftUI animation conflicts
@@ -147,6 +162,13 @@ struct GridView: View {
                                             }
                                         }
                                     } else {
+                                        // Tapping anywhere that's not the previewed word — tap out
+                                        // to deselect/dismiss the preview instead of leaving it stuck.
+                                        if engine.highlightedPositions != nil {
+                                            withAnimation(.easeInOut(duration: 0.18)) {
+                                                engine.highlightedPositions = nil
+                                            }
+                                        }
                                         engine.select(position: pos)
                                     }
                                 }

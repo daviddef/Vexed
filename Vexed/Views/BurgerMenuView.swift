@@ -13,6 +13,7 @@ struct BurgerMenuView: View {
     var onStartPuzzle: (Int) -> Void
 
     @AppStorage("includeRareWords") private var includeRareWords: Bool = false
+    @AppStorage("slidePreviewEnabled") private var slidePreviewEnabled: Bool = false
     @AppStorage("kidMode") private var kidMode: Bool = false
     @AppStorage("kidAge") private var kidAgeRaw: String = KidAge.explorer.rawValue
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
@@ -218,6 +219,14 @@ struct BurgerMenuView: View {
                                 isOn: $includeRareWords,
                                 tint: Color(white: 0.8)
                             ) { onReset(); dismiss() }
+                            Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
+                            toggleRow(
+                                icon: "sparkles",
+                                title: "Ghost Preview",
+                                subtitle: "Sparkle shows which slide directions would score",
+                                isOn: $slidePreviewEnabled,
+                                tint: Color(red: 1.0, green: 0.85, blue: 0.0)
+                            ) {}
                         }
                         .padding(.horizontal, 20)
 

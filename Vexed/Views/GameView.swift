@@ -883,10 +883,14 @@ struct GameView: View {
                         .tracking(theme.scoreTracking)
                 }
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .fixedSize(horizontal: true, vertical: false)
             Text(label)
                 .font(theme.statLabelFont)
                 .foregroundColor(theme.statLabelColor)
                 .tracking(theme.statLabelTracking)
+                .lineLimit(1)
         }
         .padding(.vertical, (currentTheme == .arcade) ? 7 : 6)
         .padding(.horizontal, (currentTheme == .arcade) ? 8 : 4)
