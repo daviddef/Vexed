@@ -166,6 +166,16 @@ struct TileCellView: View {
                     .allowsHitTesting(false)
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            if tile?.isMultiplierTile == true {
+                Image(systemName: "star.circle.fill")
+                    .font(.system(size: size * 0.24, weight: .bold))
+                    .foregroundStyle(Color(white: 0.1), Color(red: 1.0, green: 0.85, blue: 0.0))
+                    .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.7), radius: 4, x: 0, y: 0)
+                    .padding(3)
+                    .allowsHitTesting(false)
+            }
+        }
         // Ambient neon glow — arcade theme only
         .shadow(color: (theme.neonTileBorder ?? .clear).opacity(!isSelected && !isCriticalDanger && !isHintTile ? 0.45 : 0), radius: 6, x: 0, y: 0)
         .shadow(color: dropShadowColor, radius: 8, x: 0, y: 5)

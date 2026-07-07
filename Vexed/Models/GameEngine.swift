@@ -95,6 +95,10 @@ final class GameEngine: ObservableObject {
     /// True if `word` is a valid game word — and, when No-Repeat Mode is on, hasn't already been
     /// scored this session. Centralizes the check so scoring, hints, potential-score, and the
     /// "no words left" detector all agree on what counts as a word.
+    private func multiplierBonus(for positions: [Position]) -> Double {
+        positions.contains { grid[$0.row][$0.col]?.isMultiplierTile == true } ? 2.0 : 1.0
+    }
+
     private func isScoreable(_ word: String) -> Bool {
         guard validator.isValid(word) else { return false }
         guard UserDefaults.standard.bool(forKey: "noRepeatMode") else { return true }
@@ -538,12 +542,13 @@ final class GameEngine: ObservableObject {
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
         dailyPeakCombo = max(dailyPeakCombo, combo)
 
-        let multiplied = Int(Double(word.points) * comboMultiplier)
+        let tileMultiplier = multiplierBonus(for: word.positions)
+        let multiplied = Int(Double(word.points) * comboMultiplier * tileMultiplier)
         score += multiplied
         wordCount += 1
         lastWord = word.word
-        wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier))
-        addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
+        wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier * tileMultiplier))
+        addLog("✨ \"\(word.word)\" +\(multiplied)pts\(tileMultiplier > 1 ? " ⭐×2" : "")", .good)
 
         flashWord = word.word
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in self?.flashWord = nil }
@@ -627,12 +632,13 @@ final class GameEngine: ObservableObject {
 
         for word in found {
             usedWordsThisSession.insert(word.word.uppercased())
-            let multiplied = Int(Double(word.points) * comboMultiplier * doublePlayMultiplier)
+            let tileMultiplier = multiplierBonus(for: word.positions)
+            let multiplied = Int(Double(word.points) * comboMultiplier * doublePlayMultiplier * tileMultiplier)
             score += multiplied
             wordCount += 1
             lastWord = word.word
-            wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier))
-            addLog("✨ \"\(word.word)\" +\(multiplied)pts", .good)
+            wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier * tileMultiplier))
+            addLog("✨ \"\(word.word)\" +\(multiplied)pts\(tileMultiplier > 1 ? " ⭐×2" : "")", .good)
             awardStickerIfNeeded(for: word.word)
         }
 
@@ -716,6 +722,10 @@ final class GameEngine: ObservableObject {
                 guard let self else { return }
                 var t = Tile(letter: self.randomForgeLetter())
                 t.animState = .forged
+                // Rare multiplier tile: doubles the score of any word collected through it —
+                // native to the slide mechanic (unlike a purchased booster), so it rewards
+                // routing words through specific board positions rather than reacting in place.
+                t.isMultiplierTile = Double.random(in: 0...1) < 0.12
                 self.grid[pos.row][pos.col] = t
             }
         }

@@ -18,6 +18,8 @@ struct Tile: Identifiable, Equatable {
     let letter: Character
     let type: TileType
     var animState: TileAnimState = .idle
+    // Multiplier tile: doubles the score of any word collected through this position.
+    var isMultiplierTile: Bool = false
 
     init(letter: Character) {
         self.id = UUID()
