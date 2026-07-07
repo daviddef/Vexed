@@ -500,8 +500,8 @@ final class GameEngine: ObservableObject {
 
     // MARK: - Word Scoring
 
-    @discardableResult
-    /// Player-triggered word collection. Called when the player double-taps a word chip.
+    /// Player-triggered word collection. Called on the second tap of a word (tile or chip) that's
+    /// already highlighted from the first tap's preview.
     func collectWord(_ word: AvailableWord) {
         guard availableWords.contains(where: { $0.id == word.id }) else { return }
         interactionTick += 1
