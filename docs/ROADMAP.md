@@ -36,7 +36,7 @@ Grouped thematically (see `git log` for full chronological detail).
 
 ## Deferred (scoped out, not forgotten)
 
-- **Monetization** — cosmetic theme-pack IAP (four themes now exist as a natural paywall surface) and Kid-Mode-ad-free gating. Explicitly not picked when the engagement-research round's priorities were chosen.
+- **Monetization** — cosmetic theme-pack IAP (four themes now exist as a natural paywall surface) and Kid-Mode-ad-free gating. Explicitly not picked when the engagement-research round's priorities were chosen. See "Next: Monetization" below for a dedicated research pass.
 - **Multiplayer / social / leaderboards** — research flagged this as the weakest fit for a solo word game (disproportionate live-service infrastructure for the payoff). A *lightweight* async leaderboard for the Daily Puzzle (compare streak/score, no live infra) was raised as a smaller possibility but never scoped.
 - **Light theme design polish** — the theme shipped from first-principles reasoning + a reference screenshot; the original research pass on light-theme palette/shadow technique came back thin (no strong sourcing found). Worth a dedicated look if it needs another pass.
 - **Puzzle Mode content** — currently reuses the same random board generator with a move cap, not hand-curated, guaranteed-solvable levels. If the mode gets traction, real level design is the next step up.
@@ -83,3 +83,21 @@ These are original ideas inspired by the research but not found in any cited sou
 - Would a Tetris-style "combo resets on any non-scoring move" feel punishing in a word game, where "no valid word this move" is common even for skilled players? Needs playtesting — word formation doesn't have Tetris' guaranteed-eventual-clear property.
 - Does anchoring a high-value letter (the closest VEXED analog to 2048's corner tile) conflict with the existing vowel-vanish tension mechanic (3+ same vowels touching autoscore-vanishes)? These two systems might fight each other spatially.
 - Is there a word-puzzle precedent in a regional market (Japanese/Korean mobile) this research pass didn't surface? Worth a follow-up search if pursuing this direction seriously.
+
+## Next: Monetization
+
+Researched 2026-07-08, scoped to VEXED! specifically: solo-dev, zero monetization today, Kid Mode + Adult Mode, Daily Puzzle with streaks, four cosmetic themes. 107 agents, 24 sources, 16 confirmed / 9 refuted claims (several candidate stats on cosmetic conversion rates and ads/IAP revenue splits were explicitly refuted on adversarial re-verification and excluded — this area has thinner hard data than the gameplay-depth research did).
+
+**Headline finding:** the evidence points away from ads entirely and toward a lightweight, calm-friendly stack: cosmetic theme IAP first, compliance work second, an optional low-priced subscription later only once there's a recurring content reason to justify it. The closest real comparable — NYT Games (Wordle free as a funnel, $5–10/mo subscription for deeper content, puzzle *creation* paywalled but *solving* free) — is a much bigger publisher with a multi-game content pipeline, so its price points are directional, not a template to copy verbatim.
+
+**Recommended build order:**
+1. **Cosmetic theme IAP** (the four existing themes: Regular/Fun/Arcade/Light) — individual + bundle pricing, sold only in Adult Mode context. Lowest-risk first revenue surface; no new interaction model, no pay-to-win concerns since themes are purely aesthetic.
+2. **Compliance pass before any purchase surface ships** — Kid Mode must carry no third-party ad or behavioral-analytics SDKs (Apple Kids Category guideline 1.3, confirmed high-confidence), and any purchase flow reachable from Kid Mode needs a parental gate (Apple requirement; Texas SB 2420, effective 2026-01-01, additionally requires per-transaction parental consent for IAP in some jurisdictions). Simplest compliant shape: keep Kid Mode monetization-free entirely rather than building a parental-gate flow.
+3. **Optional low-priced subscription** (~$3–5/mo or ~$20–40/yr, going by the NYT price ladder) — only once there's a recurring content reason (extra Daily Puzzle packs, extra modes) to justify a recurring charge. Not a launch priority.
+4. **Ads: not recommended.** No reliable data was found supporting an ads+IAP blend for this genre (the "puzzle games split ~50/50 ads/IAP" claim was refuted 0-3 on verification), and ads conflict with both the calm-daily-puzzle positioning and the Kids Category compliance burden. If revisited, confine to Adult Mode only, non-behavioral/contextual only.
+5. **Streak-protection or streak-badge purchases: hold as a later experiment.** Streaks are validated as a retention/FOMO mechanic (medium confidence — single-source), not a proven direct monetization lever; no data was found on streak-purchase conversion specifically.
+
+**Open questions the research didn't resolve** (worth answering before committing further):
+- No verified data exists on cosmetic-only IAP conversion rates in a non-competitive single-player game — the two candidate stats found were both refuted on adversarial re-verification.
+- Whether VEXED!'s current paid/premium app pricing (no IAP at all) is itself a viable end-state monetization strategy wasn't addressed — this research focused on freemium comparables (NYT, Wordle) and didn't compare against premium-priced indie puzzle apps.
+- Apple's Kids Category rules (guideline 1.3) technically govern apps *listed in* the Kids Category — since VEXED! has a Kid Mode but may not be listed there, it's unclear how much of guideline 1.3 applies versus the general "any app/section directed at kids" language. Worth a direct compliance check (or asking Apple) before shipping any Kid Mode purchase surface.
