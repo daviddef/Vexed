@@ -121,6 +121,13 @@ struct GridView: View {
                                             isScoringDestination: scoringDestSet.contains(pos)
                                         )
                                     }
+                                    // Bomb targeting: every occupied tile gets a red "tap to remove" ring
+                                    if engine.bombTargetingActive, tile != nil {
+                                        RoundedRectangle(cornerRadius: tileSize * 0.22)
+                                            .stroke(Color(red: 1.0, green: 0.2, blue: 0.2), lineWidth: 2.5)
+                                            .shadow(color: Color.red.opacity(0.6), radius: 6)
+                                            .allowsHitTesting(false)
+                                    }
                                     // Dimming overlay: separate from matchedGeometryEffect to avoid SwiftUI animation conflicts
                                     if isDimmed {
                                         RoundedRectangle(cornerRadius: tileSize * 0.2)
@@ -150,6 +157,10 @@ struct GridView: View {
                                 .contentShape(Rectangle())
                                 .gesture(tileDragGesture(at: pos))
                                 .onTapGesture {
+                                    if engine.bombTargetingActive {
+                                        if tile != nil { engine.useBomb(at: pos) }
+                                        return
+                                    }
                                     if let word = wordAtPosition[pos] {
                                         if engine.highlightedPositions == Set(word.positions) {
                                             // Second tap on the already-highlighted word — collect it.
@@ -285,6 +296,7 @@ struct GridView: View {
     private func tileDragGesture(at pos: Position) -> some Gesture {
         DragGesture(minimumDistance: 12)
             .onChanged { _ in
+                guard !engine.bombTargetingActive else { return }
                 if dragStart == nil {
                     dragStart = pos
                     touchedPosition = pos

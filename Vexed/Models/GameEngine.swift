@@ -37,6 +37,16 @@ final class GameEngine: ObservableObject {
     @Published var celebrationWord: String? = nil   // set to the word when 5+ letters scored
     @Published var tilesForged: Int = 0             // cumulative bonus tiles spawned by Tile Forge
     @Published var forgeMessage: String? = nil      // brief "+N tiles" banner
+
+    // MARK: - Power-ups (rewarded-ad currency, Adult Mode only)
+    // Persisted across games — earned by watching a rewarded ad, spent on use. Not reset per round.
+    @Published var bombCharges: Int = UserDefaults.standard.integer(forKey: "bombCharges") {
+        didSet { UserDefaults.standard.set(bombCharges, forKey: "bombCharges") }
+    }
+    @Published var revealCharges: Int = UserDefaults.standard.integer(forKey: "revealCharges") {
+        didSet { UserDefaults.standard.set(revealCharges, forKey: "revealCharges") }
+    }
+    @Published var bombTargetingActive: Bool = false
     @Published var availableWords: [AvailableWord] = []   // words scoreable RIGHT NOW on the board
     @Published var highlightedPositions: Set<Position>? = nil  // non-nil = dim all other tiles
     @Published var interactionTick: Int = 0  // incremented on every user action (slide/select/collect)
@@ -198,6 +208,46 @@ final class GameEngine: ObservableObject {
             do { try await Task.sleep(nanoseconds: 6_000_000_000) } catch { return }
             guard !Task.isCancelled else { return }
             self.clearHint()
+        }
+    }
+
+    // MARK: - Power-ups
+
+    func toggleBombTargeting() {
+        guard bombCharges > 0 else { return }
+        bombTargetingActive.toggle()
+    }
+
+    /// Consumes a bomb charge to remove one tile from the board — a rewarded-ad-earned way to
+    /// clear a blocker without needing a word to form. Reuses the vanish animation/haptic.
+    func useBomb(at position: Position) {
+        guard bombCharges > 0, grid[position.row][position.col] != nil else { return }
+        bombCharges -= 1
+        bombTargetingActive = false
+        Haptics.warning()
+        withAnimation(.easeIn(duration: 0.3)) {
+            grid[position.row][position.col]?.animState = .vanishing
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            guard let self else { return }
+            self.grid[position.row][position.col] = nil
+            self.updateDangerStates()
+            self.recalculatePotentialScore()
+            self.updateSlidePaths()
+        }
+    }
+
+    /// Consumes a reveal charge to trigger an immediate hint, bypassing the normal cooldown.
+    func useReveal() {
+        guard revealCharges > 0 else { return }
+        revealCharges -= 1
+        requestHint()
+    }
+
+    func grantCharges(_ kind: PowerUpKind, count: Int) {
+        switch kind {
+        case .bomb: bombCharges += count
+        case .reveal: revealCharges += count
         }
     }
 

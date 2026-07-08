@@ -116,6 +116,12 @@ struct GameView: View {
                 dailyPuzzleIndicator
                 puzzleModeIndicator
 
+                if !kidMode {
+                    PowerUpTrayView(engine: engine)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 6)
+                }
+
                 // ── Vowel radar ──────────────────────────────────────────
                 VowelRadarView(counts: engine.vowelCounts())
                     .padding(.horizontal, 12)
