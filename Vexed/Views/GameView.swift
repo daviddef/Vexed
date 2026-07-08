@@ -172,6 +172,14 @@ struct GameView: View {
         .preferredColorScheme(.dark)
         .ignoresSafeArea(edges: .bottom)
         .onChange(of: engine.boardVersion) { _, _ in hintCooldown = false }
+        // Auto-open the definition the moment a word is previewed — no separate "Definition" tap
+        // needed. Presented as a `.sheet` (see definitionEntry binding below), not embedded inline,
+        // since UIReferenceLibraryViewController isn't safe inside an animating overlay frame.
+        .onChange(of: engine.highlightedPositions) { _, newValue in
+            guard let hl = newValue,
+                  let word = engine.availableWords.first(where: { Set($0.positions) == hl }) else { return }
+            showDefinition(for: word.word, points: word.points)
+        }
         .sheet(isPresented: $showBurgerMenu) {
             BurgerMenuView(
                 difficulty: $selectedDifficulty,
@@ -567,38 +575,30 @@ struct GameView: View {
         wordPreviewOverlay
     }
 
-    /// Points + definition preview for the currently tap-highlighted word — first tap on a word
-    /// (tile or chip) shows this; tapping the same word again collects it instead of opening this
-    /// preview again. The definition renders inline by default, no separate tap required.
+    /// Points preview for the currently tap-highlighted word — first tap on a word (tile or chip)
+    /// shows this and auto-opens the definition sheet (see `.onChange(of: engine.highlightedPositions)`
+    /// below); tapping the same word again collects it instead of reopening this preview.
+    ///
+    /// The definition itself is never embedded inline here: `UIReferenceLibraryViewController` is
+    /// backed by a legacy WebView that isn't safe to host inside a small, animating/transitioning
+    /// SwiftUI frame — embedding it that way caused a TestFlight crash (EXC_BAD_ACCESS inside
+    /// SwiftUI's layout engine, racing with WebKitLegacy on a background thread). It's presented as
+    /// its own `.sheet` instead, which is a stable, Apple-supported presentation context.
     @ViewBuilder private var wordPreviewOverlay: some View {
         if let hl = engine.highlightedPositions,
            let word = engine.availableWords.first(where: { Set($0.positions) == hl }) {
             VStack {
-                VStack(alignment: .trailing, spacing: 6) {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text(word.word.uppercased())
-                            .font(.system(size: 15, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                        HStack(spacing: 5) {
-                            Text("\(word.word.count) LETTERS")
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(red: 0.5, green: 0.6, blue: 0.8))
-                            Text("+\(word.points)")
-                                .font(.system(size: 13, weight: .black, design: .monospaced))
-                                .foregroundColor(.orange)
-                        }
-                    }
-                    if UIReferenceLibraryViewController.has(word.word) {
-                        Divider().background(Color.white.opacity(0.2))
-                        SystemDictionaryView(term: word.word)
-                            .frame(width: 260, height: 160)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    } else {
-                        Divider().background(Color.white.opacity(0.2))
-                        Text("No dictionary entry for this word")
-                            .font(.system(size: 11))
-                            .foregroundColor(Color(white: 0.5))
-                            .frame(maxWidth: .infinity, alignment: .trailing)
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(word.word.uppercased())
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                    HStack(spacing: 5) {
+                        Text("\(word.word.count) LETTERS")
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .foregroundColor(Color(red: 0.5, green: 0.6, blue: 0.8))
+                        Text("+\(word.points)")
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .foregroundColor(.orange)
                     }
                 }
                 .padding(10)
