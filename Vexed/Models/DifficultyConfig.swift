@@ -127,7 +127,7 @@ struct DifficultyConfig {
         // Derive columns so tiles stay close to targetTileW across all device sizes
         let targetTileW: CGFloat = 56
         let rawCols = Int(floor((availW - gridPad * 2 + gap) / (targetTileW + gap)))
-        let cols = max(7, min(16, rawCols))
+        let cols = max(8, min(16, rawCols))
         let tileW = (availW - gridPad * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols)
 
         // Non-grid UI: top bar + vowel radar + footer + bottom safe area
