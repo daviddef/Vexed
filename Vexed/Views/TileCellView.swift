@@ -314,6 +314,12 @@ struct TileCellView: View {
         if isHintTile {
             return Color(red: 1.0, green: 0.60 + hintPulse * 0.20, blue: 0.0 + hintPulse * 0.08)
         }
+        // Previewed-word tiles pulse between deep and bright VEXED green, fully overriding the
+        // tile's own letter color so the whole word reads as one highlighted unit, not just an
+        // outline around each letter's usual color.
+        if isWordHighlighted {
+            return Color(red: 0.10 + wordHighlightPulse * 0.10, green: 0.65 + wordHighlightPulse * 0.20, blue: 0.28 + wordHighlightPulse * 0.10)
+        }
         switch tile.type {
         case .consonant:
             return theme.consonantBase
