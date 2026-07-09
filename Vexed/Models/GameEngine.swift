@@ -48,7 +48,11 @@ final class GameEngine: ObservableObject {
     }
     @Published var bombTargetingActive: Bool = false
     @Published var availableWords: [AvailableWord] = []   // words scoreable RIGHT NOW on the board
-    @Published var highlightedPositions: Set<Position>? = nil  // non-nil = dim all other tiles
+    // Words currently previewed (first tap) — empty = none. One entry for a single-word preview,
+    // 2+ when the tapped tile belongs to more than one available word (e.g. a row + column word
+    // sharing that tile), in which case both stay highlighted together for a combined collect.
+    @Published var highlightedWords: [AvailableWord] = []
+    var highlightedPositions: Set<Position>? { highlightedWords.isEmpty ? nil : Set(highlightedWords.flatMap(\.positions)) }
     @Published var interactionTick: Int = 0  // incremented on every user action (slide/select/collect)
     @Published var hintWordId: UUID? = nil   // kid mode: ID of word to highlight as hint
     @Published var hintBeaconActive: Bool = false  // kid mode phase-2: show tap beacon
@@ -498,7 +502,7 @@ final class GameEngine: ObservableObject {
         }
 
         Haptics.medium()
-        highlightedPositions = nil
+        highlightedWords = []
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
         unlockAdjacentTiles(to: dest)
 
@@ -600,53 +604,74 @@ final class GameEngine: ObservableObject {
     /// Player-triggered word collection. Called on the second tap of a word (tile or chip) that's
     /// already highlighted from the first tap's preview.
     func collectWord(_ word: AvailableWord) {
-        guard availableWords.contains(where: { $0.id == word.id }) else { return }
+        collectWords([word])
+    }
+
+    /// Collects one or more words at once — the multi-word case fires when the tapped tile belongs
+    /// to more than one available word (e.g. a row word and a column word sharing that tile), so
+    /// tapping it previews and then collects both together. Rewards it the same way an auto-scored
+    /// multi-word slide would: a Double/Triple Play bonus multiplier plus the shared banner/haptic.
+    func collectWords(_ words: [AvailableWord]) {
+        guard !words.isEmpty, words.allSatisfy({ w in availableWords.contains(where: { $0.id == w.id }) }) else { return }
         interactionTick += 1
         rescheduleHint()
-
-        usedWordsThisSession.insert(word.word.uppercased())
 
         combo += 1
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
         dailyPeakCombo = max(dailyPeakCombo, combo)
 
-        let tileMultiplier = multiplierBonus(for: word.positions)
-        let multiplied = Int(Double(word.points) * comboMultiplier * tileMultiplier)
-        score += multiplied
-        wordCount += 1
-        lastWord = word.word
-        wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier * tileMultiplier))
-        addLog("✨ \"\(word.word)\" +\(multiplied)pts\(tileMultiplier > 1 ? " ⭐×2" : "")", .good)
+        let doublePlayMultiplier: Double = words.count >= 3 ? 1.5 : words.count == 2 ? 1.25 : 1.0
+        if words.count >= 2 {
+            let label = words.count >= 3 ? "TRIPLE PLAY" : "DOUBLE PLAY"
+            doublePlayMessage = "⚡ \(label)! \(words.count) words at once"
+            Haptics.doublePlay()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak self] in
+                self?.doublePlayMessage = nil
+            }
+        }
 
-        flashWord = word.word
+        var allPositions: Set<Position> = []
+        for word in words {
+            usedWordsThisSession.insert(word.word.uppercased())
+            let tileMultiplier = multiplierBonus(for: word.positions)
+            let multiplied = Int(Double(word.points) * comboMultiplier * doublePlayMultiplier * tileMultiplier)
+            score += multiplied
+            wordCount += 1
+            lastWord = word.word
+            wordHistory.append((word: word.word, points: multiplied, multiplier: comboMultiplier * tileMultiplier))
+            addLog("✨ \"\(word.word)\" +\(multiplied)pts\(tileMultiplier > 1 ? " ⭐×2" : "")", .good)
+            awardStickerIfNeeded(for: word.word)
+            allPositions.formUnion(word.positions)
+        }
+
+        flashWord = words.map(\.word).joined(separator: " + ")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in self?.flashWord = nil }
 
-        if word.word.count >= celebrationMinLength {
-            celebrationWord = word.word
+        if let longest = words.max(by: { $0.word.count < $1.word.count }), longest.word.count >= celebrationMinLength {
+            celebrationWord = longest.word
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.celebrationWord = nil }
         }
 
-        awardStickerIfNeeded(for: word.word)
+        let forgeCount = words.reduce(0) { $0 + config.forgeBonusCount(wordLength: $1.word.count) }
 
-        let forgeCount = config.forgeBonusCount(wordLength: word.word.count)
-
-        // Remove from pending list immediately so it can't be double-collected
-        availableWords.removeAll { $0.id == word.id }
-        highlightedPositions = nil
+        // Remove from pending list immediately so they can't be double-collected
+        let ids = Set(words.map(\.id))
+        availableWords.removeAll { ids.contains($0.id) }
+        highlightedWords = []
 
         // Hitstop: brief freeze before the scoring pop/haptic/burst fire together, so the impact
         // reads as punchy rather than instant.
         let hold = 0.05
         DispatchQueue.main.asyncAfter(deadline: .now() + hold) { [weak self] in
             guard let self else { return }
-            for pos in word.positions { self.grid[pos.row][pos.col]?.animState = .scoring }
+            for pos in allPositions { self.grid[pos.row][pos.col]?.animState = .scoring }
             Haptics.comboScore(combo: self.combo)
             self.burstEvents.append(BurstEvent(color: Color(red: 1.0, green: 0.85, blue: 0.2), intensity: self.combo))
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + hold + 0.5) { [weak self] in
             guard let self else { return }
-            for pos in word.positions { self.grid[pos.row][pos.col] = nil }
+            for pos in allPositions { self.grid[pos.row][pos.col] = nil }
             self.updateDangerStates()
             if forgeCount > 0 {
                 // Delay game-over check until AFTER forge tiles land — spawnForgeTiles
@@ -1382,7 +1407,7 @@ final class GameEngine: ObservableObject {
         dangerVowelColor = nil; criticalDangerPositions = []
         celebrationWord = nil
         tilesForged = 0; forgeMessage = nil
-        availableWords = []; highlightedPositions = nil
+        availableWords = []; highlightedWords = []
         hintTask?.cancel(); hintTask = nil
         autoVanishTask?.cancel(); autoVanishTask = nil
         interactionTick = 0; hintWordId = nil; hintBeaconActive = false; hintMoves = []

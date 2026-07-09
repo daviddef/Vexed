@@ -568,9 +568,11 @@ struct GameView: View {
         wordPreviewOverlay
     }
 
-    /// Points + definition preview for the currently tap-highlighted word — first tap on a word
-    /// (tile or chip) shows this, non-blocking, over the board; tapping the same word again
-    /// collects it instead of reopening this preview.
+    /// Points + definition preview for the currently tap-highlighted word(s) — first tap on a word
+    /// (tile or chip) shows this, non-blocking, over the board; tapping again collects it/them
+    /// instead of reopening this preview. When a tile belongs to two words at once (a row word and
+    /// a column word sharing it), both list here together with a DOUBLE WORD total, previewing the
+    /// same combined-collect bonus `GameEngine.collectWords` awards.
     ///
     /// The definition is plain `Text` fetched from a network dictionary API (see
     /// `DictionaryAPI.swift`), NOT `UIReferenceLibraryViewController`: that controller is backed by
@@ -579,20 +581,34 @@ struct GameView: View {
     /// layout engine, racing with WebKitLegacy on a background thread) and, before that fix, a
     /// blocking `.sheet` that interrupted gameplay on every tap. Plain text avoids both problems.
     @ViewBuilder private var wordPreviewOverlay: some View {
-        if let hl = engine.highlightedPositions,
-           let word = engine.availableWords.first(where: { Set($0.positions) == hl }) {
+        let words = engine.highlightedWords
+        if !words.isEmpty {
             VStack {
                 VStack(alignment: .trailing, spacing: 6) {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text(word.word.uppercased())
-                            .font(.system(size: 15, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
+                    ForEach(words) { word in
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(word.word.uppercased())
+                                .font(.system(size: 15, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                            HStack(spacing: 5) {
+                                Text("\(word.word.count) LETTERS")
+                                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.5, green: 0.6, blue: 0.8))
+                                Text("+\(word.points)")
+                                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    if words.count > 1 {
+                        Divider().background(Color.white.opacity(0.25))
                         HStack(spacing: 5) {
-                            Text("\(word.word.count) LETTERS")
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(red: 0.5, green: 0.6, blue: 0.8))
-                            Text("+\(word.points)")
-                                .font(.system(size: 13, weight: .black, design: .monospaced))
+                            Text("DOUBLE WORD")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .foregroundColor(Color(red: 0.18, green: 0.82, blue: 0.35))
+                                .tracking(1)
+                            Text("+\(Int(Double(words.reduce(0) { $0 + $1.points }) * 1.25))")
+                                .font(.system(size: 15, weight: .black, design: .monospaced))
                                 .foregroundColor(.orange)
                         }
                     }
@@ -610,7 +626,7 @@ struct GameView: View {
                 .background(
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color(red: 0.06, green: 0.06, blue: 0.12).opacity(0.94))
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.orange.opacity(0.6), lineWidth: 1.5))
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(red: 0.18, green: 0.82, blue: 0.35).opacity(0.6), lineWidth: 1.5))
                 )
                 .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 3)
                 .padding(.top, 8)
@@ -619,9 +635,11 @@ struct GameView: View {
             }
             .zIndex(6)
             .allowsHitTesting(false)
-            .task(id: word.word) {
+            .task(id: words.map(\.id)) {
                 previewDefinition = nil
-                previewDefinition = await DictionaryAPI.definition(for: word.word)
+                if let primary = words.first {
+                    previewDefinition = await DictionaryAPI.definition(for: primary.word)
+                }
             }
         }
     }

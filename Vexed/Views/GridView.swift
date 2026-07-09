@@ -35,11 +35,13 @@ struct GridView: View {
                 ? Set(engine.slideWouldScore.compactMap { engine.slidePaths[$0]?.last })
                 : []
             let pathColor: Color = selectedTileColor()
-            // Map each position to the longest available word it belongs to (already sorted longest-first)
-            let wordAtPosition: [Position: GameEngine.AvailableWord] = Dictionary(
-                engine.availableWords.flatMap { w in w.positions.map { ($0, w) } },
-                uniquingKeysWith: { first, _ in first }
-            )
+            // Map each position to every available word it belongs to — usually one, but a tile
+            // shared by a row word and a column word maps to both, so tapping it can preview and
+            // collect them together.
+            let wordsAtPosition: [Position: [GameEngine.AvailableWord]] = Dictionary(
+                grouping: engine.availableWords.flatMap { w in w.positions.map { ($0, w) } },
+                by: { $0.0 }
+            ).mapValues { $0.map(\.1) }
             // Points badge on the first tile of each available word (top-left corner)
             let pointsAtFirstPosition: [Position: Int] = Dictionary(
                 engine.availableWords.compactMap { w in w.positions.first.map { ($0, w.points) } },
@@ -68,9 +70,9 @@ struct GridView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         // Tapping the board frame outside any tile also dismisses the preview.
-                        if engine.highlightedPositions != nil {
+                        if !engine.highlightedWords.isEmpty {
                             withAnimation(.easeInOut(duration: 0.18)) {
-                                engine.highlightedPositions = nil
+                                engine.highlightedWords = []
                             }
                         }
                     }
@@ -161,23 +163,28 @@ struct GridView: View {
                                         if tile != nil { engine.useBomb(at: pos) }
                                         return
                                     }
-                                    if let word = wordAtPosition[pos] {
-                                        if engine.highlightedPositions == Set(word.positions) {
-                                            // Second tap on the already-highlighted word — collect it.
-                                            engine.collectWord(word)
+                                    if let words = wordsAtPosition[pos] {
+                                        let tappedIds = Set(words.map(\.id))
+                                        let highlightedIds = Set(engine.highlightedWords.map(\.id))
+                                        if tappedIds == highlightedIds {
+                                            // Second tap on the already-highlighted word(s) — collect
+                                            // them. A tile shared by a row + column word collects both
+                                            // at once with a Double Play bonus.
+                                            engine.collectWords(words)
                                         } else {
-                                            // First tap — preview: highlight bright yellow, show the
+                                            // First tap — preview: highlight in VEXED green, show the
                                             // discreet points/definition overlay, don't score yet.
+                                            // All words touching this tile preview together.
                                             withAnimation(.easeInOut(duration: 0.18)) {
-                                                engine.highlightedPositions = Set(word.positions)
+                                                engine.highlightedWords = words
                                             }
                                         }
                                     } else {
                                         // Tapping anywhere that's not the previewed word — tap out
                                         // to deselect/dismiss the preview instead of leaving it stuck.
-                                        if engine.highlightedPositions != nil {
+                                        if !engine.highlightedWords.isEmpty {
                                             withAnimation(.easeInOut(duration: 0.18)) {
-                                                engine.highlightedPositions = nil
+                                                engine.highlightedWords = []
                                             }
                                         }
                                         engine.select(position: pos)

@@ -155,12 +155,25 @@ struct SplashView: View {
                 Spacer().frame(height: 28)
 
                 // ── Tap prompt ────────────────────────────────────────
-                Text("TAP TO PLAY")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white.opacity(tapPulse ? 0.60 : 0.22))
-                    .tracking(5)
-                    .opacity(tapPromptVisible ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: tapPulse)
+                HStack(spacing: 8) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("TAP TO PLAY")
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .tracking(2)
+                }
+                .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.0))
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.14))
+                        .overlay(Capsule().strokeBorder(Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.7), lineWidth: 1.5))
+                )
+                .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.0).opacity(tapPulse ? 0.55 : 0.15), radius: tapPulse ? 16 : 6, x: 0, y: 0)
+                .scaleEffect(tapPulse ? 1.04 : 1.0)
+                .opacity(tapPromptVisible ? 1 : 0)
+                .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: tapPulse)
 
                 Spacer()
             }

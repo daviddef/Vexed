@@ -85,7 +85,7 @@ struct TileCellView: View {
                 RoundedRectangle(cornerRadius: cr)
                     .strokeBorder(
                         isSelected ? Color.white
-                            : isWordHighlighted ? Color(red: 1.0, green: 0.85, blue: 0.0)
+                            : isWordHighlighted ? Color(red: 0.18, green: 0.82, blue: 0.35)
                             : (isForged ? Color(white: 0.6)
                             : isCriticalDanger ? Color(red: 1.0, green: 0.15 + criticalPulse * 0.25, blue: 0.15)
                             : isHintTile ? Color(red: 1.0, green: 0.65, blue: 0.0)
@@ -151,9 +151,10 @@ struct TileCellView: View {
         .shadow(color: Color(red: 1.0, green: 0.1, blue: 0.1).opacity(isCriticalDanger ? 0.4 + criticalPulse * 0.5 : 0),
                 radius: isCriticalDanger ? 10 + criticalPulse * 16 : 0, x: 0, y: 0)
         .scaleEffect(isCriticalDanger ? 1.0 + criticalPulse * 0.06 : 1.0)
-        // Bright yellow glow for the previewed word — driven by wordHighlightPulse (CGFloat 0→1)
-        .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.0).opacity(isWordHighlighted ? 0.55 + wordHighlightPulse * 0.3 : 0),
+        // VEXED-green glow + scale pulse for the previewed word — driven by wordHighlightPulse (CGFloat 0→1)
+        .shadow(color: Color(red: 0.18, green: 0.82, blue: 0.35).opacity(isWordHighlighted ? 0.55 + wordHighlightPulse * 0.3 : 0),
                 radius: isWordHighlighted ? 12 + wordHighlightPulse * 8 : 0, x: 0, y: 0)
+        .scaleEffect(isWordHighlighted ? 1.0 + wordHighlightPulse * 0.05 : 1.0)
         .overlay(alignment: .topLeading) {
             if let pts = pointsBadge, tile != nil {
                 Text("+\(pts)")
