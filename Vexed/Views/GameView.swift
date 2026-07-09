@@ -223,8 +223,24 @@ struct GameView: View {
 
     @ViewBuilder private func endScreenOverlay(isGameOver: Bool) -> some View {
         ZStack {
-            Color.black.opacity(0.75).ignoresSafeArea()
+            // Same background language as the home/splash screen — dark radial gradient + a
+            // subtle centre bloom — instead of a flat black scrim, so game-over reads as
+            // returning to the same "home" visual identity rather than a generic dimmed sheet.
+            Color.black.opacity(0.55).ignoresSafeArea()
                 .transition(.opacity)
+            RadialGradient(
+                colors: [Color(red: 0.12, green: 0.12, blue: 0.20),
+                         Color(red: 0.04, green: 0.04, blue: 0.08)],
+                center: UnitPoint(x: 0.5, y: 0.38),
+                startRadius: 0,
+                endRadius: 500
+            )
+            .ignoresSafeArea()
+            Ellipse()
+                .fill(Color(red: 0.18, green: 0.18, blue: 0.45).opacity(0.28))
+                .frame(width: 340, height: 260)
+                .offset(y: -60)
+                .allowsHitTesting(false)
 
             VStack(spacing: 20) {
                 // Daily Puzzle badge
@@ -338,9 +354,13 @@ struct GameView: View {
                     } label: {
                         Image(systemName: "house.fill")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(Color(white: 0.7))
+                            .foregroundColor(.white.opacity(0.7))
                             .frame(width: 46, height: 46)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.10)))
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.08))
+                                    .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+                            )
                     }
                     .buttonStyle(.plain)
 
@@ -354,28 +374,41 @@ struct GameView: View {
                                 .font(.system(size: 13, weight: .heavy, design: .rounded))
                                 .tracking(2)
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(.white.opacity(0.85))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.12)))
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.08))
+                                .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+                        )
                     }
                     .buttonStyle(.plain)
 
-                    // Play again button
+                    // Play again button — matches the splash screen's "TAP TO PLAY" gold capsule
+                    // styling (icon, gold fill/border, glow) for a consistent home/end identity.
                     Button {
                         withAnimation {
                             showNoWordsLeft = false
                             engine.reset(difficulty: selectedDifficulty)
                         }
                     } label: {
-                        Text("PLAY AGAIN")
-                            .font(.system(size: 14, weight: .black, design: .rounded))
-                            .tracking(2)
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
-                            .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 4)
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("PLAY AGAIN")
+                                .font(.system(size: 14, weight: .black, design: .rounded))
+                                .tracking(2)
+                        }
+                        .foregroundColor(Color(red: 1.0, green: 0.85, blue: 0.0))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(
+                            Capsule()
+                                .fill(Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.14))
+                                .overlay(Capsule().strokeBorder(Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.7), lineWidth: 1.5))
+                        )
+                        .shadow(color: Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.4), radius: 12, x: 0, y: 0)
                     }
                     .buttonStyle(.plain)
                 }
