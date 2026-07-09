@@ -49,6 +49,7 @@
 		AB2C3C8724A942848290B755 /* PowerUp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2218AEA354DE299AD9FFC /* PowerUp.swift */; };
 		AA4063A49FAA4A6E82B5FC31 /* AdRewardProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AE092FA3E414DD18729EA53 /* AdRewardProvider.swift */; };
 		9B78E6543AE74966B899465C /* PowerUpTrayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78CF310EF5804004909849D8 /* PowerUpTrayView.swift */; };
+		D3DD039EB8824026ADD9D62D /* DictionaryAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94A4DB200D1F463CA8801AD3 /* DictionaryAPI.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +96,7 @@
 		C1A2218AEA354DE299AD9FFC /* PowerUp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUp.swift; sourceTree = "<group>"; };
 		0AE092FA3E414DD18729EA53 /* AdRewardProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdRewardProvider.swift; sourceTree = "<group>"; };
 		78CF310EF5804004909849D8 /* PowerUpTrayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUpTrayView.swift; sourceTree = "<group>"; };
+		94A4DB200D1F463CA8801AD3 /* DictionaryAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryAPI.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,6 +131,7 @@
 		3315EB92C7AC9FCB3748C516 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				94A4DB200D1F463CA8801AD3 /* DictionaryAPI.swift */,
 				0AE092FA3E414DD18729EA53 /* AdRewardProvider.swift */,
 				6E379D33E0B517CC2BB3E4D8 /* Haptics.swift */,
 				9C8C76F3E73F4EE1A2900650 /* KidVoice.swift */,
@@ -286,6 +289,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D3DD039EB8824026ADD9D62D /* DictionaryAPI.swift in Sources */,
 				9B78E6543AE74966B899465C /* PowerUpTrayView.swift in Sources */,
 				AA4063A49FAA4A6E82B5FC31 /* AdRewardProvider.swift in Sources */,
 				AB2C3C8724A942848290B755 /* PowerUp.swift in Sources */,
