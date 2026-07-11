@@ -98,6 +98,47 @@ struct WhatsNewView: View {
     }
 }
 
+/// Permanent reference for the mechanics that first-encounter tips explain — reachable any time
+/// from the burger menu's Help section. The contextual tips fire once per install and are then
+/// gone, so this gives a lasting home for "what does a Locked tile do again?" It reuses the same
+/// `MechanicTip` title/body/emoji content, so it stays in sync automatically.
+struct MechanicsReferenceView: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                ForEach(MechanicTip.allCases) { tip in
+                    HStack(alignment: .top, spacing: 14) {
+                        Text(tip.emoji).font(.system(size: 24)).frame(width: 32)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(tip.title)
+                                .font(.system(size: 15, weight: .black, design: .rounded))
+                                .foregroundColor(Color(red: 0.18, green: 0.82, blue: 0.35))
+                            Text(tip.referenceBody)
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.82))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white.opacity(0.06))
+                            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+                    )
+                }
+            }
+            .padding(20)
+        }
+        .background(Color(red: 0.06, green: 0.06, blue: 0.09).ignoresSafeArea())
+        .navigationTitle("Mechanics")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color(red: 0.06, green: 0.06, blue: 0.09), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+    }
+}
+
 /// Decides whether the "What's New" recap should appear this launch, keyed on the app's build
 /// number. Shows once per build bump — but never on a genuinely fresh install (no prior build
 /// recorded), since new players are onboarded through first-encounter tips instead.

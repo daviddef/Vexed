@@ -44,6 +44,18 @@ enum MechanicTip: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Reference-context phrasing for the permanent Mechanics list (the `body` strings above are
+    /// worded for the in-the-moment tip, which reads oddly out of context — e.g. "You collected…").
+    var referenceBody: String {
+        switch self {
+        case .forge:      return "Scoring longer words forges fresh bonus tiles onto the board."
+        case .locked:     return "A locked tile can't join a word until you've slid a tile next to it twice — a countdown badge shows how many slides are left."
+        case .multiplier: return "Marked with a ⭐️. Any word scored through it earns double points."
+        case .combo:      return "Scoring on back-to-back moves builds a combo multiplier, up to ×3. A move with no word resets it."
+        case .doublePlay: return "Collecting a row word and column word that share a tile scores both at once for a bonus multiplier."
+        }
+    }
+
     private var seenKey: String { "mechanicTipSeen.\(rawValue)" }
     var hasBeenSeen: Bool { UserDefaults.standard.bool(forKey: seenKey) }
     func markSeen() { UserDefaults.standard.set(true, forKey: seenKey) }

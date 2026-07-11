@@ -191,6 +191,12 @@ struct BurgerMenuView: View {
                             }
                             Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
                             NavigationLink {
+                                MechanicsReferenceView()
+                            } label: {
+                                menuLinkRow(icon: "square.grid.2x2", label: "Tiles & Bonuses")
+                            }
+                            Divider().background(Color(white: 0.12)).padding(.horizontal, 14)
+                            NavigationLink {
                                 TipsView()
                                     .navigationTitle("Tips")
                                     .navigationBarTitleDisplayMode(.inline)
