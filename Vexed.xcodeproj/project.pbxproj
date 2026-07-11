@@ -50,6 +50,8 @@
 		AA4063A49FAA4A6E82B5FC31 /* AdRewardProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AE092FA3E414DD18729EA53 /* AdRewardProvider.swift */; };
 		9B78E6543AE74966B899465C /* PowerUpTrayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78CF310EF5804004909849D8 /* PowerUpTrayView.swift */; };
 		D3DD039EB8824026ADD9D62D /* DictionaryAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94A4DB200D1F463CA8801AD3 /* DictionaryAPI.swift */; };
+		64E41BB5AC5E40208CB26E2A /* MechanicTip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110905422C9649CF96DF6951 /* MechanicTip.swift */; };
+		61C3E7ECCE6A41CDAB5BCD7E /* WhatsNewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E4E5476AD854757989DF087 /* WhatsNewView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -97,6 +99,8 @@
 		0AE092FA3E414DD18729EA53 /* AdRewardProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdRewardProvider.swift; sourceTree = "<group>"; };
 		78CF310EF5804004909849D8 /* PowerUpTrayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerUpTrayView.swift; sourceTree = "<group>"; };
 		94A4DB200D1F463CA8801AD3 /* DictionaryAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryAPI.swift; sourceTree = "<group>"; };
+		110905422C9649CF96DF6951 /* MechanicTip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicTip.swift; sourceTree = "<group>"; };
+		8E4E5476AD854757989DF087 /* WhatsNewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +118,7 @@
 		2F18ADB96DC4C2827F1C7EB4 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				110905422C9649CF96DF6951 /* MechanicTip.swift */,
 				C1A2218AEA354DE299AD9FFC /* PowerUp.swift */,
 				837EFAE1B8904472C70AE458 /* DifficultyConfig.swift */,
 				6304962939BAB59E4179777F /* GameEngine.swift */,
@@ -186,6 +191,7 @@
 		911EF9586A19B63F165A687D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				8E4E5476AD854757989DF087 /* WhatsNewView.swift */,
 				78CF310EF5804004909849D8 /* PowerUpTrayView.swift */,
 				D1C9DCAF78FD1EADEF2DA098 /* AvailableWordChip.swift */,
 				C5E8A2F1B3D64709C8E1A053 /* BeaconView.swift */,
@@ -289,6 +295,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				61C3E7ECCE6A41CDAB5BCD7E /* WhatsNewView.swift in Sources */,
+				64E41BB5AC5E40208CB26E2A /* MechanicTip.swift in Sources */,
 				D3DD039EB8824026ADD9D62D /* DictionaryAPI.swift in Sources */,
 				9B78E6543AE74966B899465C /* PowerUpTrayView.swift in Sources */,
 				AA4063A49FAA4A6E82B5FC31 /* AdRewardProvider.swift in Sources */,

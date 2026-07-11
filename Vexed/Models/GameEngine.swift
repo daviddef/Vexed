@@ -47,6 +47,16 @@ final class GameEngine: ObservableObject {
         didSet { UserDefaults.standard.set(revealCharges, forKey: "revealCharges") }
     }
     @Published var bombTargetingActive: Bool = false
+
+    // MARK: - Onboarding surfacing
+    /// First-encounter mechanic tip currently on screen (nil = none). Rendered as a dismissible
+    /// contextual card; set via `offerTip`, which fires each tip at most once per install.
+    @Published var activeTip: MechanicTip? = nil
+    private var tipDismissWork: DispatchWorkItem?
+    /// Slides made since the last word was collected — drives the "struggling? try Ghost Preview"
+    /// discovery nudge in the view. Reset to 0 whenever a word is collected.
+    @Published var slidesSinceLastScore: Int = 0
+
     @Published var availableWords: [AvailableWord] = []   // words scoreable RIGHT NOW on the board
     // Words currently previewed (first tap) — empty = none. One entry for a single-word preview,
     // 2+ when the tapped tile belongs to more than one available word (e.g. a row + column word
@@ -213,6 +223,26 @@ final class GameEngine: ObservableObject {
             guard !Task.isCancelled else { return }
             self.clearHint()
         }
+    }
+
+    // MARK: - Onboarding tips
+
+    /// Surfaces a mechanic's explanation the first time it's encountered, once per install. If a
+    /// tip is already on screen this one is skipped (and NOT marked seen), so it fires the next
+    /// time that mechanic appears — naturally spacing tips out one at a time.
+    func offerTip(_ tip: MechanicTip) {
+        guard activeTip == nil, !tip.hasBeenSeen else { return }
+        tip.markSeen()
+        activeTip = tip
+        tipDismissWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.activeTip = nil }
+        tipDismissWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
+    }
+
+    func dismissTip() {
+        tipDismissWork?.cancel()
+        activeTip = nil
     }
 
     // MARK: - Power-ups
@@ -503,6 +533,7 @@ final class GameEngine: ObservableObject {
 
         Haptics.medium()
         highlightedWords = []
+        slidesSinceLastScore += 1
         addLog("Slid \(grid[dest.row][dest.col]!.letter) → (\(dest.row),\(dest.col))", .info)
         unlockAdjacentTiles(to: dest)
 
@@ -616,15 +647,19 @@ final class GameEngine: ObservableObject {
         interactionTick += 1
         rescheduleHint()
 
+        slidesSinceLastScore = 0
+
         combo += 1
         comboMultiplier = combo >= 4 ? 3.0 : combo >= 3 ? 2.0 : combo >= 2 ? 1.5 : 1.0
         dailyPeakCombo = max(dailyPeakCombo, combo)
+        if combo >= 2 { offerTip(.combo) }
 
         let doublePlayMultiplier: Double = words.count >= 3 ? 1.5 : words.count == 2 ? 1.25 : 1.0
         if words.count >= 2 {
             let label = words.count >= 3 ? "TRIPLE PLAY" : "DOUBLE PLAY"
             doublePlayMessage = "⚡ \(label)! \(words.count) words at once"
             Haptics.doublePlay()
+            offerTip(.doublePlay)
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak self] in
                 self?.doublePlayMessage = nil
             }
@@ -807,27 +842,39 @@ final class GameEngine: ObservableObject {
         emptyCells.shuffle()
         let targets = Array(emptyCells.prefix(canSpawn))
 
+        // Decide each tile's contents up front (rather than inside the staggered placement
+        // closures) so we know whether a locked/multiplier tile is in this batch and can surface
+        // the matching first-encounter tip.
+        var tiles: [Tile] = targets.map { _ in
+            var t = Tile(letter: self.randomForgeLetter())
+            t.animState = .forged
+            // Rare multiplier tile: doubles the score of any word collected through it — native to
+            // the slide mechanic (unlike a purchased booster), rewarding routing words through
+            // specific board positions rather than reacting in place.
+            t.isMultiplierTile = Double.random(in: 0...1) < 0.12
+            // Locked tile: mutually exclusive with multiplier so a single tile never stacks both
+            // bonuses/penalties. Starts requiring 2 more slides adjacent to it.
+            if !t.isMultiplierTile, Double.random(in: 0...1) < 0.12 { t.lockCount = 2 }
+            return t
+        }
+
         // Cascade the reveal — each tile pops in slightly after the last, so a big forge count
         // reads as a small event instead of an instant dump.
         let stagger = 0.09
         for (i, pos) in targets.enumerated() {
+            let tile = tiles[i]
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * stagger) { [weak self] in
-                guard let self else { return }
-                var t = Tile(letter: self.randomForgeLetter())
-                t.animState = .forged
-                // Rare multiplier tile: doubles the score of any word collected through it —
-                // native to the slide mechanic (unlike a purchased booster), so it rewards
-                // routing words through specific board positions rather than reacting in place.
-                t.isMultiplierTile = Double.random(in: 0...1) < 0.12
-                // Locked tile: mutually exclusive with multiplier so a single tile never stacks
-                // both bonuses/penalties. Starts requiring 2 more slides adjacent to it.
-                if !t.isMultiplierTile, Double.random(in: 0...1) < 0.12 {
-                    t.lockCount = 2
-                }
-                self.grid[pos.row][pos.col] = t
+                self?.grid[pos.row][pos.col] = tile
             }
         }
         let cascadeEnd = Double(max(0, targets.count - 1)) * stagger
+
+        // First-encounter tips, prioritized rarest/most-confusing first. offerTip's own guard
+        // shows only one at a time; the others fire on a later spawn.
+        if tiles.contains(where: { $0.lockCount > 0 }) { offerTip(.locked) }
+        if tiles.contains(where: { $0.isMultiplierTile }) { offerTip(.multiplier) }
+        offerTip(.forge)
+        tiles.removeAll()  // release; placement closures captured their own copies
 
         // Settle forged tiles to idle after the entry animation completes
         DispatchQueue.main.asyncAfter(deadline: .now() + cascadeEnd + 2.0) { [weak self] in
@@ -1401,6 +1448,7 @@ final class GameEngine: ObservableObject {
     private func resetRoundState() {
         selectedPosition = nil
         usedWordsThisSession = []
+        dismissTip(); slidesSinceLastScore = 0
         score = 0; wordCount = 0; lostVowels = 0
         lastWord = nil; gameOver = false; log = []; wordHistory = []
         combo = 0; comboMultiplier = 1.0; dailyPeakCombo = 0

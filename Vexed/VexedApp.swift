@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct VexedApp: App {
     @State private var showSplash = true
+    @State private var showWhatsNew = false
     @AppStorage("selectedDifficulty") private var savedDifficultyRaw: String = Difficulty.fill.rawValue
 
     init() {
@@ -30,8 +31,20 @@ struct VexedApp: App {
                         withAnimation(.easeIn(duration: 0.2)) {
                             showSplash = false
                         }
+                        // After the splash clears, catch returning players up on new mechanics.
+                        if WhatsNew.shouldPresent() {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                showWhatsNew = true
+                            }
+                        }
                     }
                     .zIndex(100)
+                }
+            }
+            .fullScreenCover(isPresented: $showWhatsNew) {
+                WhatsNewView {
+                    WhatsNew.markSeen()
+                    showWhatsNew = false
                 }
             }
         }

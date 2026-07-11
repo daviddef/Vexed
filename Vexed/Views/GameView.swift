@@ -31,7 +31,10 @@ struct GameView: View {
     @State private var definitionEntry: DefinitionEntry? = nil
     @State private var previewDefinition: String? = nil
     @State private var hintCooldown = false
+    @State private var showGhostNudge = false
     @AppStorage("kidMode") private var kidMode: Bool = false
+    @AppStorage("slidePreviewEnabled") private var slidePreviewEnabled: Bool = false
+    @AppStorage("ghostNudgeShown") private var ghostNudgeShown: Bool = false
     @AppStorage("appTheme") private var appThemeRaw: String = AppTheme.regular.rawValue
     @AppStorage("themeIsUserSet") private var themeIsUserSet: Bool = false
     private var currentTheme: AppTheme { AppTheme(rawValue: appThemeRaw) ?? .regular }
@@ -173,6 +176,18 @@ struct GameView: View {
         .preferredColorScheme(.dark)
         .ignoresSafeArea(edges: .bottom)
         .onChange(of: engine.boardVersion) { _, _ in hintCooldown = false }
+        .onChange(of: engine.slidesSinceLastScore) { _, count in
+            // One-time nudge toward Ghost Preview after a run of scoreless slides — but only in
+            // Adult Mode (Kid Mode already auto-hints), only if the feature is off, and only once
+            // per install. Suppressed while a first-encounter tip is on screen to avoid stacking.
+            guard count >= 6, !ghostNudgeShown, !slidePreviewEnabled, !kidMode,
+                  engine.activeTip == nil, !showGhostNudge else { return }
+            ghostNudgeShown = true
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { showGhostNudge = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+                withAnimation { showGhostNudge = false }
+            }
+        }
         .sheet(isPresented: $showBurgerMenu) {
             BurgerMenuView(
                 difficulty: $selectedDifficulty,
@@ -598,7 +613,85 @@ struct GameView: View {
             if let msg = engine.streakBonusMessage { streakBonusBanner(msg) }
             if let msg = engine.doublePlayMessage { doublePlayBanner(msg) }
         }
+        Group {
+            if let tip = engine.activeTip { mechanicTipCard(tip) }
+            if showGhostNudge { ghostPreviewNudge }
+        }
         wordPreviewOverlay
+    }
+
+    /// First-encounter mechanic explanation — a dismissible contextual card shown once per install
+    /// the first time a mechanic appears in live play (progressive disclosure, per the onboarding
+    /// research). Tap anywhere on it to dismiss early; otherwise it auto-dismisses.
+    @ViewBuilder private func mechanicTipCard(_ tip: MechanicTip) -> some View {
+        VStack {
+            HStack(alignment: .top, spacing: 12) {
+                Text(tip.emoji).font(.system(size: 28))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(tip.title)
+                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .foregroundColor(Color(red: 0.18, green: 0.82, blue: 0.35))
+                    Text(tip.body)
+                        .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white.opacity(0.4))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(red: 0.09, green: 0.10, blue: 0.14).opacity(0.97))
+                    .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color(red: 0.18, green: 0.82, blue: 0.35).opacity(0.55), lineWidth: 1.5))
+            )
+            .shadow(color: .black.opacity(0.4), radius: 14, x: 0, y: 6)
+            .padding(.horizontal, 20)
+            .padding(.top, 54)
+            .frame(maxWidth: 420)
+            .contentShape(Rectangle())
+            .onTapGesture { engine.dismissTip() }
+            .transition(.move(edge: .top).combined(with: .opacity))
+            Spacer()
+        }
+        .zIndex(7)
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: engine.activeTip)
+    }
+
+    /// Soft, one-time discovery nudge toward Ghost Preview after the player has slid several times
+    /// without scoring — surfaces an opt-in Settings feature that silent discovery would likely
+    /// never reach. Tapping it turns the feature on directly rather than sending them to Settings.
+    private var ghostPreviewNudge: some View {
+        VStack {
+            Spacer()
+            Button {
+                slidePreviewEnabled = true
+                withAnimation { showGhostNudge = false }
+                showToast("✨ Ghost Preview on!")
+            } label: {
+                HStack(spacing: 8) {
+                    Text("💡").font(.system(size: 16))
+                    Text("Stuck? Tap to turn on Ghost Preview hints")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(Color(red: 0.09, green: 0.10, blue: 0.14).opacity(0.97))
+                        .overlay(Capsule().strokeBorder(Color(red: 1.0, green: 0.85, blue: 0.0).opacity(0.6), lineWidth: 1.5))
+                )
+                .shadow(color: .black.opacity(0.4), radius: 12, x: 0, y: 4)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 150)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+        .zIndex(7)
     }
 
     /// Points + definition preview for the currently tap-highlighted word(s) — first tap on a word
