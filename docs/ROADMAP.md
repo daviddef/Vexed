@@ -1,6 +1,6 @@
 # VEXED! Roadmap
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 ## Shipped
 
@@ -60,7 +60,7 @@ Tetris' combo system rewards *consecutive* clears (counter resets to −1 on any
 
 - *Grounded in:* the above.
 - **Shipped 2026-07-08 — Double Play bonus**: the narrowest, lowest-risk slice of this idea. When one slide completes 2+ words simultaneously (a row word and a column word sharing the moved tile), award a 1.25x bonus (1.5x for 3+) plus a distinct banner/haptic. Purely additive, no new interaction model, so it didn't need playtesting/steering to build.
-- *Still speculative, not yet built:* let multiple words stay highlighted/previewed simultaneously (currently a new preview replaces the old one), and reward collecting 2+ *previewed* words within a short window with a "Chain Bonus." This is the bigger, riskier version of the same idea — it changes the preview interaction model (today: one word previewed at a time) and needs your call on whether that's worth the added complexity before building it.
+- **Shipped 2026-07-09 — Chain Bonus, resolved in spirit**: the "bigger, riskier version" flagged below got built via a different, lower-risk path than originally proposed. Rather than letting arbitrarily many previewed words stack, tapping a tile that belongs to 2+ available words (row + column sharing that tile) now previews and highlights all of them together, and a second tap collects them all at once via `GameEngine.collectWords(_:)`, reusing the same Double Play multiplier/banner/haptic. Narrower than "any 2+ previewed words in a time window," but delivers the core reward (collecting intersecting words together pays more) without changing the one-word-at-a-time preview model for the common case.
 
 ### C. Procedural difficulty via constraint density, not just bigger numbers
 
@@ -107,3 +107,32 @@ Researched 2026-07-08, scoped to VEXED! specifically: solo-dev, zero monetizatio
 - **Shipped 2026-07-08 — Power-ups (Bomb + Reveal)**: Adult Mode only power-up tray. **Bomb** (💣) consumes a charge to remove any one tile from the board on tap — useful for clearing a blocker with no valid word. **Reveal** (🔍) consumes a charge to trigger an immediate hint, bypassing the normal 30s cooldown. Charges are earned 3-at-a-time by watching a rewarded ad, persisted across games via `UserDefaults` (`GameEngine.bombCharges`/`revealCharges`). Kid Mode never shows the tray — no ads/purchase surface reaches Kid Mode, per Apple's Kids Category rules confirmed in the monetization research above.
   - **Not yet wired to a real ad network.** The reward flow is fully built and testable (`Vexed/Views/PowerUpTrayView.swift` shows a placeholder "watch to completion" countdown sheet), but it's backed by `MockAdRewardProvider` (`Vexed/Utilities/AdRewardProvider.swift`), which grants the reward immediately rather than showing a real ad. Swapping in Google Mobile Ads (or another network) means: (1) creating an AdMob account and ad unit IDs, (2) adding the Google Mobile Ads SDK via Swift Package Manager in Xcode (couldn't be done headlessly this session — needs the Xcode GUI or a manual `.pbxproj` package reference), (3) writing a `GADRewardedAd`-backed `AdRewardProvider` conformance and swapping it in at `PowerUpTrayView`'s `adProvider` default. Everything else (charges, UI, gameplay hooks) is already done and won't need to change.
   - **Not yet built:** more power-up types beyond Bomb/Reveal (e.g. Shuffle, Swap) — deferred until the two shipped ones prove out.
+
+## Next: Onboarding & Discoverability
+
+Researched 2026-07-09. Prompted by a simple observation: this sprint shipped seven new mechanics (Locked tiles, Multiplier tiles, Ghost Preview, No-Repeat Mode, Double Play/Chain Bonus, Bomb, Reveal) on top of an already-nontrivial base game (vowel-vanish, Tile Forge, combo multiplier, Kid/Adult modes), and **none of them have any in-game explanation** — new tile types silently appear with a small badge, and two mechanics (Ghost Preview, No-Repeat Mode) are opt-in toggles buried in Settings that a player has no reason to ever open. 104 agents, sources across game-design and UX literature.
+
+**Headline finding:** progressive disclosure — teach one mechanic at a time, in-context, at the moment it becomes relevant, not up front — is the well-corroborated consensus approach (Hyper Light Drifter's one-mechanic-per-unlock, Super Mario 3D Land's introduce→practice→twist→mastery loop). The specific numeric claims worth being skeptical of (hard "3 items" cognitive-load caps, quantified completion-rate deltas, level-gating as a proven pattern) did **not** survive adversarial verification — treat those as folklore. Critically, the two questions most specific to VEXED — does silent/discoverable design work as well as tooltips for opt-in systems, and does burying a feature in Settings suppress adoption versus a discovery prompt — have **no direct evidence either way** in this research; recommendations there are reasoned extrapolation, flagged accordingly.
+
+**Prioritized recommendations:**
+1. **(Highest, well-supported) First-encounter contextual micro-tooltips.** The first time a Locked tile, Multiplier tile, Combo multiplier, Tile Forge spawn, or Double Play/Chain Bonus occurs in a live game, show one short auto-dismissing callout ("This tile is Locked — slide past it twice to free it"), once per install. Not a settings mention, not a manual entry — shown at the exact moment it's relevant, matching Candy Crush's arrow/animation first-encounter pattern.
+2. **(High, well-supported) Don't expand "How to Play" to cover everything.** Keep that screen scoped to the core loop only (slide, form words, vowel-vanish). Let every mechanic added this sprint be taught contextually at first appearance instead — dumping full instructions up front is specifically called out as producing boring, unengaged early sessions.
+3. **(Medium, reasoned extrapolation) One-time prompt when a power-up is first earned.** When Bomb or Reveal charges are earned for the first time (not just visible as a tray icon), show a one-time contextual prompt at that moment — the point where the player can actually act on it.
+4. **(Medium, reasoned extrapolation — biggest evidence gap) Surface opt-in Settings toggles via a soft in-game prompt, not silent discovery.** E.g., after a threshold event (several moves with no scoring word), a dismissible banner: "Struggling? Try Ghost Preview hints — turn on in Settings." No source directly measured buried-vs-prompted adoption for this; flagged as the single weakest-evidenced recommendation here, worth a lightweight A/B instinct-check rather than full confidence.
+5. **(Lower priority, polish) A light "What's New" recap screen for returning players** after major updates — distinct from a first-time tutorial. Not directly sourced, but low-risk and specifically useful here since existing players who installed before this sprint also need reintroduction to 7 new mechanics, not just new players.
+
+**Explicitly not recommended:** a full replayable multi-mechanic tutorial wizard, a hard-capped "N mechanics per session" gating system, or mandatory isolated practice levels per mechanic — none had surviving evidentiary support, and the closest related claims were refuted on verification.
+
+## What's next — synthesized priority order
+
+Pulling together everything above into one list, ranked by (impact × how well-specified/low-risk the build is):
+
+1. **First-encounter tooltips for Locked/Multiplier tiles + Double Play/Chain Bonus** (Onboarding #1) — the most concrete, cheapest, best-evidenced gap. These mechanics currently have zero explanation and will read as confusing/buggy to a first-time player who hits one cold.
+2. **Ghost Preview / No-Repeat Mode discovery prompt** (Onboarding #4) — cheap to build (a dismissible banner + a UserDefaults "shown" flag), addresses two entire opt-in mechanics that are probably at ~0% adoption today since nothing points a player at Settings.
+3. **Real AdMob integration** — the power-up ad flow is fully built but stubbed; this is pure infrastructure work (AdMob account + SPM package + swap `MockAdRewardProvider`), not a design decision, and it's the one item blocking the power-up system from generating any actual revenue.
+4. **Power-up first-earn prompt** (Onboarding #3) — small addition once AdMob is live; bundle with item 3.
+5. **"What's New" recap for existing players** (Onboarding #5) — one-time screen, low cost, catches existing installs up on the whole sprint at once.
+6. **Puzzle Mode difficulty scaling** (density + letter-awkwardness) — still speculative/unproven principle, larger build, lower confidence than the above.
+7. **Lightweight Daily Puzzle leaderboard** — smaller-scoped version of the multiplayer idea that was otherwise deferred; still unscoped.
+
+Explicitly deprioritized: cosmetic theme IAP (superseded by the ads-for-power-ups pivot), Light theme polish pass, real Puzzle Mode level design — none blocked on anything, just lower leverage than the above right now.
