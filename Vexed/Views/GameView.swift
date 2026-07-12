@@ -42,6 +42,15 @@ struct GameView: View {
     /// Fun and Light both have bright/white backgrounds — text needs the same dark-on-light
     /// contrast treatment in header stats/icons regardless of which of the two is active.
     private var isLightBg: Bool { currentTheme == .fun || currentTheme == .light }
+    /// Bottom safe-area inset (home-indicator height). Used to lift the footer out of the system
+    /// gesture zone, since the main stack otherwise ignores the bottom safe area.
+    private var safeBottomInset: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })?
+            .windows.first(where: { $0.isKeyWindow })?
+            .safeAreaInsets.bottom) ?? 34
+    }
 
     var body: some View {
         mainStack
@@ -146,7 +155,11 @@ struct GameView: View {
                     wordStrip
                         .frame(height: 36)
                 }
-                .padding(.bottom, 8)
+                // Lift the footer above the home-indicator zone. The main stack ignores the bottom
+                // safe area (so the board background reaches the screen edge), but the word-pill
+                // strip must NOT sit in that zone: iOS reserves the bottom edge for its own swipe
+                // gesture, which intercepts horizontal drags and makes the strip feel unscrollable.
+                .padding(.bottom, max(8, safeBottomInset))
             }
 
             bannersLayer
