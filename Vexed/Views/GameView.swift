@@ -114,6 +114,13 @@ struct GameView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { tutorialStep = 1 }
                 }
                 applyDefaultThemeIfNeeded()
+                // Gather ad consent only in Adult Mode, once a view controller exists to present
+                // the form. Kid Mode never touches consent/ads (Apple Kids Category rules).
+                if !kidMode {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                        AdsBootstrap.gatherConsentIfNeeded()
+                    }
+                }
             }
             .onChange(of: kidMode) { _, _ in applyDefaultThemeIfNeeded() }
     }

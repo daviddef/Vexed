@@ -16,6 +16,9 @@ struct VexedApp: App {
             _ = WordValidator.forResource("kid_words")
             _ = WordValidator.forResource("words")
         }
+        // Start the ad SDK. Kid Mode never shows an ad surface, so starting the SDK is harmless
+        // there; consent gathering (which does touch the user) stays gated to Adult Mode below.
+        AdsBootstrap.startSDK()
     }
 
     var body: some Scene {
