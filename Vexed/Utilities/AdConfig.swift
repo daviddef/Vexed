@@ -5,15 +5,29 @@ enum AdConfig {
     /// AdMob application ID (also mirrored in Info.plist under `GADApplicationIdentifier`).
     static let applicationID = "ca-app-pub-4156851882993001~1849747214"
 
-    /// Rewarded ad unit ID.
-    ///
-    /// Currently Google's official **test** rewarded unit — it serves real Google test ads, earns
-    /// nothing, and is the correct, policy-safe choice for development and TestFlight (using a live
-    /// unit in beta/testing counts as invalid traffic and risks an AdMob account strike).
-    ///
-    /// ⚠️ Before the public App Store release, replace this with the real rewarded ad unit ID from
-    /// AdMob → Ad units → (your rewarded unit). It's isolated here so the swap is one line.
-    static let rewardedAdUnitID = "ca-app-pub-3940256099942544/1712485313"
+    /// Real rewarded ad unit (AdMob → Ad units). Serves only to genuine App Store installs.
+    private static let productionRewardedAdUnitID = "ca-app-pub-4156851882993001/2203581371"
+
+    /// Google's official test rewarded unit — serves real Google test ads, earns nothing. Used for
+    /// debug and TestFlight builds so our own testing never registers as invalid traffic (which
+    /// risks an AdMob account strike).
+    private static let testRewardedAdUnitID = "ca-app-pub-3940256099942544/1712485313"
+
+    /// The rewarded unit to actually request. Auto-selects by build channel so there's no flag to
+    /// remember to flip: debug and TestFlight builds get the test unit, real App Store installs get
+    /// the production unit. (TestFlight builds ship a `sandboxReceipt`; App Store builds don't.)
+    static var rewardedAdUnitID: String {
+        isTestBuild ? testRewardedAdUnitID : productionRewardedAdUnitID
+    }
+
+    /// True for debug builds and TestFlight betas, false for public App Store installs.
+    static var isTestBuild: Bool {
+        #if DEBUG
+        return true
+        #else
+        return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        #endif
+    }
 }
 
 extension UIApplication {
