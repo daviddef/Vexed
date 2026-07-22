@@ -9,6 +9,11 @@ import UIKit
 /// Only ever instantiated for the Adult-Mode power-up tray. Kid Mode has no ad surface at all
 /// (Apple Kids Category guideline 1.3), so this class is never reached from there.
 final class GoogleAdRewardProvider: NSObject, AdRewardProvider {
+    /// One shared instance for the whole app. A rewarded ad renders in a WKWebView; creating
+    /// multiple providers (e.g. if the power-up tray is torn down and rebuilt) would spin up
+    /// multiple ad WebViews and churn memory — keeping exactly one keeps that footprint minimal.
+    static let shared = GoogleAdRewardProvider()
+
     private var rewardedAd: RewardedAd?
     private var isLoading = false
     private var earnedReward = false

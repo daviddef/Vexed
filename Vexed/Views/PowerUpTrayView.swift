@@ -5,10 +5,9 @@ import SwiftUI
 /// should reach Kid Mode (Apple Kids Category guideline 1.3).
 struct PowerUpTrayView: View {
     @ObservedObject var engine: GameEngine
-    /// Held in @State so the provider (which preloads and reloads ads) survives view re-renders
-    /// instead of being recreated each time. Defaults to the real Google-backed provider; a mock
-    /// can be injected in previews/tests.
-    @State private var adProvider: AdRewardProvider = GoogleAdRewardProvider()
+    /// The app-wide shared ad provider — one ad-rendering pipeline for the whole app, so tearing
+    /// down and rebuilding this view never spins up extra ad WebViews.
+    private let adProvider: AdRewardProvider = GoogleAdRewardProvider.shared
 
     @State private var requestingAdFor: PowerUpKind? = nil
     @State private var noAdMessageVisible = false
