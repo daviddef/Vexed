@@ -5,3 +5,4 @@
 ScreenRecording_*
 xcuserdata/
 *.xcuserstate
+build/
